@@ -92,7 +92,7 @@ export class CreepManager {
       j.possibleTargets(creep).some(target => {
         if (!j.jobDone(creep, target)) {
           creep.memory.job = j.name;
-          creep.memory.job = target.id;
+          creep.memory.jobTarget = target.id;
           return true;
         } else {
           return false;

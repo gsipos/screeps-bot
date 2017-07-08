@@ -1,5 +1,5 @@
-const spawnManager = require('dist/spawn').spawnManager;
-const creepManager = require('dist/creep').creepManager;
+const spawnManager = require('spawn').spawnManager;
+const creepManager = require('creep').creepManager;
 
 module.exports.loop = function () {
 
