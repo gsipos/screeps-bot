@@ -1,0 +1,19 @@
+{
+  "name": "screeps-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsipos/screeps-bot.git"
+  },
+  "author": "Gergely Sipos",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^2.4.1"
+  },
+  "private": true
+}
