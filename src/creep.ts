@@ -18,7 +18,7 @@ export class TargetSelectionPolicy {
     let distance = targets.map(t => creep.pos.getRangeTo(t));
 
     const sumDistance = distance.reduce((a, b) => a + b, 0);
-    const weights = distance.map(d => Math.pow(sumDistance / d, 2));
+    const weights = distance.map(d => sumDistance / d);
     const sumWeight = weights.reduce((a, b) => a + b, 0);
     const weightByTarget = new WeakMap();
     targets.forEach((t, idx) => weightByTarget.set(t, weights[idx]));
