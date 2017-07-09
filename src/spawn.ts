@@ -11,15 +11,18 @@ export class SpawnManager {
 
   private creepTypes = [
     new CreepType('superior_worker', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]),
-    new CreepType('advanced_general', [WORK,WORK, CARRY, CARRY, MOVE, MOVE]),
-    new CreepType('basic_general', [WORK, CARRY, MOVE])
+    new CreepType('general_lvl5', [WORK, WORK, CARRY, CARRY, MOVE, MOVE]),
+    new CreepType('general_lvl4', [WORK, WORK, CARRY, CARRY, MOVE]),
+    new CreepType('general_lvl3', [WORK, WORK, CARRY, MOVE]),
+    new CreepType('general_lvl2', [WORK, CARRY, CARRY, MOVE]),
+    new CreepType('general_lvl1', [WORK, CARRY, MOVE])
   ];
 
   public loop() {
     for (let name in Game.spawns) {
       const spawn = Game.spawns[name];
 
-      this.spawnCreep(spawn);
+      this.spawnCreep(spawn, this.getEnergyInExtensions(spawn));
       this.showSpawningLabel(spawn);
     }
   }
@@ -35,15 +38,21 @@ export class SpawnManager {
     }
   }
 
-  private spawnCreep(spawn: Spawn) {
+  private spawnCreep(spawn: Spawn, energyInExtensions: number) {
     if (Object.keys(Game.creeps).length >= this.maxCreepCount) {
       return;
     }
-    const creep = this.creepTypes.filter(c => spawn.energy > c.cost)[0];
+    const creep = this.creepTypes.filter(c => (spawn.energy+energyInExtensions) > c.cost)[0];
     if (creep) {
       const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
       console.log('Spawning new ' + creep.name + ' ' + newName);
     }
+  }
+
+  private getEnergyInExtensions(spawn: Spawn) {
+    return spawn.room.find<Extension>(FIND_MY_STRUCTURES)
+      .filter(s => s.structureType == STRUCTURE_EXTENSION)
+      .reduce((a, s) => a + s.energy, 0);
   }
 }
 
