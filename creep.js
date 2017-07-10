@@ -89,6 +89,7 @@ class CreepManager {
             new CreepJob('fillTower', '#ffffff', 'fillTower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_TOWER]), TargetSelectionPolicy.distance),
             new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]), TargetSelectionPolicy.inOrder),
             new CreepJob('build', '#ffaa00', '🚧 build', (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance),
+            new CreepJob('smallWall', '#ffaa00', 'wall', (c, t) => c.repair(t), (c, t) => c.carry.energy == 0 || t.hits >= 500, c => this.findStructures(c, [STRUCTURE_WALL], FIND_STRUCTURES).filter(w => w.hits < 500), TargetSelectionPolicy.distance),
             new CreepJob('upgrade', '#ffaa00', '⚡ upgrade', (c, t) => c.upgradeController(t), c => c.carry.energy == 0, c => [c.room.controller], TargetSelectionPolicy.inOrder),
         ];
         this.jobsByname = {};
@@ -128,9 +129,9 @@ class CreepManager {
             call(Game.creeps[name]);
         }
     }
-    findStructures(c, structTypes) {
+    findStructures(c, structTypes, type = FIND_MY_STRUCTURES) {
         return c.room
-            .find(FIND_MY_STRUCTURES, {
+            .find(type, {
             filter: (s) => structTypes.indexOf(s.structureType) > -1
         });
     }
