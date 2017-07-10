@@ -86,6 +86,7 @@ class CreepManager {
             new CreepJob('harvest', '#ffaa00', '🔨 harvesting', (c, t) => harvestJobAction(c, t), c => c.carry.energy == c.carryCapacity, c => c.room.find(FIND_MY_CREEPS)
                 .filter(c => c.memory.job == 'mine')
                 .concat(c.room.find(FIND_SOURCES)), TargetSelectionPolicy.proportionalToDistance),
+            new CreepJob('fillTower', '#ffffff', 'fillTower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_TOWER]), TargetSelectionPolicy.distance),
             new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]), TargetSelectionPolicy.inOrder),
             new CreepJob('build', '#ffaa00', '🚧 build', (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance),
             new CreepJob('upgrade', '#ffaa00', '⚡ upgrade', (c, t) => c.upgradeController(t), c => c.carry.energy == 0, c => [c.room.controller], TargetSelectionPolicy.inOrder),
@@ -129,8 +130,9 @@ class CreepManager {
     }
     findStructures(c, structTypes) {
         return c.room
-            .find(FIND_MY_STRUCTURES)
-            .filter(s => structTypes.indexOf(s.structureType) > -1);
+            .find(FIND_MY_STRUCTURES, {
+            filter: (s) => structTypes.indexOf(s.structureType) > -1
+        });
     }
 }
 exports.CreepManager = CreepManager;
