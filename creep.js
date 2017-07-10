@@ -85,7 +85,7 @@ class CreepManager {
         this.jobs = [
             new CreepJob('harvest', '#ffaa00', '🔨 harvesting', (c, t) => harvestJobAction(c, t), c => c.carry.energy == c.carryCapacity, c => c.room.find(FIND_MY_CREEPS)
                 .filter(c => c.memory.job == 'mine')
-                .concat(c.room.find(FIND_SOURCES)), TargetSelectionPolicy.proportionalToDistance),
+                .concat(c.room.find(FIND_SOURCES)), TargetSelectionPolicy.distance),
             new CreepJob('fillTower', '#ffffff', 'fillTower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_TOWER]), TargetSelectionPolicy.distance),
             new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => this.findStructures(c, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]), TargetSelectionPolicy.inOrder),
             new CreepJob('build', '#ffaa00', '🚧 build', (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance),
