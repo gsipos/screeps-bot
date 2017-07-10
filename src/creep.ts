@@ -100,6 +100,13 @@ export class CreepManager {
       TargetSelectionPolicy.proportionalToDistance
     ),
 
+    new CreepJob('fillTower', '#ffffff', 'fillTower',
+      (c, t) => c.transfer(t, RESOURCE_ENERGY),
+      (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
+      c => this.findStructures(c, [STRUCTURE_TOWER]),
+      TargetSelectionPolicy.distance
+    ),
+
     new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn',
       (c, t) => c.transfer(t, RESOURCE_ENERGY),
       (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
@@ -162,7 +169,7 @@ export class CreepManager {
     );
   }
 
-  private foreEachCreep(call: (c:Creep) => any) {
+  private foreEachCreep(call: (c: Creep) => any) {
     for (let name in Game.creeps) {
       call(Game.creeps[name]);
     }
@@ -170,8 +177,9 @@ export class CreepManager {
 
   private findStructures(c: Creep, structTypes: string[]) {
     return c.room
-      .find<Structure>(FIND_MY_STRUCTURES)
-      .filter(s => structTypes.indexOf(s.structureType) > -1);
+      .find<Structure>(FIND_MY_STRUCTURES, {
+        filter: (s: Structure) => structTypes.indexOf(s.structureType) > -1
+      });
   }
 
 }
