@@ -97,7 +97,7 @@ export class CreepManager {
       c => c.room.find<Creep>(FIND_MY_CREEPS)
         .filter(c => c.memory.job == 'mine')
         .concat(c.room.find(FIND_SOURCES) as any[]),
-      TargetSelectionPolicy.distance
+      TargetSelectionPolicy.proportionalToDistance
     ),
 
     new CreepJob('fillTower', '#ffffff', 'fillTower',
