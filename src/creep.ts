@@ -121,6 +121,13 @@ export class CreepManager {
       TargetSelectionPolicy.distance
     ),
 
+    new CreepJob('smallWall', '#ffaa00', 'wall',
+      (c, t) => c.repair(t),
+      (c, t) => c.carry.energy == 0 || t.hits >= 500,
+      c => this.findStructures(c, [STRUCTURE_WALL], FIND_STRUCTURES).filter(w => w.hits < 500),
+      TargetSelectionPolicy.distance
+    ),
+
     new CreepJob('upgrade', '#ffaa00', '⚡ upgrade',
       (c, t) => c.upgradeController(t),
       c => c.carry.energy == 0,
@@ -175,9 +182,9 @@ export class CreepManager {
     }
   }
 
-  private findStructures(c: Creep, structTypes: string[]) {
+  private findStructures(c: Creep, structTypes: string[], type: number = FIND_MY_STRUCTURES) {
     return c.room
-      .find<Structure>(FIND_MY_STRUCTURES, {
+      .find<Structure>(type, {
         filter: (s: Structure) => structTypes.indexOf(s.structureType) > -1
       });
   }
