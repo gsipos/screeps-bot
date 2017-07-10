@@ -1,5 +1,6 @@
 const spawnManager = require('spawn').spawnManager;
 const creepManager = require('creep').creepManager;
+const towerManager = require('tower').towerManager;
 
 module.exports.loop = function () {
 
@@ -12,4 +13,5 @@ module.exports.loop = function () {
 
   spawnManager.loop();
   creepManager.loop();
+  towerManager.loop();
 }
