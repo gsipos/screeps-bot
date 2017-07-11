@@ -10,11 +10,11 @@ export class SpawnManager {
   private maxCreepCount = 10;
 
   private creepTypes = [
-    new CreepType('superior_worker', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]),
-    new CreepType('general_lvl5', [WORK, WORK, CARRY, CARRY, MOVE, MOVE]),
-    new CreepType('general_lvl4', [WORK, WORK, CARRY, CARRY, MOVE]),
-    new CreepType('general_lvl3', [WORK, WORK, CARRY, MOVE]),
-    new CreepType('general_lvl2', [WORK, CARRY, CARRY, MOVE]),
+    new CreepType('superior_worker', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
+    new CreepType('general_lvl5', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
+    new CreepType('general_lvl4', [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
+    new CreepType('general_lvl3', [WORK, WORK, CARRY, MOVE, MOVE, MOVE]),
+    new CreepType('general_lvl2', [WORK, CARRY, CARRY, MOVE, MOVE]),
     new CreepType('general_lvl1', [WORK, CARRY, MOVE])
   ];
 
