@@ -94,9 +94,7 @@ export class CreepManager {
     new CreepJob('harvest', '#ffaa00', '🔨 harvesting',
       (c, t) => harvestJobAction(c, t),
       c => c.carry.energy == c.carryCapacity,
-      c => c.room.find<Creep>(FIND_MY_CREEPS)
-        .filter(c => c.memory.job == 'mine')
-        .concat(c.room.find(FIND_SOURCES) as any[]),
+      c => this.getSourcesForRoom(c.room),
       TargetSelectionPolicy.proportionalToDistance
     ),
 
@@ -187,6 +185,14 @@ export class CreepManager {
       .find<Structure>(type, {
         filter: (s: Structure) => structTypes.indexOf(s.structureType) > -1
       });
+  }
+
+  private sourcesByRoom = new Map<Room, Source[]>();
+  private getSourcesForRoom(room: Room): Source[] {
+    if (!this.sourcesByRoom.has(room)) {
+      this.sourcesByRoom.set(room, room.find<Source>(FIND_SOURCES));
+    }
+    return this.sourcesByRoom.get(room) as Source[];
   }
 
 }
