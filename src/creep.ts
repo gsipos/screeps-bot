@@ -182,6 +182,12 @@ export class CreepManager {
     }
   }
 
+  public getCreepsByRole(role: string) {
+    return Object.keys(Game.creeps)
+      .map(c => Game.creeps[c])
+      .filter(c => c.memory.role === role);
+  }
+
   private findStructures(c: Creep, structTypes: string[], type: number = FIND_MY_STRUCTURES) {
     return c.room
       .find<Structure>(type, {
@@ -192,3 +198,11 @@ export class CreepManager {
 }
 
 export const creepManager = new CreepManager();
+
+class MinerCreepManager {
+
+  public loop() {
+
+  }
+
+}
