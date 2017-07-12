@@ -1,3 +1,4 @@
+import { findStructures } from './util';
 
 export class TargetSelectionPolicy {
   public static random(targets: any[]) {
@@ -187,10 +188,7 @@ export class CreepManager {
   }
 
   private findStructures(c: Creep, structTypes: string[], type: number = FIND_MY_STRUCTURES) {
-    return c.room
-      .find<Structure>(type, {
-        filter: (s: Structure) => structTypes.indexOf(s.structureType) > -1
-      });
+    return findStructures(c.room, structTypes, type); // TODO
   }
 
   private sourcesByRoom = new Map<Room, Source[]>();

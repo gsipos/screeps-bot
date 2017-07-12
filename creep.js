@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const util_1 = require("./util");
 class TargetSelectionPolicy {
     static random(targets) {
         return targets.sort(() => Math.floor((Math.random() * 3)) - 1);
@@ -128,11 +129,13 @@ class CreepManager {
             call(Game.creeps[name]);
         }
     }
+    getCreepsByRole(role) {
+        return Object.keys(Game.creeps)
+            .map(c => Game.creeps[c])
+            .filter(c => c.memory.role === role);
+    }
     findStructures(c, structTypes, type = FIND_MY_STRUCTURES) {
-        return c.room
-            .find(type, {
-            filter: (s) => structTypes.indexOf(s.structureType) > -1
-        });
+        return util_1.findStructures(c.room, structTypes, type); // TODO
     }
     getSourcesForRoom(room) {
         if (!this.sourcesByRoom.has(room)) {
@@ -143,3 +146,7 @@ class CreepManager {
 }
 exports.CreepManager = CreepManager;
 exports.creepManager = new CreepManager();
+class MinerCreepManager {
+    loop() {
+    }
+}

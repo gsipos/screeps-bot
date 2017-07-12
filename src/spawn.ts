@@ -6,6 +6,22 @@ export class CreepType {
   }
 }
 
+class MinerCreep extends CreepType {
+  constructor(lvl: number) {
+    const body = new Array(lvl).map<string>(x => WORK).concat([CARRY, MOVE]);
+    super('miner', body);
+  }
+}
+
+class CarryCreep extends CreepType {
+  constructor(lvl: number) {
+    const carryPart = new Array(lvl).map<string>(x => CARRY);
+    const movePart = new Array(lvl).map<string>(x => MOVE);
+    const body = carryPart.concat(movePart);
+    super('carry', body);
+  }
+}
+
 export class SpawnManager {
   private maxCreepCount = 10;
 
