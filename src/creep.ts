@@ -89,6 +89,8 @@ function harvestJobAction(creep: Creep, target: any) {
   return result;
 }
 
+type JobsByName = { [name: string]: CreepJob };
+
 export class CreepManager {
   public jobs: CreepJob[] = [
 
@@ -135,7 +137,7 @@ export class CreepManager {
     ),
 
   ];
-  public jobsByname: { [name: string]: CreepJob } = {};
+  public jobsByname: JobsByName = {};
 
   constructor() {
     this.jobs.forEach(j => this.jobsByname[j.name] = j);
@@ -144,26 +146,36 @@ export class CreepManager {
   public loop() {
     this.foreEachCreep(creep => {
       if (!creep.memory.job) {
-        this.assignJob(creep);
+        this.assignJob(creep, this.jobs);
       }
       if (creep.memory.job) {
-        this.executeJob(creep);
+        this.executeJob(creep, this.jobsByname);
       }
+      this.processCreep(creep, this.jobs);
     });
   }
 
-  private executeJob(creep: Creep) {
-    const job = this.jobsByname[creep.memory.job];
-    console.log('execute job', creep.name, job.name);
+  public processCreep(creep: Creep, jobs: CreepJob[]) {
+    const jobsByName: JobsByName = {};
+    jobs.forEach(j => jobsByName[j.name] = j); // TODO
+
+    if (!creep.memory.job) {
+      this.assignJob(creep, jobs);
+    }
+    if (creep.memory.job) {
+      this.executeJob(creep, this.jobsByname);
+    }
+  }
+
+  private executeJob(creep: Creep, jobsByName: JobsByName) {
+    const job = jobsByName[creep.memory.job];
     this.jobsByname[creep.memory.job].execute(creep, creep.memory.jobTarget);
   }
 
-  private assignJob(creep: Creep) {
-    this.jobs.some(j =>
+  private assignJob(creep: Creep, jobs: CreepJob[]) {
+    jobs.some(j =>
       j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
-        console.log(creep.name, j.name, target.id, j.jobDone(creep, target));
         if (!j.jobDone(creep, target)) {
-
           creep.memory.job = j.name;
           creep.memory.jobTarget = target.id;
           creep.say(j.say);

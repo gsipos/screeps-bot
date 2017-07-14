@@ -98,21 +98,30 @@ class CreepManager {
     loop() {
         this.foreEachCreep(creep => {
             if (!creep.memory.job) {
-                this.assignJob(creep);
+                this.assignJob(creep, this.jobs);
             }
             if (creep.memory.job) {
-                this.executeJob(creep);
+                this.executeJob(creep, this.jobsByname);
             }
+            this.processCreep(creep, this.jobs);
         });
     }
-    executeJob(creep) {
-        const job = this.jobsByname[creep.memory.job];
-        console.log('execute job', creep.name, job.name);
+    processCreep(creep, jobs) {
+        const jobsByName = {};
+        jobs.forEach(j => jobsByName[j.name] = j); // TODO
+        if (!creep.memory.job) {
+            this.assignJob(creep, jobs);
+        }
+        if (creep.memory.job) {
+            this.executeJob(creep, this.jobsByname);
+        }
+    }
+    executeJob(creep, jobsByName) {
+        const job = jobsByName[creep.memory.job];
         this.jobsByname[creep.memory.job].execute(creep, creep.memory.jobTarget);
     }
-    assignJob(creep) {
-        this.jobs.some(j => j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
-            console.log(creep.name, j.name, target.id, j.jobDone(creep, target));
+    assignJob(creep, jobs) {
+        jobs.some(j => j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
             if (!j.jobDone(creep, target)) {
                 creep.memory.job = j.name;
                 creep.memory.jobTarget = target.id;

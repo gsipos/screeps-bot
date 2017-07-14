@@ -1,3 +1,4 @@
+import { roomManager } from './room';
 
 export class CreepType {
   public readonly cost: number;
@@ -23,7 +24,7 @@ class CarryCreep extends CreepType {
 }
 
 export class SpawnManager {
-  private maxCreepCount = 10;
+  private maxCreepCount = 15;
 
   private creepTypes = [
     new CreepType('superior_worker', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
@@ -34,9 +35,23 @@ export class SpawnManager {
     new CreepType('general_lvl1', [WORK, CARRY, MOVE])
   ];
 
+  private minerCreepTypes = new Array(8).map((v, idx) => new MinerCreep(8 - idx));
+  private carryCreepTypes = new Array(5).map((v, idx) => new CarryCreep(5 - idx));
+
+  private creeps: Creep[];
+
   public loop() {
+    this.creeps = Object.keys(Game.creeps).map(n => Game.creeps[n]);
+
     for (let name in Game.spawns) {
       const spawn = Game.spawns[name];
+      if (spawn.spawning) {
+        continue;
+      }
+      const roomCreeps = this.getCreepsByRoom(spawn.room);
+      if (this.buildMinersAndCarriers(spawn, roomCreeps)) {
+        continue;
+      };
 
       this.spawnCreep(spawn, this.getEnergyInExtensions(spawn));
       this.showSpawningLabel(spawn);
@@ -69,6 +84,33 @@ export class SpawnManager {
     return spawn.room.find<Extension>(FIND_MY_STRUCTURES)
       .filter(s => s.structureType == STRUCTURE_EXTENSION)
       .reduce((a, s) => a + s.energy, 0);
+  }
+
+  private buildMinersAndCarriers(spawn: Spawn, creeps: Creep[]) {
+    const maxMiners = Math.min(5, roomManager.getMiningFlags(spawn.room).length);
+    const minerCreeps = creeps.filter(c => c.memory.role === 'miner');
+    const carryCreeps = creeps.filter(c => c.memory.role === 'carry');
+
+    if (minerCreeps.length === maxMiners || carryCreeps.length >= maxMiners) {
+      return false;
+    }
+
+    let toBuildType: CreepType[];
+    if (minerCreeps.length <= carryCreeps.length && minerCreeps.length < maxMiners) {
+      toBuildType = this.minerCreepTypes;
+    } else {
+      toBuildType = this.carryCreepTypes;
+    }
+
+    const affordableLevel = toBuildType.filter(t => spawn.canCreateCreep(t.body))[0];
+    if (affordableLevel) {
+      spawn.createCreep(affordableLevel.body, undefined, { role: affordableLevel.name });
+    }
+    return true;
+  }
+
+  private getCreepsByRoom(room: Room) {
+    return this.creeps.filter(c => c.room === room);
   }
 }
 
