@@ -5,6 +5,9 @@ class RoomManager {
         this.miningFlagsByRoom = new Map();
     }
     initRooms() {
+        if (!Memory.flags) {
+            Memory.flags = {};
+        }
         for (let name in Game.rooms) {
             const room = Game.rooms[name];
             if (!room.memory.miningFlags) {

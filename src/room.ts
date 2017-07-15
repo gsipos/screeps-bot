@@ -2,6 +2,9 @@
 class RoomManager {
 
   public initRooms() {
+    if (!Memory.flags) {
+      Memory.flags = {};
+    }
     for (let name in Game.rooms) {
       const room = Game.rooms[name];
 
