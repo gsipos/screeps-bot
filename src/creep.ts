@@ -1,3 +1,4 @@
+import { findStructures } from './util';
 
 export class TargetSelectionPolicy {
   public static random(targets: any[]) {
@@ -88,27 +89,15 @@ function harvestJobAction(creep: Creep, target: any) {
   return result;
 }
 
+type JobsByName = { [name: string]: CreepJob };
+
 export class CreepManager {
   public jobs: CreepJob[] = [
 
-    new CreepJob('harvest', '#ffaa00', '🔨 harvesting',
-      (c, t) => harvestJobAction(c, t),
-      c => c.carry.energy == c.carryCapacity,
-      c => this.getSourcesForRoom(c.room),
-      TargetSelectionPolicy.proportionalToDistance
-    ),
-
-    new CreepJob('fillTower', '#ffffff', 'fillTower',
-      (c, t) => c.transfer(t, RESOURCE_ENERGY),
-      (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
-      c => this.findStructures(c, [STRUCTURE_TOWER]),
-      TargetSelectionPolicy.distance
-    ),
-
-    new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn',
-      (c, t) => c.transfer(t, RESOURCE_ENERGY),
-      (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
-      c => this.findStructures(c, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]),
+    new CreepJob('idle', '#ffaa00', 'idle',
+      c => 0,
+      c => (c.carry.energy || 0) > 0,
+      c => [c],
       TargetSelectionPolicy.inOrder
     ),
 
@@ -126,6 +115,13 @@ export class CreepManager {
       TargetSelectionPolicy.distance
     ),
 
+    new CreepJob('maintainRoad', '#ffaa00', 'road',
+      (c, t) => c.repair(t),
+      (c, t) => c.carry.energy == 0 || t.hits === t.hitsMax,
+      c => this.findStructures(c, [STRUCTURE_ROAD], FIND_STRUCTURES).filter(w => w.hits < w.hitsMax),
+      TargetSelectionPolicy.distance
+    ),
+
     new CreepJob('upgrade', '#ffaa00', '⚡ upgrade',
       (c, t) => c.upgradeController(t),
       c => c.carry.energy == 0,
@@ -134,35 +130,34 @@ export class CreepManager {
     ),
 
   ];
-  public jobsByname: { [name: string]: CreepJob } = {};
-
-  constructor() {
-    this.jobs.forEach(j => this.jobsByname[j.name] = j);
-  }
 
   public loop() {
     this.foreEachCreep(creep => {
-      if (!creep.memory.job) {
-        this.assignJob(creep);
-      }
-      if (creep.memory.job) {
-        this.executeJob(creep);
-      }
+      this.processCreep(creep, this.jobs);
     });
   }
 
-  private executeJob(creep: Creep) {
-    const job = this.jobsByname[creep.memory.job];
-    console.log('execute job', creep.name, job.name);
-    this.jobsByname[creep.memory.job].execute(creep, creep.memory.jobTarget);
+  public processCreep(creep: Creep, jobs: CreepJob[]) {
+    const jobsByName: JobsByName = {};
+    jobs.forEach(j => jobsByName[j.name] = j); // TODO
+
+    if (!creep.memory.job) {
+      this.assignJob(creep, jobs);
+    }
+    if (creep.memory.job) {
+      this.executeJob(creep, jobsByName);
+    }
   }
 
-  private assignJob(creep: Creep) {
-    this.jobs.some(j =>
-      j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
-        console.log(creep.name, j.name, target.id, j.jobDone(creep, target));
-        if (!j.jobDone(creep, target)) {
+  private executeJob(creep: Creep, jobsByName: JobsByName) {
+    const job = jobsByName[creep.memory.job];
+    jobsByName[creep.memory.job].execute(creep, creep.memory.jobTarget);
+  }
 
+  private assignJob(creep: Creep, jobs: CreepJob[]) {
+    jobs.some(j =>
+      j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
+        if (!j.jobDone(creep, target)) {
           creep.memory.job = j.name;
           creep.memory.jobTarget = target.id;
           creep.say(j.say);
@@ -175,16 +170,21 @@ export class CreepManager {
   }
 
   private foreEachCreep(call: (c: Creep) => any) {
-    for (let name in Game.creeps) {
-      call(Game.creeps[name]);
-    }
+      Object
+        .keys(Game.creeps)
+        .map(name => Game.creeps[name])
+        .filter(c => c.memory.role === 'general')
+        .forEach(c => call(c));
+  }
+
+  public getCreepsByRole(role: string) {
+    return Object.keys(Game.creeps)
+      .map(c => Game.creeps[c])
+      .filter(c => c.memory.role === role);
   }
 
   private findStructures(c: Creep, structTypes: string[], type: number = FIND_MY_STRUCTURES) {
-    return c.room
-      .find<Structure>(type, {
-        filter: (s: Structure) => structTypes.indexOf(s.structureType) > -1
-      });
+    return findStructures(c.room, structTypes, type); // TODO
   }
 
   private sourcesByRoom = new Map<Room, Source[]>();
@@ -198,3 +198,11 @@ export class CreepManager {
 }
 
 export const creepManager = new CreepManager();
+
+class MinerCreepManager {
+
+  public loop() {
+
+  }
+
+}
