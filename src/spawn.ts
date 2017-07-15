@@ -109,15 +109,15 @@ export class SpawnManager {
 
     console.log('maxMiner', maxMiners, minerCreeps.length, carryCreeps.length);
 
-    if (minerCreeps.length === maxMiners && carryCreeps.length >= maxMiners) {
+    if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
       return false;
     }
 
     let toBuildType: CreepType[];
-    const moreOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
+    const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
     const noMaxMiners = minerCreeps.length < maxMiners;
     const noContainer = !findStructures(spawn.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES).length;
-    if ((moreOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
+    if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
       toBuildType = this.minerCreepTypes;
       console.log('Build: miner');
     } else {

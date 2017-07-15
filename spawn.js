@@ -95,14 +95,14 @@ class SpawnManager {
         const minerCreeps = creeps.filter(c => c.memory.role === 'miner');
         const carryCreeps = creeps.filter(c => c.memory.role === 'carry');
         console.log('maxMiner', maxMiners, minerCreeps.length, carryCreeps.length);
-        if (minerCreeps.length === maxMiners && carryCreeps.length >= maxMiners) {
+        if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
             return false;
         }
         let toBuildType;
-        const moreOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
+        const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
         const noMaxMiners = minerCreeps.length < maxMiners;
         const noContainer = !util_1.findStructures(spawn.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES).length;
-        if (moreOrEqualMinersThanCarrys && noMaxMiners || noContainer) {
+        if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
             toBuildType = this.minerCreepTypes;
             console.log('Build: miner');
         }
