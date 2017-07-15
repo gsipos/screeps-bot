@@ -3,9 +3,9 @@ import { findStructures } from './util';
 
 const energy = new CreepJob('energy', '#ffaa00', 'energy',
   (c, t) => c.withdraw(t, RESOURCE_ENERGY),
-  (c, t) => (c.carry.energy || 0) > 0 || t.energy === 0,
-  c => findStructures(c.room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE]),
-  TargetSelectionPolicy.distance
+  (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0,
+  c => findStructures(c.room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES).filter((s: Container | Storage) => s.store[RESOURCE_ENERGY] > 0),
+  targets => targets.sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY])
 );
 
 const fillSpawnOrExtension = new CreepJob('fillSpawn', '#ffffff', 'fill:spawn',
@@ -25,7 +25,9 @@ const fillTower = new CreepJob('fillTower', '#ffffff', 'fill:tower',
 const fillCreeps = new CreepJob('fillCreep', '#ee00aa', 'fill:creep',
   (c, t) => c.transfer(t, RESOURCE_ENERGY),
   (c, t: Creep) => t.carry.energy === t.carryCapacity || !!c.carry.energy,
-  c => c.room.find(FIND_MY_CREEPS, {filter: (t: Creep) => 'miner carry'.includes(t.memory.role)}),
+  c => c.room.find<Creep>(FIND_MY_CREEPS)
+    .filter(creep => creep.memory.role !== 'miner')
+    .filter(creep => creep.memory.role !== 'carry'),
   TargetSelectionPolicy.distance
 );
 

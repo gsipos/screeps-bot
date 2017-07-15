@@ -25,10 +25,12 @@ class RoomManager {
         return terrain.filter(t => t.terrain !== 'wall');
     }
     getMiningFlags(room) {
-        if (!this.miningFlagsByRoom.has(room)) {
-            this.miningFlagsByRoom.set(room, room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' }));
+        return room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' });
+        /*if (!this.miningFlagsByRoom.has(room)) {
+          this.miningFlagsByRoom.set(room, room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
         }
-        return this.miningFlagsByRoom.get(room);
+        return this.miningFlagsByRoom.get(room) as Flag[];
+    */
     }
 }
 exports.roomManager = new RoomManager();

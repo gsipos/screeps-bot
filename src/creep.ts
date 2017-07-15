@@ -94,24 +94,10 @@ type JobsByName = { [name: string]: CreepJob };
 export class CreepManager {
   public jobs: CreepJob[] = [
 
-    new CreepJob('harvest', '#ffaa00', '🔨 harvesting',
-      (c, t) => harvestJobAction(c, t),
-      c => c.carry.energy == c.carryCapacity,
-      c => this.getSourcesForRoom(c.room),
-      TargetSelectionPolicy.proportionalToDistance
-    ),
-
-    new CreepJob('fillTower', '#ffffff', 'fillTower',
-      (c, t) => c.transfer(t, RESOURCE_ENERGY),
-      (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
-      c => this.findStructures(c, [STRUCTURE_TOWER]),
-      TargetSelectionPolicy.distance
-    ),
-
-    new CreepJob('fillSpawn', '#ffffff', '🏭 fillSpawn',
-      (c, t) => c.transfer(t, RESOURCE_ENERGY),
-      (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
-      c => this.findStructures(c, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]),
+    new CreepJob('idle', '#ffaa00', 'idle',
+      c => 0,
+      c => (c.carry.energy || 0) > 0,
+      c => [c],
       TargetSelectionPolicy.inOrder
     ),
 
@@ -129,6 +115,13 @@ export class CreepManager {
       TargetSelectionPolicy.distance
     ),
 
+    new CreepJob('maintainRoad', '#ffaa00', 'road',
+      (c, t) => c.repair(t),
+      (c, t) => c.carry.energy == 0 || t.hits === t.hitsMax,
+      c => this.findStructures(c, [STRUCTURE_ROAD], FIND_STRUCTURES).filter(w => w.hits < w.hitsMax),
+      TargetSelectionPolicy.distance
+    ),
+
     new CreepJob('upgrade', '#ffaa00', '⚡ upgrade',
       (c, t) => c.upgradeController(t),
       c => c.carry.energy == 0,
@@ -137,20 +130,9 @@ export class CreepManager {
     ),
 
   ];
-  public jobsByname: JobsByName = {};
-
-  constructor() {
-    this.jobs.forEach(j => this.jobsByname[j.name] = j);
-  }
 
   public loop() {
     this.foreEachCreep(creep => {
-      if (!creep.memory.job) {
-        this.assignJob(creep, this.jobs);
-      }
-      if (creep.memory.job) {
-        this.executeJob(creep, this.jobsByname);
-      }
       this.processCreep(creep, this.jobs);
     });
   }
@@ -163,13 +145,13 @@ export class CreepManager {
       this.assignJob(creep, jobs);
     }
     if (creep.memory.job) {
-      this.executeJob(creep, this.jobsByname);
+      this.executeJob(creep, jobsByName);
     }
   }
 
   private executeJob(creep: Creep, jobsByName: JobsByName) {
     const job = jobsByName[creep.memory.job];
-    this.jobsByname[creep.memory.job].execute(creep, creep.memory.jobTarget);
+    jobsByName[creep.memory.job].execute(creep, creep.memory.jobTarget);
   }
 
   private assignJob(creep: Creep, jobs: CreepJob[]) {
@@ -188,9 +170,11 @@ export class CreepManager {
   }
 
   private foreEachCreep(call: (c: Creep) => any) {
-    for (let name in Game.creeps) {
-      call(Game.creeps[name]);
-    }
+      Object
+        .keys(Game.creeps)
+        .map(name => Game.creeps[name])
+        .filter(c => c.memory.role === 'general')
+        .forEach(c => call(c));
   }
 
   public getCreepsByRole(role: string) {

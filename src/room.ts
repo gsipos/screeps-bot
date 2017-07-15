@@ -26,12 +26,13 @@ class RoomManager {
 
   private miningFlagsByRoom = new Map<Room, Flag[]>();
   public getMiningFlags(room: Room): Flag[] {
-    if (!this.miningFlagsByRoom.has(room)) {
+    return room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' });
+    /*if (!this.miningFlagsByRoom.has(room)) {
       this.miningFlagsByRoom.set(room, room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
     }
     return this.miningFlagsByRoom.get(room) as Flag[];
+*/
   }
-
 }
 
 export const roomManager = new RoomManager();

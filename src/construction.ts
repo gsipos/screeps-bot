@@ -10,7 +10,7 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room: Room) {
-    const containers = findStructures<Container>(room, [STRUCTURE_CONTAINER]);
+    const containers = findStructures<Container>(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
     const containersUnderConstruction = findStructures(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
     const currentContainers = containers.length + containersUnderConstruction.length;
 

@@ -10,7 +10,7 @@ class ConstructionManager {
         }
     }
     buildMiningContainers(room) {
-        const containers = util_1.findStructures(room, [STRUCTURE_CONTAINER]);
+        const containers = util_1.findStructures(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
         const containersUnderConstruction = util_1.findStructures(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
         const currentContainers = containers.length + containersUnderConstruction.length;
         if (currentContainers === 5) {
