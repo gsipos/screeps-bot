@@ -32,7 +32,7 @@ class CarryCreep extends CreepType {
 }
 
 export class SpawnManager {
-  private maxCreepCount = 15;
+  private maxCreepCount = 13;
 
   private creepTypes = [
     new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
@@ -116,7 +116,8 @@ export class SpawnManager {
     let toBuildType: CreepType[];
     const moreOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
     const noMaxMiners = minerCreeps.length < maxMiners;
-    if (moreOrEqualMinersThanCarrys && noMaxMiners) {
+    const noContainer = !findStructures(spawn.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES).length;
+    if (moreOrEqualMinersThanCarrys && noMaxMiners || noContainer) {
       toBuildType = this.minerCreepTypes;
       console.log('Build: miner');
     } else {

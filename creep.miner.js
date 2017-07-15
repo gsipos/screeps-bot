@@ -37,7 +37,7 @@ class MinerCreepManager {
             .filter(c => !c.spawning)
             .filter(c => c.memory.role === 'miner');
         minerCreeps.forEach(miner => {
-            if (!miner.memory.source) {
+            if (!miner.memory.source || !Game.getObjectById(miner.memory.container)) {
                 this.chooseMiningPosition(miner, minerCreeps);
             }
             creep_1.creepManager.processCreep(miner, this.minerJobs);

@@ -17,14 +17,14 @@ const fillSpawnOrExtension = new CreepJob('fillSpawn', '#ffffff', 'fill:spawn',
 
 const fillTower = new CreepJob('fillTower', '#ffffff', 'fill:tower',
   (c, t) => c.transfer(t, RESOURCE_ENERGY),
-  (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity,
+  (c, t) => c.carry.energy === 0 || t.energy === t.energyCapacity,
   c => findStructures(c.room, [STRUCTURE_TOWER]),
   TargetSelectionPolicy.distance
 );
 
 const fillCreeps = new CreepJob('fillCreep', '#ee00aa', 'fill:creep',
   (c, t) => c.transfer(t, RESOURCE_ENERGY),
-  (c, t: Creep) => t.carry.energy === t.carryCapacity || !!c.carry.energy,
+  (c, t: Creep) => c.carry.energy === 0 || (t.carry.energy || 0) > 0,
   c => c.room.find<Creep>(FIND_MY_CREEPS)
     .filter(creep => creep.memory.role !== 'miner')
     .filter(creep => creep.memory.role !== 'carry'),

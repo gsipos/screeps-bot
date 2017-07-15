@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const room_1 = require("./room");
+const util_1 = require("./util");
 class CreepType {
     constructor(name, body) {
         this.name = name;
@@ -32,7 +33,7 @@ class CarryCreep extends CreepType {
 }
 class SpawnManager {
     constructor() {
-        this.maxCreepCount = 15;
+        this.maxCreepCount = 13;
         this.creepTypes = [
             new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
             new CreepType('general', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
@@ -100,7 +101,8 @@ class SpawnManager {
         let toBuildType;
         const moreOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
         const noMaxMiners = minerCreeps.length < maxMiners;
-        if (moreOrEqualMinersThanCarrys && noMaxMiners) {
+        const noContainer = !util_1.findStructures(spawn.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES).length;
+        if (moreOrEqualMinersThanCarrys && noMaxMiners || noContainer) {
             toBuildType = this.minerCreepTypes;
             console.log('Build: miner');
         }
