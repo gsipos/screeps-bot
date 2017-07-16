@@ -34,6 +34,8 @@ class CarryCreep extends CreepType {
 class SpawnManager {
     constructor() {
         this.maxCreepCount = 13;
+        this.generalCreepCount = 3;
+        this.carryCreepCount = 10;
         this.creepTypes = [
             new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
             new CreepType('general', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
@@ -58,7 +60,14 @@ class SpawnManager {
                 continue;
             }
             ;
-            this.spawnGeneralCreep(spawn, extensionEnergy);
+            if (this.spawnGeneralCreep(spawn, extensionEnergy, roomCreeps)) {
+                continue;
+            }
+            ;
+            if (this.spawnCarriers(spawn, extensionEnergy, roomCreeps)) {
+                continue;
+            }
+            ;
             this.showSpawningLabel(spawn);
         }
     }
@@ -68,18 +77,36 @@ class SpawnManager {
             spawn.room.visual.text('🛠️' + spawningCreep.memory.role, spawn.pos.x + 1, spawn.pos.y, { align: 'left', opacity: 0.8 });
         }
     }
-    spawnGeneralCreep(spawn, energyInExtensions) {
+    spawnGeneralCreep(spawn, energyInExtensions, roomCreeps) {
+        const generalCreeps = roomCreeps.filter(c => c.memory.role === 'general');
         if (spawn.spawning) {
-            return;
+            return false;
         }
-        if (Object.keys(Game.creeps).length >= this.maxCreepCount) {
-            return;
+        if (generalCreeps.length >= this.generalCreepCount) {
+            return false;
         }
         const creep = this.creepTypes.filter(c => (spawn.energy + energyInExtensions) > c.cost)[0];
         if (creep) {
             const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
             console.log('Spawning new ' + creep.name + ' ' + newName);
+            return true;
         }
+    }
+    spawnCarriers(spawn, energyInExtensions, roomCreeps) {
+        const carryCreeps = roomCreeps.filter(c => c.memory.role === 'carry');
+        if (spawn.spawning) {
+            return false;
+        }
+        if (carryCreeps.length >= this.carryCreepCount) {
+            return false;
+        }
+        const creep = this.carryCreepTypes.filter(c => (spawn.energy + energyInExtensions) > c.cost)[0];
+        if (creep) {
+            const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
+            console.log('Spawning new ' + creep.name + ' ' + newName);
+            return true;
+        }
+        return false;
     }
     getEnergyInExtensions(spawn) {
         return spawn.room.find(FIND_MY_STRUCTURES)

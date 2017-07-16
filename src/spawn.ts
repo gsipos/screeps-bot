@@ -33,6 +33,8 @@ class CarryCreep extends CreepType {
 
 export class SpawnManager {
   private maxCreepCount = 13;
+  private generalCreepCount = 3;
+  private carryCreepCount = 10;
 
   private creepTypes = [
     new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
@@ -62,7 +64,12 @@ export class SpawnManager {
         continue;
       };
 
-      this.spawnGeneralCreep(spawn, extensionEnergy);
+      if (this.spawnGeneralCreep(spawn, extensionEnergy, roomCreeps)) {
+        continue;
+      };
+      if (this.spawnCarriers(spawn, extensionEnergy, roomCreeps)) {
+        continue;
+      };
       this.showSpawningLabel(spawn);
     }
   }
@@ -78,18 +85,37 @@ export class SpawnManager {
     }
   }
 
-  private spawnGeneralCreep(spawn: Spawn, energyInExtensions: number) {
+  private spawnGeneralCreep(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]) {
+    const generalCreeps = roomCreeps.filter(c => c.memory.role === 'general');
     if (spawn.spawning) {
-      return;
+      return false;
     }
-    if (Object.keys(Game.creeps).length >= this.maxCreepCount) {
-      return;
+    if (generalCreeps.length >= this.generalCreepCount) {
+      return false;
     }
     const creep = this.creepTypes.filter(c => (spawn.energy+energyInExtensions) > c.cost)[0];
     if (creep) {
       const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
       console.log('Spawning new ' + creep.name + ' ' + newName);
+      return true;
     }
+  }
+
+  private spawnCarriers(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]): boolean {
+    const carryCreeps = roomCreeps.filter(c => c.memory.role === 'carry');
+    if (spawn.spawning) {
+      return false;
+    }
+    if (carryCreeps.length >= this.carryCreepCount) {
+      return false;
+    }
+    const creep = this.carryCreepTypes.filter(c => (spawn.energy + energyInExtensions) > c.cost)[0];
+    if (creep) {
+      const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
+      console.log('Spawning new ' + creep.name + ' ' + newName);
+      return true;
+    }
+    return false;
   }
 
   private getEnergyInExtensions(spawn: Spawn) {
