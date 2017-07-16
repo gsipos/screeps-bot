@@ -16,10 +16,11 @@ const repairContainer = new creep_1.CreepJob('repairContainer', 'ffaa00', 'repai
 const mine = new creep_1.CreepJob('mine', '#aaaaaa', 'mine', (c, t) => {
     c.harvest(t);
     return c.transfer(Game.getObjectById(c.memory.container), RESOURCE_ENERGY);
-}, c => {
+}, (c, t) => {
     const container = Game.getObjectById(c.memory.container);
-    return container.hits < container.hitsMax;
+    return container.hits < container.hitsMax || t.energy === 0;
 }, c => [Game.getObjectById(c.memory.source)], creep_1.TargetSelectionPolicy.inOrder);
+const waiting = new creep_1.CreepJob('wait', '#aaaaaa', 'wait', c => 0, (c, t) => t.energy > 0, c => [Game.getObjectById(c.memory.source)], creep_1.TargetSelectionPolicy.inOrder);
 class MinerCreepManager {
     constructor() {
         this.minerJobs = [
@@ -27,7 +28,8 @@ class MinerCreepManager {
             harvestForContainerBuild,
             buildContainer,
             repairContainer,
-            mine
+            mine,
+            waiting
         ];
     }
     loop() {

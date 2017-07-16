@@ -41,10 +41,17 @@ const mine = new CreepJob('mine', '#aaaaaa', 'mine',
     c.harvest(t);
     return c.transfer(Game.getObjectById(c.memory.container) as Container, RESOURCE_ENERGY);
   },
-  c => {
+  (c, t: Source) => {
     const container = Game.getObjectById<Container>(c.memory.container) as Container;
-    return container.hits < container.hitsMax;
+    return container.hits < container.hitsMax || t.energy === 0;
   },
+  c => [Game.getObjectById(c.memory.source)],
+  TargetSelectionPolicy.inOrder
+);
+
+const waiting = new CreepJob('wait', '#aaaaaa', 'wait',
+  c => 0,
+  (c, t: Source) => t.energy > 0,
   c => [Game.getObjectById(c.memory.source)],
   TargetSelectionPolicy.inOrder
 );
@@ -56,7 +63,8 @@ class MinerCreepManager {
     harvestForContainerBuild,
     buildContainer,
     repairContainer,
-    mine
+    mine,
+    waiting
   ];
 
   public loop() {
