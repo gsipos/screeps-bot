@@ -24,7 +24,7 @@ const fillTower = new CreepJob('fillTower', '#ffffff', 'fill:tower',
 
 const fillCreeps = new CreepJob('fillCreep', '#ee00aa', 'fill:creep',
   (c, t) => c.transfer(t, RESOURCE_ENERGY),
-  (c, t: Creep) => c.carry.energy === 0 || (t.carry.energy || 0) > 0,
+  (c, t: Creep) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) > 0),
   c => c.room.find<Creep>(FIND_MY_CREEPS)
     .filter(creep => creep.memory.role !== 'miner')
     .filter(creep => creep.memory.role !== 'carry'),
