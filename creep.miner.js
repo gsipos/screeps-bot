@@ -18,7 +18,9 @@ const mine = new creep_1.CreepJob('mine', '#aaaaaa', 'mine', (c, t) => {
     return c.transfer(Game.getObjectById(c.memory.container), RESOURCE_ENERGY);
 }, (c, t) => {
     const container = Game.getObjectById(c.memory.container);
-    return container.hits < container.hitsMax || t.energy === 0;
+    const containerNeedsRepair = container.hits < container.hitsMax;
+    const containerFull = container.store.energy === container.storeCapacity;
+    return containerNeedsRepair || containerFull || t.energy === 0;
 }, c => [Game.getObjectById(c.memory.source)], creep_1.TargetSelectionPolicy.inOrder);
 const waiting = new creep_1.CreepJob('wait', '#aaaaaa', 'wait', c => 0, (c, t) => t.energy > 0, c => [Game.getObjectById(c.memory.source)], creep_1.TargetSelectionPolicy.inOrder);
 class MinerCreepManager {

@@ -43,7 +43,9 @@ const mine = new CreepJob('mine', '#aaaaaa', 'mine',
   },
   (c, t: Source) => {
     const container = Game.getObjectById<Container>(c.memory.container) as Container;
-    return container.hits < container.hitsMax || t.energy === 0;
+    const containerNeedsRepair = container.hits < container.hitsMax;
+    const containerFull = container.store.energy === container.storeCapacity;
+    return containerNeedsRepair || containerFull || t.energy === 0;
   },
   c => [Game.getObjectById(c.memory.source)],
   TargetSelectionPolicy.inOrder
