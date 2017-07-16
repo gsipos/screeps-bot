@@ -46,7 +46,7 @@ export class SpawnManager {
   ];
 
   private minerCreepTypes = [1,2,3,4,5,6,7,8].map((v, idx) => new MinerCreep(8 - idx));
-  private carryCreepTypes = [1, 2, 3, 4, 5].map((v, idx) => new CarryCreep(5 - idx));
+  private carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v, idx) => new CarryCreep(10 - idx));
 
   private creeps: Creep[];
 
