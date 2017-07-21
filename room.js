@@ -1,9 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const data_1 = require("./data");
 class RoomManager {
-    constructor() {
-        this.miningFlagsByRoom = new Map();
-    }
     initRooms() {
         if (!Memory.flags) {
             Memory.flags = {};
@@ -28,12 +26,7 @@ class RoomManager {
         return terrain.filter(t => t.terrain !== 'wall');
     }
     getMiningFlags(room) {
-        return room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' });
-        /*if (!this.miningFlagsByRoom.has(room)) {
-          this.miningFlagsByRoom.set(room, room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
-        }
-        return this.miningFlagsByRoom.get(room) as Flag[];
-    */
+        return data_1.data.roomMiningFlags(room);
     }
 }
 exports.roomManager = new RoomManager();

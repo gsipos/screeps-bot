@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const room_1 = require("./room");
-const util_1 = require("./util");
+const data_1 = require("./data");
 class ConstructionManager {
     loop() {
         for (let roomName in Game.rooms) {
@@ -10,13 +9,13 @@ class ConstructionManager {
         }
     }
     buildMiningContainers(room) {
-        const containers = util_1.findStructures(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
-        const containersUnderConstruction = util_1.findStructures(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
+        const containers = data_1.data.roomContainers(room);
+        const containersUnderConstruction = data_1.data.roomContainerConstruction(room);
         const currentContainers = containers.length + containersUnderConstruction.length;
         if (currentContainers === 5) {
             return;
         }
-        const miningFlags = room_1.roomManager.getMiningFlags(room);
+        const miningFlags = data_1.data.roomMiningFlags(room);
         const maxContainers = Math.min(5, miningFlags.length);
         if (currentContainers === maxContainers) {
             return;
@@ -27,6 +26,7 @@ class ConstructionManager {
         const spawn = Object.keys(Game.spawns).map(k => Game.spawns[k]).filter(s => s.room === room)[0];
         const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, { filter: (f) => buildableFlags.indexOf(f) > -1 });
         chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
+        data_1.data.roomContainerContructionChanged(room);
     }
 }
 exports.constructionManager = new ConstructionManager;

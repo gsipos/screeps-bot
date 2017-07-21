@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const room_1 = require("./room");
-const util_1 = require("./util");
+const data_1 = require("./data");
 class CreepType {
     constructor(name, body) {
         this.name = name;
@@ -48,14 +47,14 @@ class SpawnManager {
         this.carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v, idx) => new CarryCreep(10 - idx));
     }
     loop() {
-        this.creeps = Object.keys(Game.creeps).map(n => Game.creeps[n]);
+        this.creeps = data_1.data.creepList();
         for (let name in Game.spawns) {
             const spawn = Game.spawns[name];
             const extensionEnergy = this.getEnergyInExtensions(spawn);
             if (spawn.spawning) {
                 continue;
             }
-            const roomCreeps = this.getCreepsByRoom(spawn.room);
+            const roomCreeps = data_1.data.roomCreeps(spawn.room);
             if (this.buildMinersAndCarriers(spawn, roomCreeps, extensionEnergy)) {
                 continue;
             }
@@ -78,7 +77,7 @@ class SpawnManager {
         }
     }
     spawnGeneralCreep(spawn, energyInExtensions, roomCreeps) {
-        const generalCreeps = roomCreeps.filter(c => c.memory.role === 'general');
+        const generalCreeps = data_1.data.roomCreepsByRole(spawn.room, 'general');
         if (spawn.spawning) {
             return false;
         }
@@ -93,7 +92,7 @@ class SpawnManager {
         }
     }
     spawnCarriers(spawn, energyInExtensions, roomCreeps) {
-        const carryCreeps = roomCreeps.filter(c => c.memory.role === 'carry');
+        const carryCreeps = data_1.data.roomCreepsByRole(spawn.room, 'carry');
         if (spawn.spawning) {
             return false;
         }
@@ -109,18 +108,16 @@ class SpawnManager {
         return false;
     }
     getEnergyInExtensions(spawn) {
-        return spawn.room.find(FIND_MY_STRUCTURES)
-            .filter(s => s.structureType == STRUCTURE_EXTENSION)
-            .reduce((a, s) => a + s.energy, 0);
+        return data_1.data.roomExtensions(spawn.room).reduce((a, s) => a + s.energy, 0);
     }
     buildMinersAndCarriers(spawn, creeps, energyInExtensions) {
-        const miningFlags = room_1.roomManager.getMiningFlags(spawn.room);
+        const miningFlags = data_1.data.roomMiningFlags(spawn.room);
         if (!miningFlags.length) {
             return true;
         }
-        const maxMiners = Math.min(5, room_1.roomManager.getMiningFlags(spawn.room).length);
-        const minerCreeps = creeps.filter(c => c.memory.role === 'miner');
-        const carryCreeps = creeps.filter(c => c.memory.role === 'carry');
+        const maxMiners = Math.min(5, miningFlags.length);
+        const minerCreeps = data_1.data.roomCreepsByRole(spawn.room, 'miner');
+        const carryCreeps = data_1.data.roomCreepsByRole(spawn.room, 'carry');
         console.log('maxMiner', maxMiners, minerCreeps.length, carryCreeps.length);
         if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
             return false;
@@ -128,7 +125,7 @@ class SpawnManager {
         let toBuildType;
         const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
         const noMaxMiners = minerCreeps.length < maxMiners;
-        const noContainer = !util_1.findStructures(spawn.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES).length;
+        const noContainer = !data_1.data.roomContainers(spawn.room).length;
         if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
             toBuildType = this.minerCreepTypes;
             console.log('Build: miner');
@@ -145,9 +142,6 @@ class SpawnManager {
         else {
             return false;
         }
-    }
-    getCreepsByRoom(room) {
-        return this.creeps.filter(c => c.room === room);
     }
 }
 exports.SpawnManager = SpawnManager;

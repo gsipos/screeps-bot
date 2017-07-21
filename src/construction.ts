@@ -1,5 +1,6 @@
 import { roomManager } from './room';
-import { findStructures } from './util';
+import { data } from './data';
+
 class ConstructionManager {
 
   public loop() {
@@ -10,15 +11,15 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room: Room) {
-    const containers = findStructures<Container>(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
-    const containersUnderConstruction = findStructures(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
+    const containers = data.roomContainers(room);
+    const containersUnderConstruction = data.roomContainerConstruction(room);
     const currentContainers = containers.length + containersUnderConstruction.length;
 
     if (currentContainers === 5) {
       return;
     }
 
-    const miningFlags = roomManager.getMiningFlags(room);
+    const miningFlags = data.roomMiningFlags(room);
     const maxContainers = Math.min(5, miningFlags.length);
 
     if (currentContainers === maxContainers) {
@@ -33,6 +34,7 @@ class ConstructionManager {
 
     const chosen = spawn.pos.findClosestByPath<Flag>(FIND_FLAGS, { filter: (f: Flag) => buildableFlags.indexOf(f) > -1 });
     chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
+    data.roomContainerContructionChanged(room);
   }
 
 }
