@@ -1,3 +1,4 @@
+import { data } from './data';
 
 class RoomManager {
 
@@ -27,14 +28,8 @@ class RoomManager {
     return terrain.filter(t => t.terrain !== 'wall');
   }
 
-  private miningFlagsByRoom = new Map<Room, Flag[]>();
   public getMiningFlags(room: Room): Flag[] {
-    return room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' });
-    /*if (!this.miningFlagsByRoom.has(room)) {
-      this.miningFlagsByRoom.set(room, room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
-    }
-    return this.miningFlagsByRoom.get(room) as Flag[];
-*/
+    return data.roomMiningFlags(room);
   }
 }
 

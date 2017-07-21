@@ -5,6 +5,7 @@ const minerCreepManager = require('creep.miner').minerCreepManager;
 const towerManager = require('tower').towerManager;
 const roomManager = require('room').roomManager;
 const constructionManager = require('construction').constructionManager;
+const data = require('data').data;
 
 module.exports.loop = function () {
 
@@ -15,6 +16,7 @@ module.exports.loop = function () {
     }
   }
 
+  data.reset();
   roomManager.initRooms();
   constructionManager.loop();
   spawnManager.loop();

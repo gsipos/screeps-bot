@@ -1,4 +1,5 @@
 import { findStructures } from './util';
+import { data } from './data';
 
 export class TargetSelectionPolicy {
   public static random(targets: any[]) {
@@ -79,16 +80,6 @@ export class CreepJob {
   }
 }
 
-function harvestJobAction(creep: Creep, target: any) {
-  const result = creep.harvest(target);
-  if (result == OK) {
-    creep.room
-      .find<Creep>(FIND_MY_CREEPS)
-      .some(c => creep.transfer(c, RESOURCE_ENERGY) == OK);
-  }
-  return result;
-}
-
 type JobsByName = { [name: string]: CreepJob };
 
 export class CreepManager {
@@ -111,14 +102,14 @@ export class CreepManager {
     new CreepJob('smallWall', '#ffaa00', 'wall',
       (c, t) => c.repair(t),
       (c, t) => c.carry.energy == 0 || t.hits >= 500,
-      c => this.findStructures(c, [STRUCTURE_WALL], FIND_STRUCTURES).filter(w => w.hits < 500),
+      c => data.roomWall(c.room).filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
 
     new CreepJob('maintainRoad', '#ffaa00', 'road',
       (c, t) => c.repair(t),
       (c, t) => c.carry.energy == 0 || t.hits === t.hitsMax,
-      c => this.findStructures(c, [STRUCTURE_ROAD], FIND_STRUCTURES).filter(w => w.hits < w.hitsMax),
+      c => data.roomRoad(c.room).filter(w => w.hits < w.hitsMax),
       TargetSelectionPolicy.distance
     ),
 
@@ -132,9 +123,7 @@ export class CreepManager {
   ];
 
   public loop() {
-    this.foreEachCreep(creep => {
-      this.processCreep(creep, this.jobs);
-    });
+    data.creepByRole('general').forEach(creep => this.processCreep(creep, this.jobs));
   }
 
   public processCreep(creep: Creep, jobs: CreepJob[]) {
@@ -168,41 +157,6 @@ export class CreepManager {
       })
     );
   }
-
-  private foreEachCreep(call: (c: Creep) => any) {
-      Object
-        .keys(Game.creeps)
-        .map(name => Game.creeps[name])
-        .filter(c => c.memory.role === 'general')
-        .forEach(c => call(c));
-  }
-
-  public getCreepsByRole(role: string) {
-    return Object.keys(Game.creeps)
-      .map(c => Game.creeps[c])
-      .filter(c => c.memory.role === role);
-  }
-
-  private findStructures(c: Creep, structTypes: string[], type: number = FIND_MY_STRUCTURES) {
-    return findStructures(c.room, structTypes, type); // TODO
-  }
-
-  private sourcesByRoom = new Map<Room, Source[]>();
-  private getSourcesForRoom(room: Room): Source[] {
-    if (!this.sourcesByRoom.has(room)) {
-      this.sourcesByRoom.set(room, room.find<Source>(FIND_SOURCES));
-    }
-    return this.sourcesByRoom.get(room) as Source[];
-  }
-
 }
 
 export const creepManager = new CreepManager();
-
-class MinerCreepManager {
-
-  public loop() {
-
-  }
-
-}
