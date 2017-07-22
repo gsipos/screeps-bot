@@ -49,7 +49,8 @@ export class CreepJob {
     public action: (creep: Creep, target: any) => number,
     public jobDone: (creep: Creep, target?: any) => boolean,
     public possibleTargets: (creep: Creep) => any[],
-    public targetSelectionPolicy: (targets: any[], creep: Creep) => any[]
+    public targetSelectionPolicy: (targets: any[], creep: Creep) => any[],
+    public enoughCreepAssigned: (assignedCreeps: Creep[], target: any) => boolean = () => false
   ) { }
 
   public execute(creep: Creep, targetId: any) {
@@ -77,6 +78,11 @@ export class CreepJob {
   private finishJob(creep: Creep, target: any) {
     delete creep.memory.job;
     delete creep.memory.jobTarget;
+  }
+
+  public needMoreCreeps(target: any) {
+    const assignedCreeps = data.creepsByJobTarget(this.name, target.id);
+    return !this.enoughCreepAssigned(assignedCreeps, target);
   }
 }
 
@@ -145,16 +151,22 @@ export class CreepManager {
 
   private assignJob(creep: Creep, jobs: CreepJob[]) {
     jobs.some(j =>
-      j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
-        if (!j.jobDone(creep, target)) {
-          creep.memory.job = j.name;
-          creep.memory.jobTarget = target.id;
-          creep.say(j.say);
-          return true;
-        } else {
-          return false;
-        }
-      })
+      j.targetSelectionPolicy(j
+        .possibleTargets(creep)
+        .filter(t => !j.jobDone(creep, t))
+        .filter(t => j.needMoreCreeps(t))
+        , creep)
+        .some(target => {
+          if (!j.jobDone(creep, target)) {
+            creep.memory.job = j.name;
+            creep.memory.jobTarget = target.id;
+            creep.say(j.say);
+            data.registerCreepJob(creep);
+            return true;
+          } else {
+            return false;
+          }
+        })
     );
   }
 }
