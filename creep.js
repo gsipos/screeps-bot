@@ -35,7 +35,7 @@ class TargetSelectionPolicy {
 }
 exports.TargetSelectionPolicy = TargetSelectionPolicy;
 class CreepJob {
-    constructor(name, color, say, action, jobDone, possibleTargets, targetSelectionPolicy) {
+    constructor(name, color, say, action, jobDone, possibleTargets, targetSelectionPolicy, enoughCreepAssigned = () => false) {
         this.name = name;
         this.color = color;
         this.say = say;
@@ -43,6 +43,7 @@ class CreepJob {
         this.jobDone = jobDone;
         this.possibleTargets = possibleTargets;
         this.targetSelectionPolicy = targetSelectionPolicy;
+        this.enoughCreepAssigned = enoughCreepAssigned;
     }
     execute(creep, targetId) {
         const target = Game.getObjectById(targetId);
@@ -69,6 +70,10 @@ class CreepJob {
     finishJob(creep, target) {
         delete creep.memory.job;
         delete creep.memory.jobTarget;
+    }
+    needMoreCreeps(target) {
+        const assignedCreeps = data_1.data.creepsByJobTarget(this.name, target.id);
+        return !this.enoughCreepAssigned(assignedCreeps, target);
     }
 }
 exports.CreepJob = CreepJob;
@@ -100,11 +105,16 @@ class CreepManager {
         jobsByName[creep.memory.job].execute(creep, creep.memory.jobTarget);
     }
     assignJob(creep, jobs) {
-        jobs.some(j => j.targetSelectionPolicy(j.possibleTargets(creep), creep).some(target => {
+        jobs.some(j => j.targetSelectionPolicy(j
+            .possibleTargets(creep)
+            .filter(t => !j.jobDone(creep, t))
+            .filter(t => j.needMoreCreeps(t)), creep)
+            .some(target => {
             if (!j.jobDone(creep, target)) {
                 creep.memory.job = j.name;
                 creep.memory.jobTarget = target.id;
                 creep.say(j.say);
+                data_1.data.registerCreepJob(creep);
                 return true;
             }
             else {

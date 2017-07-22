@@ -69,5 +69,11 @@ class Data {
     roomCreepsByRole(room, role) {
         return this.cacheByRoom(room, 'creeps' + role, () => this.creepByRole(role).filter(c => c.room === room));
     }
+    creepsByJobTarget(job, jobTarget) {
+        return this.cacheCreepList(job + '|' + jobTarget, () => this.creepList().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
+    }
+    registerCreepJob(creep) {
+        this.creepsByJobTarget(creep.memory.job, creep.memory.jobTarget).push(creep);
+    }
 }
 exports.data = new Data();
