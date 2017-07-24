@@ -36,7 +36,7 @@ export class SpawnManager {
   private carryCreepCount = 10;
 
   private creepTypes = [
-    new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]),
+    new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
     new CreepType('general', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
     new CreepType('general', [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
     new CreepType('general', [WORK, WORK, CARRY, MOVE, MOVE, MOVE]),
