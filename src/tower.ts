@@ -1,3 +1,4 @@
+import { Profile } from './profiler';
 type TowerJobType = 'attack' | 'repair' | 'heal' | 'jobless';
 
 interface TowerMemory {
@@ -16,6 +17,7 @@ class TowerManager {
     }
   }
 
+  @Profile('Tower')
   public loop() {
     const towers = this.getTowers();
     towers.forEach(tower => {

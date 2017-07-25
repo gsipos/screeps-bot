@@ -6,9 +6,11 @@ const towerManager = require('tower').towerManager;
 const roomManager = require('room').roomManager;
 const constructionManager = require('construction').constructionManager;
 const data = require('data').data;
+const profiler = require('profiler').profiler;
 
 module.exports.loop = function () {
-
+  profiler.tick();
+  const done = profiler.track('Game loop');
   for (var name in Memory.creeps) {
     if (!Game.creeps[name]) {
       delete Memory.creeps[name];
@@ -24,4 +26,6 @@ module.exports.loop = function () {
   carryCreepManager.loop();
   creepManager.loop();
   towerManager.loop();
+
+  done();
 }

@@ -1,6 +1,7 @@
 import { TargetSelectionPolicy, CreepJob, creepManager } from './creep';
 import { roomManager } from './room';
 import { findStructures } from './util';
+import { Profile } from './profiler';
 
 const moveToContainer = new CreepJob('moveToContainer', 'ffaa00', 'toContainer',
   (c, t) => c.moveTo(t),
@@ -69,6 +70,7 @@ class MinerCreepManager {
     waiting
   ];
 
+  @Profile('Miner')
   public loop() {
     const minerCreeps = Object
       .keys(Game.creeps)

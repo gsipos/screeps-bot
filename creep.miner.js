@@ -1,8 +1,15 @@
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const creep_1 = require("./creep");
 const room_1 = require("./room");
 const util_1 = require("./util");
+const profiler_1 = require("./profiler");
 const moveToContainer = new creep_1.CreepJob('moveToContainer', 'ffaa00', 'toContainer', (c, t) => c.moveTo(t), (c, t) => c.pos.isEqualTo(t.pos), c => [Game.getObjectById(c.memory.container)], creep_1.TargetSelectionPolicy.inOrder);
 const harvestForContainerBuild = new creep_1.CreepJob('harvestToBuild', 'ffaa00', 'harvest', (c, t) => c.harvest(t), (c, t) => {
     const container = Game.getObjectById(c.memory.container);
@@ -67,4 +74,7 @@ class MinerCreepManager {
         creep.memory.source = flag.memory.source;
     }
 }
+__decorate([
+    profiler_1.Profile('Miner')
+], MinerCreepManager.prototype, "loop", null);
 exports.minerCreepManager = new MinerCreepManager;

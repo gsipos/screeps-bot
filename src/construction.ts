@@ -1,8 +1,10 @@
 import { roomManager } from './room';
 import { data } from './data';
+import { Profile } from './profiler';
 
 class ConstructionManager {
 
+  @Profile('Construction')
   public loop() {
     for (let roomName in Game.rooms) {
       const room = Game.rooms[roomName];

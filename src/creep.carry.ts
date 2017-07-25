@@ -1,5 +1,6 @@
 import { TargetSelectionPolicy, CreepJob, creepManager } from './creep';
 import { data } from './data';
+import { Profile } from './profiler';
 
 const sumCreepEnergy = (creeps: Creep[]) => creeps.map(c => c.carry.energy || 0).reduce((a, b) => a + b, 0);
 
@@ -61,6 +62,7 @@ class CarryCreepManager {
     idleFill
   ];
 
+  @Profile('Carry')
   public loop() {
     data.creepByRole('carry')
       .forEach(creep => creepManager.processCreep(creep, this.carryJobs));

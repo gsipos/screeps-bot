@@ -1,5 +1,6 @@
 import { findStructures } from './util';
 import { data } from './data';
+import { Profile } from './profiler';
 
 export class TargetSelectionPolicy {
   public static random(targets: any[]) {
@@ -129,6 +130,7 @@ export class CreepManager {
 
   ];
 
+  @Profile('Creep')
   public loop() {
     data.creepByRole('general').forEach(creep => this.processCreep(creep, this.jobs));
   }

@@ -1,4 +1,5 @@
 import { data } from './data';
+import { Profile } from './profiler';
 
 export class CreepType {
   public readonly cost: number;
@@ -49,6 +50,7 @@ export class SpawnManager {
 
   private creeps: Creep[];
 
+  @Profile('Spawn')
   public loop() {
     this.creeps = data.creepList();
 
