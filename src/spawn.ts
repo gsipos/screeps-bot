@@ -132,8 +132,6 @@ export class SpawnManager {
     const minerCreeps = data.roomCreepsByRole(spawn.room, 'miner');
     const carryCreeps = data.roomCreepsByRole(spawn.room, 'carry');
 
-    console.log('maxMiner', maxMiners, minerCreeps.length, carryCreeps.length);
-
     if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
       return false;
     }
