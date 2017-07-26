@@ -62,10 +62,15 @@ class TowerManager {
       return this.createJob('attack', tower, closestHostile);
     }
 
+    var closestDecayingRampart = tower.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
+      filter: (s: Structure) => (s.structureType === STRUCTURE_RAMPART && s.hits < 500)
+    });
+    if (closestDecayingRampart) {
+      return this.createJob('repair', tower, closestDecayingRampart);
+    }
+
     var closestDamagedStructure = tower.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
-      filter: (structure: Structure) => (structure.hits < structure.hitsMax)
-        && (structure.structureType !== STRUCTURE_WALL)
-        && (structure.structureType !== STRUCTURE_RAMPART || (structure.structureType !== STRUCTURE_RAMPART && structure.hits <= 500))
+      filter: (structure: Structure) => (structure.hits < structure.hitsMax) && (structure.structureType !== STRUCTURE_WALL)
     });
     if (closestDamagedStructure) {
       return this.createJob('repair', tower, closestDamagedStructure);
