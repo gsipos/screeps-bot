@@ -61,7 +61,6 @@ export class CreepJob {
       return;
     }
     const result = this.action(creep, target);
-    console.log(this.name, creep.name, result);
     if (result == ERR_NOT_IN_RANGE) {
       const moveResult = creep.moveTo(target, { visualizePathStyle: { stroke: this.color } });
       if (moveResult == ERR_NO_PATH) {
