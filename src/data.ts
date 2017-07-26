@@ -1,6 +1,24 @@
 type HashObject<T> = { [idx: string]: T };
 
-class Data {
+class BaseData {
+  protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
+    if (!cache[key]) {
+      cache[key] = func();
+    }
+    return cache[key];
+  }
+}
+
+class CachedData extends BaseData {
+  private distances: HashObject<number> = {};
+
+  public getDistance(from: RoomPosition, to: RoomPosition): number {
+    const key = `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
+    return this.storeTo(key, this.distances, () => from.getRangeTo(to));
+  }
+}
+
+class Data extends BaseData {
   private roomData: HashObject<HashObject<any>> = {};
   private creepLists: HashObject<Creep[]> = {};
 
@@ -8,13 +26,6 @@ class Data {
   public reset() {
     this.roomData = {};
     this.creepLists = {};
-  }
-
-  private storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
-    if (!cache[key]) {
-      cache[key] = func();
-    }
-    return cache[key];
   }
 
   private cacheByRoom<T>(room: Room, key: string, func: () => T): T {
@@ -103,3 +114,4 @@ class Data {
  }
 
 export const data = new Data();
+export const cachedData = new CachedData();

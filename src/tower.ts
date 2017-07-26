@@ -63,7 +63,7 @@ class TowerManager {
     var closestDamagedStructure = tower.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
       filter: (structure: Structure) => (structure.hits < structure.hitsMax)
         && (structure.structureType !== STRUCTURE_WALL)
-        && (structure.structureType !== STRUCTURE_RAMPART)
+        && (structure.structureType !== STRUCTURE_RAMPART || (structure.structureType !== STRUCTURE_RAMPART && structure.hits <= 500))
     });
     if (closestDamagedStructure) {
       return this.createJob('repair', tower, closestDamagedStructure);

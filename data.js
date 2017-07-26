@@ -1,19 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class Data {
+class BaseData {
+    storeTo(key, cache, func) {
+        if (!cache[key]) {
+            cache[key] = func();
+        }
+        return cache[key];
+    }
+}
+class CachedData extends BaseData {
     constructor() {
+        super(...arguments);
+        this.distances = {};
+    }
+    getDistance(from, to) {
+        const key = `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
+        return this.storeTo(key, this.distances, () => from.getRangeTo(to));
+    }
+}
+class Data extends BaseData {
+    constructor() {
+        super(...arguments);
         this.roomData = {};
         this.creepLists = {};
     }
     reset() {
         this.roomData = {};
         this.creepLists = {};
-    }
-    storeTo(key, cache, func) {
-        if (!cache[key]) {
-            cache[key] = func();
-        }
-        return cache[key];
     }
     cacheByRoom(room, key, func) {
         if (!this.roomData[room.name]) {
@@ -80,3 +93,4 @@ class Data {
     }
 }
 exports.data = new Data();
+exports.cachedData = new CachedData();

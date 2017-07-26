@@ -1,5 +1,5 @@
 import { findStructures } from './util';
-import { data } from './data';
+import { data, cachedData } from './data';
 import { Profile } from './profiler';
 
 export class TargetSelectionPolicy {
@@ -13,7 +13,7 @@ export class TargetSelectionPolicy {
 
   public static distance(targets: RoomObject[], creep: Creep) {
     const distances = new WeakMap();
-    targets.forEach(t => distances.set(t, creep.pos.getRangeTo(t)));
+    targets.forEach(t => distances.set(t, cachedData.getDistance(creep.pos, t.pos)));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
   }
 
@@ -110,13 +110,6 @@ export class CreepManager {
       (c, t) => c.repair(t),
       (c, t) => c.carry.energy == 0 || t.hits >= 500,
       c => data.roomWall(c.room).filter(w => w.hits < 500),
-      TargetSelectionPolicy.distance
-    ),
-
-    new CreepJob('smallRampart', '#ffaa00', 'rampart',
-      (c, t) => c.repair(t),
-      (c, t) => c.carry.energy == 0 || t.hits >= 500,
-      c => data.roomRampart(c.room).filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
 
