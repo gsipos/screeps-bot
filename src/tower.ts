@@ -36,20 +36,22 @@ class TowerManager {
       this.jobDone(tower);
     }
     memory.jobTTL--;
-
+    let result: number = OK;
     if (memory.job === 'jobless') {
       return;
     }
     if (memory.job === 'attack') {
-      tower.attack(target as Creep);
+      result = tower.attack(target as Creep);
     }
     if (memory.job === 'repair') {
-      tower.repair(target as Structure);
+      result = tower.repair(target as Structure);
     }
     if (memory.job === 'heal') {
-      tower.heal(target as Creep);
+      result = tower.heal(target as Creep);
     }
-
+    if (result !== OK) {
+      this.jobDone(tower)
+    }
   }
 
   private assignJobToTower(tower: Tower) {

@@ -31,17 +31,21 @@ class TowerManager {
             this.jobDone(tower);
         }
         memory.jobTTL--;
+        let result = OK;
         if (memory.job === 'jobless') {
             return;
         }
         if (memory.job === 'attack') {
-            tower.attack(target);
+            result = tower.attack(target);
         }
         if (memory.job === 'repair') {
-            tower.repair(target);
+            result = tower.repair(target);
         }
         if (memory.job === 'heal') {
-            tower.heal(target);
+            result = tower.heal(target);
+        }
+        if (result !== OK) {
+            this.jobDone(tower);
         }
     }
     assignJobToTower(tower) {
