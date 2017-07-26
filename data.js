@@ -57,6 +57,9 @@ class Data {
     roomWall(room) {
         return this.findStructures(room, [STRUCTURE_WALL], FIND_STRUCTURES);
     }
+    roomRampart(room) {
+        return this.findStructures(room, [STRUCTURE_RAMPART]);
+    }
     creepList() {
         return this.cacheCreepList('all', () => Object.keys(Game.creeps).map(n => Game.creeps[n]));
     }

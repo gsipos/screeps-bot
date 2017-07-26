@@ -112,14 +112,13 @@ export class CreepManager {
       c => data.roomWall(c.room).filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
-    /*
-    new CreepJob('maintainRoad', '#ffaa00', 'road',
+
+    new CreepJob('smallRampart', '#ffaa00', 'rampart',
       (c, t) => c.repair(t),
-      (c, t) => c.carry.energy == 0 || t.hits === t.hitsMax,
-      c => data.roomRoad(c.room).filter(w => w.hits < w.hitsMax),
+      (c, t) => c.carry.energy == 0 || t.hits >= 500,
+      c => data.roomRampart(c.room).filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
-    */
 
     new CreepJob('upgrade', '#ffaa00', '⚡ upgrade',
       (c, t) => c.upgradeController(t),
