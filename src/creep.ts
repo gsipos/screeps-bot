@@ -149,13 +149,13 @@ export class CreepManager {
     }
   }
 
-  @Profile('Creep')
+
   private executeJob(creep: Creep, jobsByName: JobsByName) {
     const job = jobsByName[creep.memory.job];
     jobsByName[creep.memory.job].execute(creep, creep.memory.jobTarget);
   }
 
-  @Profile('Creep')
+
   private assignJob(creep: Creep, jobs: CreepJob[]) {
     jobs.some(j =>
       j.targetSelectionPolicy(j
