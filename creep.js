@@ -141,5 +141,11 @@ class CreepManager {
 __decorate([
     profiler_1.Profile('Creep')
 ], CreepManager.prototype, "loop", null);
+__decorate([
+    profiler_1.Profile('Creep')
+], CreepManager.prototype, "executeJob", null);
+__decorate([
+    profiler_1.Profile('Creep')
+], CreepManager.prototype, "assignJob", null);
 exports.CreepManager = CreepManager;
 exports.creepManager = new CreepManager();
