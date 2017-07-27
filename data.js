@@ -1,11 +1,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+class MemoryStore {
+    constructor(store) {
+        this.store = store;
+        if (!Memory[store]) {
+            Memory[store] = {};
+        }
+    }
+    has(key) {
+        return key in Memory[this.store];
+    }
+    get(key) {
+        return Memory[this.store][key];
+    }
+    set(key, value) {
+        Memory[this.store][key] = value;
+    }
+    delete(key) {
+        delete Memory[this.store][key];
+    }
+}
 class BaseData {
     storeTo(key, cache, func) {
         if (!cache[key]) {
             cache[key] = func();
         }
         return cache[key];
+    }
+    getDistanceKey(from, to) {
+        return `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
     }
 }
 class CachedData extends BaseData {
@@ -14,7 +37,7 @@ class CachedData extends BaseData {
         this.distances = {};
     }
     getDistance(from, to) {
-        const key = `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
+        const key = this.getDistanceKey(from, to);
         return this.storeTo(key, this.distances, () => from.getRangeTo(to));
     }
 }
@@ -92,5 +115,26 @@ class Data extends BaseData {
         this.creepsByJobTarget(creep.memory.job, creep.memory.jobTarget).push(creep);
     }
 }
+class PathStore extends BaseData {
+    constructor() {
+        super(...arguments);
+        this.store = new MemoryStore('pathStore');
+    }
+    getPath(from, to) {
+        const key = this.getDistanceKey(from, to);
+        if (!this.store.has(key)) {
+            const path = from.findPathTo(to);
+            const serializedPath = Room.serializePath(path);
+            this.store.set(key, serializedPath);
+        }
+        return this.store.get(key);
+    }
+    renewPath(from, to) {
+        const key = this.getDistanceKey(from, to);
+        this.store.delete(key);
+        return this.getPath(from, to);
+    }
+}
 exports.data = new Data();
 exports.cachedData = new CachedData();
+exports.pathStore = new PathStore();

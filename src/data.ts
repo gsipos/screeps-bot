@@ -1,5 +1,29 @@
 type HashObject<T> = { [idx: string]: T };
 
+class MemoryStore<T = string> {
+  constructor(private store: string) {
+    if (!Memory[store]) {
+      Memory[store] = {};
+    }
+  }
+
+  public has(key: string): boolean {
+    return key in Memory[this.store];
+  }
+
+  public get(key: string): T {
+    return Memory[this.store][key];
+  }
+
+  public set(key: string, value: T) {
+    Memory[this.store][key] = value;
+  }
+
+  public delete(key: string) {
+    delete Memory[this.store][key];
+  }
+}
+
 class BaseData {
   protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
     if (!cache[key]) {
@@ -7,13 +31,17 @@ class BaseData {
     }
     return cache[key];
   }
+
+  protected getDistanceKey(from: RoomPosition, to: RoomPosition) {
+    return `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
+  }
 }
 
 class CachedData extends BaseData {
   private distances: HashObject<number> = {};
 
   public getDistance(from: RoomPosition, to: RoomPosition): number {
-    const key = `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
+    const key = this.getDistanceKey(from, to);
     return this.storeTo(key, this.distances, () => from.getRangeTo(to));
   }
 }
@@ -111,7 +139,29 @@ class Data extends BaseData {
     this.creepsByJobTarget(creep.memory.job, creep.memory.jobTarget).push(creep);
   }
 
- }
+}
+
+class PathStore extends BaseData {
+  private store = new MemoryStore('pathStore');
+
+  public getPath(from: RoomPosition, to: RoomPosition) {
+    const key = this.getDistanceKey(from, to);
+    if (!this.store.has(key)) {
+      const path = from.findPathTo(to);
+      const serializedPath = Room.serializePath(path);
+      this.store.set(key, serializedPath);
+    }
+    return this.store.get(key);
+  }
+
+  public renewPath(from: RoomPosition, to: RoomPosition) {
+    const key = this.getDistanceKey(from, to);
+    this.store.delete(key);
+    return this.getPath(from, to);
+  }
+
+}
 
 export const data = new Data();
 export const cachedData = new CachedData();
+export const pathStore = new PathStore();

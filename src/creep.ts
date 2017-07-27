@@ -1,5 +1,5 @@
 import { findStructures } from './util';
-import { data, cachedData } from './data';
+import { data, cachedData, pathStore } from './data';
 import { Profile } from './profiler';
 
 export class TargetSelectionPolicy {
@@ -62,10 +62,7 @@ export class CreepJob {
     }
     const result = this.action(creep, target);
     if (result == ERR_NOT_IN_RANGE) {
-      const moveResult = creep.moveTo(target, { visualizePathStyle: { stroke: this.color } });
-      if (moveResult == ERR_NO_PATH) {
-        this.finishJob(creep, target);
-      }
+      this.moveCreep(creep, target);
     } else if (result !== OK) {
       this.finishJob(creep, target);
       return;
@@ -75,9 +72,23 @@ export class CreepJob {
     }
   }
 
+  private moveCreep(creep: Creep, target: RoomObject) {
+    if (!creep.memory.path) {
+      creep.memory.path = pathStore.getPath(creep.pos, target.pos);
+    }
+    const moveResult = creep.moveByPath(creep.memory.path);
+    if (moveResult !== OK) {
+      creep.memory.path = pathStore.renewPath(creep.pos, target.pos);
+    }
+    if (moveResult == ERR_NO_PATH) {
+      this.finishJob(creep, target);
+    }
+  }
+
   private finishJob(creep: Creep, target: any) {
     delete creep.memory.job;
     delete creep.memory.jobTarget;
+    delete creep.memory.path;
   }
 
   public needMoreCreeps(target: any) {
