@@ -76,13 +76,17 @@ export class CreepJob {
     if (!creep.memory.path) {
       creep.memory.path = pathStore.getPath(creep.pos, target.pos);
     }
+    const currentPos = '' + creep.pos.x + creep.pos.y;
     const moveResult = creep.moveByPath(creep.memory.path);
-    if (moveResult !== OK) {
+
+    if (moveResult !== OK || (creep.fatigue === 0 && currentPos === creep.memory.prevPos)) {
       creep.memory.path = pathStore.renewPath(creep.pos, target.pos);
     }
     if (moveResult == ERR_NO_PATH) {
       this.finishJob(creep, target);
     }
+
+    creep.memory.prevPos = currentPos;
   }
 
   private finishJob(creep: Creep, target: any) {
