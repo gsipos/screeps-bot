@@ -17,7 +17,9 @@ class MemoryStore {
         Memory[this.store][key] = value;
     }
     delete(key) {
-        delete Memory[this.store][key];
+        if (Memory[this.store]) {
+            delete Memory[this.store][key];
+        }
     }
 }
 class BaseData {

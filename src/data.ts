@@ -20,7 +20,9 @@ class MemoryStore<T = string> {
   }
 
   public delete(key: string) {
-    delete Memory[this.store][key];
+    if (Memory[this.store]) {
+      delete Memory[this.store][key];
+    }
   }
 }
 
