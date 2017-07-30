@@ -56,7 +56,7 @@ class Profiler {
         }));
         console.log('----------------------------------------------');
         console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick');
-        entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu} | ${e.cpu / e.calls} | ${e.calls / Memory.profileTicks}`));
+        entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)}`));
         console.log('----------------------------------------------');
     }
 }
