@@ -27,6 +27,9 @@ class Profiler {
   }
 
   public trackMethod(name: string, consumedCPU: number) {
+    if (!Memory.profiling) {
+      return;
+    }
     if (!Memory.profile[name + '_call']) {
       Memory.profileMethod[name] = 1;
       Memory.profile[name + '_call'] = 0;

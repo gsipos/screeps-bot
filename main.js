@@ -9,6 +9,7 @@ const data = require('data').data;
 const profiler = require('profiler').profiler;
 
 module.exports.loop = function () {
+  profiler.trackMethod('Game::Start', Game.cpu.getUsed());
   profiler.tick();
   const done = profiler.track('Game loop');
   for (var name in Memory.creeps) {

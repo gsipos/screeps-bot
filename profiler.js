@@ -25,6 +25,9 @@ class Profiler {
         return () => this.trackMethod(name, Game.cpu.getUsed() - startCPU);
     }
     trackMethod(name, consumedCPU) {
+        if (!Memory.profiling) {
+            return;
+        }
         if (!Memory.profile[name + '_call']) {
             Memory.profileMethod[name] = 1;
             Memory.profile[name + '_call'] = 0;
