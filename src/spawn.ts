@@ -34,7 +34,7 @@ class CarryCreep extends CreepType {
 export class SpawnManager {
   private maxCreepCount = 13;
   private generalCreepCount = 3;
-  private carryCreepCount = 10;
+  private carryCreepCount = 6;
 
   private creepTypes = [
     new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),

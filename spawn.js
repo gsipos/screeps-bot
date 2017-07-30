@@ -41,7 +41,7 @@ class SpawnManager {
     constructor() {
         this.maxCreepCount = 13;
         this.generalCreepCount = 3;
-        this.carryCreepCount = 10;
+        this.carryCreepCount = 6;
         this.creepTypes = [
             new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
             new CreepType('general', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
