@@ -54,6 +54,10 @@ class CreepJob {
     }
     execute(creep, targetId) {
         const target = Game.getObjectById(targetId);
+        if (!target) {
+            this.finishJob(creep, target);
+            return;
+        }
         if (this.jobDone(creep, target)) {
             this.finishJob(creep, target);
             return;
