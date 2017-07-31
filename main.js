@@ -23,10 +23,10 @@ module.exports.loop = function () {
   roomManager.initRooms();
   constructionManager.loop();
   spawnManager.loop();
+  towerManager.loop();
   minerCreepManager.loop();
   carryCreepManager.loop();
   creepManager.loop();
-  towerManager.loop();
 
   done();
 }
