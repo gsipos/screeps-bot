@@ -40,7 +40,7 @@ class CarryCreep extends CreepType {
 class SpawnManager {
     constructor() {
         this.maxCreepCount = 13;
-        this.generalCreepCount = 3;
+        this.generalCreepCount = 1;
         this.carryCreepCount = 6;
         this.creepTypes = [
             new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
@@ -50,7 +50,7 @@ class SpawnManager {
             new CreepType('general', [WORK, CARRY, CARRY, MOVE, MOVE]),
             new CreepType('general', [WORK, CARRY, MOVE])
         ];
-        this.minerCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new MinerCreep(8 - idx));
+        this.minerCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new MinerCreep(6 - idx));
         this.carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
     }
     loop() {
