@@ -27,9 +27,15 @@ class MemoryStore<T = string> {
 }
 
 class BaseData {
+  public storeHit: number = 0;
+  public storeMiss: number = 0;
+
   protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
     if (!cache[key]) {
       cache[key] = func();
+      this.storeMiss++;
+    } else {
+      this.storeHit++;
     }
     return cache[key];
   }
