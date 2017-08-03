@@ -23,9 +23,17 @@ class MemoryStore {
     }
 }
 class BaseData {
+    constructor() {
+        this.storeHit = 0;
+        this.storeMiss = 0;
+    }
     storeTo(key, cache, func) {
         if (!cache[key]) {
             cache[key] = func();
+            this.storeMiss++;
+        }
+        else {
+            this.storeHit++;
         }
         return cache[key];
     }
