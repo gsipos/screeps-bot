@@ -25,6 +25,23 @@ class MemoryStore<T = string> {
     }
   }
 }
+interface TTLEntry<T = string> { entry: T; maxAge: number };
+class TTLCache<T=string> {
+  public cache: HashObject<TTLEntry<T>> = {};
+
+  public has(key: string): boolean {
+    const entry = this.cache[key];
+    return !!entry && entry.maxAge < Game.time;
+  }
+
+  public get(key: string): T {
+    return this.cache[key].entry;
+  }
+
+  public set(key: string, value: T, ttl: number) {
+    this.cache[key] = { entry: value, maxAge: Game.time + ttl };
+  }
+}
 
 class BaseData {
   public storeHit: number = 0;
@@ -38,6 +55,16 @@ class BaseData {
       this.storeHit++;
     }
     return cache[key];
+  }
+
+  protected storeTTL<T>(key: string, cache: TTLCache<T>, supplier: () => T, ttl: number): T {
+    if (!cache.has(key)) {
+      cache.set(key, supplier(), ttl);
+      this.storeMiss++;
+    } else {
+      this.storeHit++;
+    }
+    return cache.get(key);
   }
 
   protected getDistanceKey(from: RoomPosition, to: RoomPosition) {
@@ -56,6 +83,7 @@ class CachedData extends BaseData {
 
 class Data extends BaseData {
   private roomData: HashObject<HashObject<any>> = {};
+  private roomDataTTL: HashObject<TTLCache<any>> = {};
   private creepLists: HashObject<Creep[]> = {};
 
 
@@ -71,6 +99,13 @@ class Data extends BaseData {
     return this.storeTo(key, this.roomData[room.name], func);
   }
 
+  private cacheByRoomTTL<T>(room: Room, key: string, func: () => T, ttl: number): T {
+    if (!this.roomDataTTL[room.name]) {
+      this.roomDataTTL[room.name] = new TTLCache<any>();
+    }
+    return this.storeTTL(key, this.roomDataTTL[room.name], func, ttl);
+  }
+
   private cacheCreepList(key: string, func: () => Creep[]): Creep[] {
     return this.storeTo(key, this.creepLists, func);
   }
@@ -79,8 +114,15 @@ class Data extends BaseData {
     return this.cacheByRoom(room, 'miningFlags', () => room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
   }
 
-  public findStructures<T>(room: Room, types: string[], where: number = FIND_MY_STRUCTURES) {
-    return this.cacheByRoom(room, types.join('|') + where, () => room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 }));
+
+  public findStructures<T>(room: Room, types: string[], where: number = FIND_MY_STRUCTURES, ttl = 0) {
+    const roomFindWhere = () => room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 });
+    const key = types.join('|') + where;
+    if (ttl > 0) {
+      return this.cacheByRoomTTL(room, key, roomFindWhere, ttl)
+    } else {
+      return this.cacheByRoom(room, key, roomFindWhere);
+    }
   }
 
   public roomContainers(room: Room) {
@@ -96,31 +138,31 @@ class Data extends BaseData {
   }
 
   public roomContainerOrStorage(room: Room) {
-    return this.findStructures<Container | Storage>(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES);
+    return this.findStructures<Container | Storage>(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES, 3);
   }
 
   public roomExtensionOrSpawn(room: Room) {
-    return this.findStructures<Extension | Spawn>(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
+    return this.findStructures<Extension | Spawn>(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN], FIND_MY_STRUCTURES, 3);
   }
 
   public roomExtensions(room: Room) {
-    return this.findStructures<Extension>(room, [STRUCTURE_EXTENSION]);
+    return this.findStructures<Extension>(room, [STRUCTURE_EXTENSION], FIND_MY_STRUCTURES, 3);
   }
 
   public roomTower(room: Room) {
-    return this.findStructures<Tower>(room, [STRUCTURE_TOWER]);
+    return this.findStructures<Tower>(room, [STRUCTURE_TOWER], FIND_MY_STRUCTURES, 7);
   }
 
   public roomRoad(room: Room) {
-    return this.findStructures<StructureRoad>(room, [STRUCTURE_ROAD], FIND_STRUCTURES);
+    return this.findStructures<StructureRoad>(room, [STRUCTURE_ROAD], FIND_STRUCTURES, 10);
   }
 
   public roomWall(room: Room) {
-    return this.findStructures<StructureWall>(room, [STRUCTURE_WALL], FIND_STRUCTURES);
+    return this.findStructures<StructureWall>(room, [STRUCTURE_WALL], FIND_STRUCTURES, 5);
   }
 
   public roomRampart(room: Room) {
-    return this.findStructures<Rampart>(room, [STRUCTURE_RAMPART]);
+    return this.findStructures<Rampart>(room, [STRUCTURE_RAMPART], FIND_MY_STRUCTURES, 7);
   }
 
   public creepList(): Creep[] {

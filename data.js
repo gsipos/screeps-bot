@@ -22,6 +22,22 @@ class MemoryStore {
         }
     }
 }
+;
+class TTLCache {
+    constructor() {
+        this.cache = {};
+    }
+    has(key) {
+        const entry = this.cache[key];
+        return !!entry && entry.maxAge < Game.time;
+    }
+    get(key) {
+        return this.cache[key].entry;
+    }
+    set(key, value, ttl) {
+        this.cache[key] = { entry: value, maxAge: Game.time + ttl };
+    }
+}
 class BaseData {
     constructor() {
         this.storeHit = 0;
@@ -36,6 +52,16 @@ class BaseData {
             this.storeHit++;
         }
         return cache[key];
+    }
+    storeTTL(key, cache, supplier, ttl) {
+        if (!cache.has(key)) {
+            cache.set(key, supplier(), ttl);
+            this.storeMiss++;
+        }
+        else {
+            this.storeHit++;
+        }
+        return cache.get(key);
     }
     getDistanceKey(from, to) {
         return `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
@@ -55,6 +81,7 @@ class Data extends BaseData {
     constructor() {
         super(...arguments);
         this.roomData = {};
+        this.roomDataTTL = {};
         this.creepLists = {};
     }
     reset() {
@@ -67,14 +94,27 @@ class Data extends BaseData {
         }
         return this.storeTo(key, this.roomData[room.name], func);
     }
+    cacheByRoomTTL(room, key, func, ttl) {
+        if (!this.roomDataTTL[room.name]) {
+            this.roomDataTTL[room.name] = new TTLCache();
+        }
+        return this.storeTTL(key, this.roomDataTTL[room.name], func, ttl);
+    }
     cacheCreepList(key, func) {
         return this.storeTo(key, this.creepLists, func);
     }
     roomMiningFlags(room) {
         return this.cacheByRoom(room, 'miningFlags', () => room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' }));
     }
-    findStructures(room, types, where = FIND_MY_STRUCTURES) {
-        return this.cacheByRoom(room, types.join('|') + where, () => room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 }));
+    findStructures(room, types, where = FIND_MY_STRUCTURES, ttl = 0) {
+        const roomFindWhere = () => room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 });
+        const key = types.join('|') + where;
+        if (ttl > 0) {
+            return this.cacheByRoomTTL(room, key, roomFindWhere, ttl);
+        }
+        else {
+            return this.cacheByRoom(room, key, roomFindWhere);
+        }
     }
     roomContainers(room) {
         return this.findStructures(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
@@ -86,25 +126,25 @@ class Data extends BaseData {
         delete this.roomData[room.name][STRUCTURE_CONTAINER + FIND_MY_CONSTRUCTION_SITES];
     }
     roomContainerOrStorage(room) {
-        return this.findStructures(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES);
+        return this.findStructures(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES, 3);
     }
     roomExtensionOrSpawn(room) {
-        return this.findStructures(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
+        return this.findStructures(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN], FIND_MY_STRUCTURES, 3);
     }
     roomExtensions(room) {
-        return this.findStructures(room, [STRUCTURE_EXTENSION]);
+        return this.findStructures(room, [STRUCTURE_EXTENSION], FIND_MY_STRUCTURES, 3);
     }
     roomTower(room) {
-        return this.findStructures(room, [STRUCTURE_TOWER]);
+        return this.findStructures(room, [STRUCTURE_TOWER], FIND_MY_STRUCTURES, 7);
     }
     roomRoad(room) {
-        return this.findStructures(room, [STRUCTURE_ROAD], FIND_STRUCTURES);
+        return this.findStructures(room, [STRUCTURE_ROAD], FIND_STRUCTURES, 10);
     }
     roomWall(room) {
-        return this.findStructures(room, [STRUCTURE_WALL], FIND_STRUCTURES);
+        return this.findStructures(room, [STRUCTURE_WALL], FIND_STRUCTURES, 5);
     }
     roomRampart(room) {
-        return this.findStructures(room, [STRUCTURE_RAMPART]);
+        return this.findStructures(room, [STRUCTURE_RAMPART], FIND_MY_STRUCTURES, 7);
     }
     creepList() {
         return this.cacheCreepList('all', () => Object.keys(Game.creeps).map(n => Game.creeps[n]));
