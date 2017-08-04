@@ -1,7 +1,9 @@
 import { data } from './data';
+import { Profile } from './profiler';
 
 class RoomManager {
 
+  @Profile('Room')
   public initRooms() {
     if (!Memory.flags) {
       Memory.flags = {};
