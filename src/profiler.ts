@@ -1,4 +1,4 @@
-import { data, cachedData } from './data';
+import { data, cachedData, pathStore } from './data';
 
 class Profiler {
 
@@ -66,8 +66,9 @@ class Profiler {
     console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick');
     entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu.toFixed(2)} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)}`));
     console.log('----------------------------------------------');
-    console.log(`Data hit / miss: ${data.storeHit} / ${data.storeMiss} | Hit ratio: ${(data.storeHit / (data.storeHit + data.storeMiss)).toFixed(2)}`);
+    console.log(`Data       hit / miss: ${data.storeHit} / ${data.storeMiss} | Hit ratio: ${(data.storeHit / (data.storeHit + data.storeMiss)).toFixed(2)}`);
     console.log(`CachedData hit / miss: ${cachedData.storeHit} / ${cachedData.storeMiss} | Hit ratio: ${(cachedData.storeHit / (cachedData.storeHit + cachedData.storeMiss)).toFixed(2)}`);
+    console.log(`PathStore  hit / miss: ${pathStore.storeHit} / ${pathStore.storeMiss} | Hit ratio: ${(pathStore.storeHit / (pathStore.storeHit + pathStore.storeMiss)).toFixed(2)}`);
   }
 }
 
