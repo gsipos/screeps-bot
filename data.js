@@ -129,7 +129,7 @@ class Data extends BaseData {
         return this.findStructures(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES, 3);
     }
     roomExtensionOrSpawn(room) {
-        return this.findStructures(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN], FIND_MY_STRUCTURES, 3);
+        return this.findStructures(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
     }
     roomExtensions(room) {
         return this.findStructures(room, [STRUCTURE_EXTENSION], FIND_MY_STRUCTURES, 3);

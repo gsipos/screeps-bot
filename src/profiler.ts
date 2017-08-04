@@ -80,6 +80,13 @@ class Profiler {
     console.log(`CachedData hit / miss: ${cachedData.storeHit} / ${cachedData.storeMiss} | Hit ratio: ${(cachedData.storeHit / (cachedData.storeHit + cachedData.storeMiss)).toFixed(2)}`);
     console.log(`PathStore  hit / miss / renewed: ${pathStore.storeHit} / ${pathStore.storeMiss} / ${pathStore.renewed} | Hit ratio: ${(pathStore.storeHit / (pathStore.storeHit + pathStore.storeMiss)).toFixed(2)}`);
   }
+
+  public memoryParse() {
+    const stringified = JSON.stringify(Memory);
+    const startCpu = Game.cpu.getUsed();
+    JSON.parse(stringified);
+    console.log('CPU spent on Memory parsing:', Game.cpu.getUsed() - startCpu);
+  }
 }
 
 export const profiler = new Profiler();

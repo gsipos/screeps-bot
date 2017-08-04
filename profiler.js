@@ -73,6 +73,12 @@ class Profiler {
         console.log(`CachedData hit / miss: ${data_1.cachedData.storeHit} / ${data_1.cachedData.storeMiss} | Hit ratio: ${(data_1.cachedData.storeHit / (data_1.cachedData.storeHit + data_1.cachedData.storeMiss)).toFixed(2)}`);
         console.log(`PathStore  hit / miss / renewed: ${data_1.pathStore.storeHit} / ${data_1.pathStore.storeMiss} / ${data_1.pathStore.renewed} | Hit ratio: ${(data_1.pathStore.storeHit / (data_1.pathStore.storeHit + data_1.pathStore.storeMiss)).toFixed(2)}`);
     }
+    memoryParse() {
+        const stringified = JSON.stringify(Memory);
+        const startCpu = Game.cpu.getUsed();
+        JSON.parse(stringified);
+        console.log('CPU spent on Memory parsing:', Game.cpu.getUsed() - startCpu);
+    }
 }
 exports.profiler = new Profiler();
 function Profile(name = '') {

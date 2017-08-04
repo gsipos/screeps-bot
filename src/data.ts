@@ -142,7 +142,7 @@ class Data extends BaseData {
   }
 
   public roomExtensionOrSpawn(room: Room) {
-    return this.findStructures<Extension | Spawn>(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN], FIND_MY_STRUCTURES, 3);
+    return this.findStructures<Extension | Spawn>(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
   }
 
   public roomExtensions(room: Room) {
