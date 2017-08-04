@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const profiler_1 = require("./profiler");
+const data_1 = require("./data");
 class TowerManager {
     constructor() {
         this.jobTTL = 5;
@@ -15,15 +16,17 @@ class TowerManager {
         }
     }
     loop() {
-        const towers = this.getTowers();
-        towers.forEach(tower => {
-            this.clearExpiredJob(tower);
-            let towerMemory = this.getTowerMemory(tower.id);
-            if (!towerMemory) {
-                towerMemory = this.assignJobToTower(tower);
-            }
-            this.executeTowerJob(tower, towerMemory);
-        });
+        for (let name in Game.rooms) {
+            const room = Game.rooms[name];
+            data_1.data.roomTower(room).forEach(tower => {
+                this.clearExpiredJob(tower);
+                let towerMemory = this.getTowerMemory(tower.id);
+                if (!towerMemory) {
+                    towerMemory = this.assignJobToTower(tower);
+                }
+                this.executeTowerJob(tower, towerMemory);
+            });
+        }
     }
     executeTowerJob(tower, memory) {
         const target = Game.getObjectById(memory.jobTarget);
@@ -80,11 +83,6 @@ class TowerManager {
         const towerMemory = { job: job, jobTarget: target.id, jobTTL: this.jobTTL };
         Memory.towers[tower.id] = towerMemory;
         return towerMemory;
-    }
-    getTowers() {
-        return Object.keys(Game.structures)
-            .map(id => Game.structures[id])
-            .filter(s => s.structureType === STRUCTURE_TOWER);
     }
     clearExpiredJob(tower) {
         let mem = this.getTowerMemory(tower.id);

@@ -1,4 +1,5 @@
 import { Profile } from './profiler';
+import { data } from './data';
 type TowerJobType = 'attack' | 'repair' | 'heal' | 'jobless';
 
 interface TowerMemory {
@@ -19,15 +20,18 @@ class TowerManager {
 
   @Profile('Tower')
   public loop() {
-    const towers = this.getTowers();
-    towers.forEach(tower => {
-      this.clearExpiredJob(tower);
-      let towerMemory = this.getTowerMemory(tower.id);
-      if (!towerMemory) {
-        towerMemory = this.assignJobToTower(tower);
-      }
-      this.executeTowerJob(tower, towerMemory);
-    });
+
+    for (let name in Game.rooms) {
+      const room = Game.rooms[name];
+      data.roomTower(room).forEach(tower => {
+        this.clearExpiredJob(tower);
+        let towerMemory = this.getTowerMemory(tower.id);
+        if (!towerMemory) {
+          towerMemory = this.assignJobToTower(tower);
+        }
+        this.executeTowerJob(tower, towerMemory);
+      });
+    }
   }
 
   private executeTowerJob(tower: Tower, memory: TowerMemory) {
@@ -92,12 +96,6 @@ class TowerManager {
     const towerMemory: TowerMemory = { job: job, jobTarget: target.id, jobTTL: this.jobTTL };
     Memory.towers[tower.id] = towerMemory;
     return towerMemory;
-  }
-
-  public getTowers(): Tower[] {
-    return Object.keys(Game.structures)
-      .map(id => Game.structures[id] as Tower)
-      .filter(s => s.structureType === STRUCTURE_TOWER)
   }
 
   private clearExpiredJob(tower: Tower) {
