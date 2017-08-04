@@ -8,7 +8,7 @@ class MemoryStore<T = string> {
   }
 
   public has(key: string): boolean {
-    return key in Memory[this.store];
+    return !!Memory[this.store][key];
   }
 
   public get(key: string): T {

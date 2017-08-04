@@ -8,7 +8,7 @@ class MemoryStore {
         }
     }
     has(key) {
-        return key in Memory[this.store];
+        return !!Memory[this.store][key];
     }
     get(key) {
         return Memory[this.store][key];
