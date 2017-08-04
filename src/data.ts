@@ -193,6 +193,7 @@ class Data extends BaseData {
 
 class PathStore extends BaseData {
   private store = new MemoryStore('pathStore');
+  public renewed = 0;
 
   public getPath(from: RoomPosition, to: RoomPosition) {
     const key = this.getDistanceKey(from, to);
@@ -208,6 +209,7 @@ class PathStore extends BaseData {
   }
 
   public renewPath(from: RoomPosition, to: RoomPosition) {
+    this.renewed++;
     const key = this.getDistanceKey(from, to);
     this.store.delete(key);
     return this.getPath(from, to);

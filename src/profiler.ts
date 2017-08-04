@@ -68,7 +68,7 @@ class Profiler {
     console.log('----------------------------------------------');
     console.log(`Data       hit / miss: ${data.storeHit} / ${data.storeMiss} | Hit ratio: ${(data.storeHit / (data.storeHit + data.storeMiss)).toFixed(2)}`);
     console.log(`CachedData hit / miss: ${cachedData.storeHit} / ${cachedData.storeMiss} | Hit ratio: ${(cachedData.storeHit / (cachedData.storeHit + cachedData.storeMiss)).toFixed(2)}`);
-    console.log(`PathStore  hit / miss: ${pathStore.storeHit} / ${pathStore.storeMiss} | Hit ratio: ${(pathStore.storeHit / (pathStore.storeHit + pathStore.storeMiss)).toFixed(2)}`);
+    console.log(`PathStore  hit / miss / renewed: ${pathStore.storeHit} / ${pathStore.storeMiss} / ${pathStore.renewed} | Hit ratio: ${(pathStore.storeHit / (pathStore.storeHit + pathStore.storeMiss)).toFixed(2)}`);
   }
 }
 

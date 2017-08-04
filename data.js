@@ -169,6 +169,7 @@ class PathStore extends BaseData {
     constructor() {
         super(...arguments);
         this.store = new MemoryStore('pathStore');
+        this.renewed = 0;
     }
     getPath(from, to) {
         const key = this.getDistanceKey(from, to);
@@ -184,6 +185,7 @@ class PathStore extends BaseData {
         return this.store.get(key);
     }
     renewPath(from, to) {
+        this.renewed++;
         const key = this.getDistanceKey(from, to);
         this.store.delete(key);
         return this.getPath(from, to);
