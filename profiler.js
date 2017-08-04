@@ -33,9 +33,17 @@ class Profiler {
             Memory.profileMethod[name] = 1;
             Memory.profile[name + '_call'] = 0;
             Memory.profile[name + '_cpu'] = 0;
+            Memory.profile[name + '_min'] = consumedCPU;
+            Memory.profile[name + '_max'] = consumedCPU;
         }
         Memory.profile[name + '_call']++;
         Memory.profile[name + '_cpu'] += consumedCPU;
+        if (Memory.profile[name + '_max'] < consumedCPU) {
+            Memory.profile[name + '_max'] = consumedCPU;
+        }
+        if (Memory.profile[name + '_min'] > consumedCPU) {
+            Memory.profile[name + '_min'] = consumedCPU;
+        }
     }
     start() {
         Memory.profiling = true;
@@ -53,11 +61,13 @@ class Profiler {
         const entries = Object.keys(Memory.profileMethod).map(name => ({
             name: name,
             calls: Memory.profile[name + '_call'],
-            cpu: Memory.profile[name + '_cpu']
+            cpu: Memory.profile[name + '_cpu'],
+            min: Memory.profile[name + '_min'],
+            max: Memory.profile[name + '_max'],
         }));
         console.log('----------------------------------------------');
-        console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick');
-        entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu.toFixed(2)} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)}`));
+        console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick | Min | Max');
+        entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu.toFixed(2)} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)} | ${e.min} | ${e.max}`));
         console.log('----------------------------------------------');
         console.log(`Data       hit / miss: ${data_1.data.storeHit} / ${data_1.data.storeMiss} | Hit ratio: ${(data_1.data.storeHit / (data_1.data.storeHit + data_1.data.storeMiss)).toFixed(2)}`);
         console.log(`CachedData hit / miss: ${data_1.cachedData.storeHit} / ${data_1.cachedData.storeMiss} | Hit ratio: ${(data_1.cachedData.storeHit / (data_1.cachedData.storeHit + data_1.cachedData.storeMiss)).toFixed(2)}`);
