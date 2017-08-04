@@ -176,6 +176,10 @@ class PathStore extends BaseData {
             const path = from.findPathTo(to);
             const serializedPath = Room.serializePath(path);
             this.store.set(key, serializedPath);
+            this.storeMiss++;
+        }
+        else {
+            this.storeHit++;
         }
         return this.store.get(key);
     }
