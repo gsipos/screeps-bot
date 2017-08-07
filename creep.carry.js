@@ -22,8 +22,8 @@ class CarryCreepManager {
     constructor() {
         this.carryJobs = [
             energy,
-            fillTower,
             fillSpawnOrExtension,
+            fillTower,
             fillCreeps,
             fillStorage,
             idleFill

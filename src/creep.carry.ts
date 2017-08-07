@@ -55,8 +55,8 @@ class CarryCreepManager {
 
   public carryJobs = [
     energy,
-    fillTower,
     fillSpawnOrExtension,
+    fillTower,
     fillCreeps,
     fillStorage,
     idleFill

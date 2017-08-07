@@ -80,10 +80,8 @@ class CreepJob {
         }
         const currentPos = '' + creep.pos.x + creep.pos.y;
         const moveResult = creep.moveByPath(creep.memory.path);
-        if (moveResult !== OK) {
-            if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
-                creep.memory.path = data_1.pathStore.renewPath(creep.pos, target.pos);
-            }
+        if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
+            creep.memory.path = data_1.pathStore.renewPath(creep.pos, target.pos);
         }
         if (moveResult == ERR_NO_PATH) {
             this.finishJob(creep, target);
