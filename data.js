@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const util_1 = require("./util");
 class MemoryStore {
     constructor(store) {
         this.store = store;
@@ -129,138 +130,89 @@ class CachedData extends BaseData {
 class Data extends BaseData {
     constructor() {
         super(...arguments);
-        this.roomData = {};
-        this.roomDataTTL = {};
-        this.creepLists = {};
-    }
-    reset() {
-        this.roomData = {};
-        this.creepLists = {};
-    }
-    cacheByRoom(room, key, func) {
-        if (!this.roomData[room.name]) {
-            this.roomData[room.name] = {};
-        }
-        return this.storeTo(key, this.roomData[room.name], func);
-    }
-    cacheByRoomTTL(room, key, func, ttl) {
-        if (!this.roomDataTTL[room.name]) {
-            this.roomDataTTL[room.name] = new TTLCache();
-        }
-        return this.storeTTL(key, this.roomDataTTL[room.name], func, ttl);
+        this.creepLists = new util_1.Temporal(() => ({}));
+        this.creeps = new util_1.Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]));
+        this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+        this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+        this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+        this.rooms = {};
     }
     cacheCreepList(key, func) {
-        return this.storeTo(key, this.creepLists, func);
-    }
-    roomMiningFlags(room) {
-        return this.cacheByRoom(room, 'miningFlags', () => room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' }));
-    }
-    findStructures(room, types, where = FIND_MY_STRUCTURES, ttl = 0) {
-        const roomFindWhere = () => room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 });
-        const key = types.join('|') + where;
-        if (ttl > 0) {
-            return this.cacheByRoomTTL(room, key, roomFindWhere, ttl);
-        }
-        else {
-            return this.cacheByRoom(room, key, roomFindWhere);
-        }
-    }
-    roomContainers(room) {
-        return this.findStructures(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
-    }
-    roomContainerConstruction(room) {
-        return this.findStructures(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
-    }
-    roomContainerContructionChanged(room) {
-        delete this.roomData[room.name][STRUCTURE_CONTAINER + FIND_MY_CONSTRUCTION_SITES];
-    }
-    roomContainerOrStorage(room) {
-        return this.findStructures(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES, 3);
-    }
-    roomExtensionOrSpawn(room) {
-        return this.findStructures(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
-    }
-    roomExtensions(room) {
-        return this.findStructures(room, [STRUCTURE_EXTENSION], FIND_MY_STRUCTURES, 3);
-    }
-    roomTower(room) {
-        return this.findStructures(room, [STRUCTURE_TOWER], FIND_MY_STRUCTURES, 7);
-    }
-    roomRoad(room) {
-        return this.findStructures(room, [STRUCTURE_ROAD], FIND_STRUCTURES, 10);
-    }
-    roomWall(room) {
-        return this.findStructures(room, [STRUCTURE_WALL], FIND_STRUCTURES, 5);
-    }
-    roomRampart(room) {
-        return this.findStructures(room, [STRUCTURE_RAMPART], FIND_MY_STRUCTURES, 7);
-    }
-    creepList() {
-        return this.cacheCreepList('all', () => Object.keys(Game.creeps).map(n => Game.creeps[n]));
-    }
-    creepByRole(role) {
-        return this.cacheCreepList(role, () => this.creepList().filter(c => c.memory.role === role));
-    }
-    roomCreeps(room) {
-        return this.cacheByRoom(room, 'creeps', () => this.creepList().filter(c => c.room === room));
-    }
-    roomCreepsByRole(room, role) {
-        return this.cacheByRoom(room, 'creeps' + role, () => this.creepByRole(role).filter(c => c.room === room));
+        return this.storeTo(key, this.creepLists.get(), func);
     }
     creepsByJobTarget(job, jobTarget) {
-        return this.cacheCreepList(job + '|' + jobTarget, () => this.creepList().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
+        return this.cacheCreepList(job + '|' + jobTarget, () => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
     }
     registerCreepJob(creep) {
         this.creepsByJobTarget(creep.memory.job, creep.memory.jobTarget).push(creep);
     }
+    of(room) {
+        if (!this.rooms[room.name]) {
+            this.rooms[room.name] = new RoomData(room);
+        }
+        return this.rooms[room.name];
+    }
 }
+class RoomData {
+    constructor(room) {
+        this.room = room;
+        this.sources = new util_1.TTL(200, () => this.room.find(FIND_SOURCES));
+        this.spawns = new util_1.TTL(200, () => this.findMy(STRUCTURE_SPAWN));
+        this.containers = new util_1.TTL(0, () => this.findMy(STRUCTURE_CONTAINER));
+        this.storage = new util_1.TTL(10, () => this.room.storage);
+        this.containerOrStorage = new util_1.TTL(10, () => [...this.containers.get(), this.room.storage]);
+        this.extensions = new util_1.TTL(20, () => this.findMy(STRUCTURE_EXTENSION));
+        this.extensionOrSpawns = new util_1.TTL(5, () => this.concat(this.extensions, this.spawns));
+        this.towers = new util_1.TTL(200, () => this.findMy(STRUCTURE_TOWER));
+        this.ramparts = new util_1.TTL(7, () => this.findMy(STRUCTURE_RAMPART));
+        this.walls = new util_1.TTL(7, () => this.find(FIND_STRUCTURES, [STRUCTURE_WALL]));
+        this.roads = new util_1.TTL(7, () => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+        this.miningFlags = new util_1.TTL(200, () => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' }));
+        this.containerConstructions = new util_1.TTL(3, () => this.room.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+        this.nonDefensiveStructures = new util_1.TTL(100, () => this.room.find(FIND_STRUCTURES)
+            .filter(s => s.structureType !== STRUCTURE_WALL)
+            .filter(s => s.structureType !== STRUCTURE_RAMPART));
+        this.creeps = new util_1.Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]).filter(c => c.room === this.room));
+        this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+        this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+        this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+        this.fillableCreeps = new util_1.Temporal(() => this.creeps.get()
+            .filter(creep => creep.memory.role !== 'miner')
+            .filter(creep => creep.memory.role !== 'carry'));
+    }
+    find(where, types) {
+        return this.room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 });
+    }
+    findMy(types) { return this.find(FIND_MY_STRUCTURES, [types]); }
+    concat(first, second) {
+        return [].concat(first.get(), second.get());
+    }
+}
+exports.RoomData = RoomData;
 class PathStore extends BaseData {
     constructor() {
         super(...arguments);
         this.store = new MemoryStore('pathStore');
-        this.hierarchyStore = new MemoryHierarchyStore('pathTreeStore');
-        this.hierarchyStore2 = new MemoryHierarchyStore('pathTreeStore2');
         this.renewed = 0;
     }
     getPath(from, to) {
         const key = this.getDistanceKey(from, to);
-        const keyPath = this.hierarchyStore.getKeyPath(from, to);
         if (!this.store.has(key)) {
             const path = from.findPathTo(to);
             const serializedPath = Room.serializePath(path);
             this.store.set(key, serializedPath);
-            this.hierarchyStore.set(keyPath, serializedPath);
-            this.hierarchyStore2.set(this.hierarchyStore2.getKeyPath(to, from), serializedPath);
             this.storeMiss++;
         }
         else {
             this.storeHit++;
         }
-        const result = this.store.get(key);
-        const result2 = this.hierarchyStore.get(keyPath);
-        if (result != result2) {
-            console.warn('Hierarhy and simple path store are different', result, result2);
-        }
-        return result2;
+        return this.store.get(key);
     }
     renewPath(from, to) {
         this.renewed++;
         const key = this.getDistanceKey(from, to);
-        const path = this.hierarchyStore.getKeyPath(from, to);
         this.store.delete(key);
-        this.hierarchyStore.delete(path);
-        this.hierarchyStore2.delete(this.hierarchyStore2.getKeyPath(to, from));
         return this.getPath(from, to);
-    }
-}
-class PathHierarchyStore {
-    constructor() {
-        if (!this.store) {
-            Memory.pathHierarchyStore = {};
-        }
-    }
-    get store() {
-        return Memory.pathHiearchyStore;
     }
 }
 exports.data = new Data();

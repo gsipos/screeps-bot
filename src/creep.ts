@@ -1,4 +1,3 @@
-import { findStructures } from './util';
 import { data, cachedData, pathStore } from './data';
 import { Profile } from './profiler';
 
@@ -127,7 +126,7 @@ export class CreepManager {
     new CreepJob('smallWall', '#ffaa00', 'wall',
       (c, t) => c.repair(t),
       (c, t) => c.carry.energy == 0 || t.hits >= 500,
-      c => data.roomWall(c.room).filter(w => w.hits < 500),
+      c => data.of(c.room).walls.get().filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
 
@@ -142,7 +141,7 @@ export class CreepManager {
 
   @Profile('Creep')
   public loop() {
-    data.creepByRole('general').forEach(creep => this.processCreep(creep, this.jobs));
+    data.generalCreeps.get().forEach(creep => this.processCreep(creep, this.jobs));
   }
 
   public processCreep(creep: Creep, jobs: CreepJob[]) {

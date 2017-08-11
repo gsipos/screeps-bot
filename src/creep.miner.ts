@@ -3,6 +3,7 @@ import { roomManager } from './room';
 import { findStructures } from './util';
 import { Profile } from './profiler';
 
+
 const moveToContainer = new CreepJob('moveToContainer', 'ffaa00', 'toContainer',
   (c, t) => c.moveTo(t),
   (c, t) => c.pos.isEqualTo(t.pos),

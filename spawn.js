@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 const data_1 = require("./data");
 const profiler_1 = require("./profiler");
+const util_1 = require("./util");
 class CreepType {
     constructor(name, body) {
         this.name = name;
@@ -37,9 +38,23 @@ class CarryCreep extends CreepType {
         super('carry', body);
     }
 }
+class GeneralCreep extends CreepType {
+    constructor(lvl) {
+        const body = [];
+        for (let i = 0; i < lvl; i++) {
+            body.push(WORK);
+            body.push(CARRY);
+            if (lvl % 2 === 0) {
+                body.push(MOVE);
+            }
+        }
+        super('general', body);
+    }
+}
+class MinerCreepSpawner {
+}
 class SpawnManager {
     constructor() {
-        this.maxCreepCount = 13;
         this.generalCreepCount = 1;
         this.carryCreepCount = 6;
         this.creepTypes = [
@@ -50,18 +65,26 @@ class SpawnManager {
             new CreepType('general', [WORK, CARRY, CARRY, MOVE, MOVE]),
             new CreepType('general', [WORK, CARRY, MOVE])
         ];
+        this.generalCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new GeneralCreep(6 - idx));
         this.minerCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new MinerCreep(6 - idx));
         this.carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
     }
     loop() {
-        this.creeps = data_1.data.creepList();
+        util_1.forEachRoom(room => {
+            const roomData = data_1.data.of(room);
+            const spawns = roomData.spawns.get();
+            const availableSpawns = spawns.filter(s => !s.spawning);
+            if (availableSpawns.length === 0) {
+                return;
+            }
+        });
         for (let name in Game.spawns) {
             const spawn = Game.spawns[name];
-            const extensionEnergy = this.getEnergyInExtensions(spawn);
             if (spawn.spawning) {
                 continue;
             }
-            const roomCreeps = data_1.data.roomCreeps(spawn.room);
+            const extensionEnergy = this.getEnergyInExtensions(spawn);
+            const roomCreeps = data_1.data.of(spawn.room).creeps.get();
             if (this.buildMinersAndCarriers(spawn, roomCreeps, extensionEnergy)) {
                 continue;
             }
@@ -84,7 +107,7 @@ class SpawnManager {
         }
     }
     spawnGeneralCreep(spawn, energyInExtensions, roomCreeps) {
-        const generalCreeps = data_1.data.roomCreepsByRole(spawn.room, 'general');
+        const generalCreeps = data_1.data.of(spawn.room).generalCreeps.get();
         if (spawn.spawning) {
             return false;
         }
@@ -99,7 +122,7 @@ class SpawnManager {
         }
     }
     spawnCarriers(spawn, energyInExtensions, roomCreeps) {
-        const carryCreeps = data_1.data.roomCreepsByRole(spawn.room, 'carry');
+        const carryCreeps = data_1.data.of(spawn.room).carryCreeps.get();
         if (spawn.spawning) {
             return false;
         }
@@ -115,23 +138,24 @@ class SpawnManager {
         return false;
     }
     getEnergyInExtensions(spawn) {
-        return data_1.data.roomExtensions(spawn.room).reduce((a, s) => a + s.energy, 0);
+        return data_1.data.of(spawn.room).extensions.get().reduce((a, s) => a + s.energy, 0);
     }
     buildMinersAndCarriers(spawn, creeps, energyInExtensions) {
-        const miningFlags = data_1.data.roomMiningFlags(spawn.room);
+        const roomData = data_1.data.of(spawn.room);
+        const miningFlags = roomData.miningFlags.get();
         if (!miningFlags.length) {
             return true;
         }
         const maxMiners = Math.min(5, miningFlags.length);
-        const minerCreeps = data_1.data.roomCreepsByRole(spawn.room, 'miner');
-        const carryCreeps = data_1.data.roomCreepsByRole(spawn.room, 'carry');
+        const minerCreeps = data_1.data.of(spawn.room).minerCreeps.get();
+        const carryCreeps = data_1.data.of(spawn.room).carryCreeps.get();
         if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
             return false;
         }
         let toBuildType;
         const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
         const noMaxMiners = minerCreeps.length < maxMiners;
-        const noContainer = !data_1.data.roomContainers(spawn.room).length;
+        const noContainer = !roomData.containers.get().length;
         if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
             toBuildType = this.minerCreepTypes;
             console.log('Build: miner');

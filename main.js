@@ -19,7 +19,6 @@ module.exports.loop = function () {
     }
   }
 
-  data.reset();
   roomManager.initRooms();
   constructionManager.loop();
   spawnManager.loop();

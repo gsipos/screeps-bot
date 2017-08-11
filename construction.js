@@ -16,13 +16,13 @@ class ConstructionManager {
         }
     }
     buildMiningContainers(room) {
-        const containers = data_1.data.roomContainers(room);
-        const containersUnderConstruction = data_1.data.roomContainerConstruction(room);
+        const containers = data_1.data.of(room).containers.get();
+        const containersUnderConstruction = data_1.data.of(room).containerConstructions.get();
         const currentContainers = containers.length + containersUnderConstruction.length;
         if (currentContainers === 5) {
             return;
         }
-        const miningFlags = data_1.data.roomMiningFlags(room);
+        const miningFlags = data_1.data.of(room).miningFlags.get();
         const maxContainers = Math.min(5, miningFlags.length);
         if (currentContainers === maxContainers) {
             return;
@@ -33,7 +33,7 @@ class ConstructionManager {
         const spawn = Object.keys(Game.spawns).map(k => Game.spawns[k]).filter(s => s.room === room)[0];
         const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, { filter: (f) => buildableFlags.indexOf(f) > -1 });
         chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        data_1.data.roomContainerContructionChanged(room);
+        data_1.data.of(room).containerConstructions.clear();
     }
 }
 __decorate([

@@ -13,15 +13,15 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room: Room) {
-    const containers = data.roomContainers(room);
-    const containersUnderConstruction = data.roomContainerConstruction(room);
+    const containers = data.of(room).containers.get();
+    const containersUnderConstruction = data.of(room).containerConstructions.get();
     const currentContainers = containers.length + containersUnderConstruction.length;
 
     if (currentContainers === 5) {
       return;
     }
 
-    const miningFlags = data.roomMiningFlags(room);
+    const miningFlags = data.of(room).miningFlags.get();
     const maxContainers = Math.min(5, miningFlags.length);
 
     if (currentContainers === maxContainers) {
@@ -36,7 +36,7 @@ class ConstructionManager {
 
     const chosen = spawn.pos.findClosestByPath<Flag>(FIND_FLAGS, { filter: (f: Flag) => buildableFlags.indexOf(f) > -1 });
     chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
-    data.roomContainerContructionChanged(room);
+    data.of(room).containerConstructions.clear();
   }
 
 }

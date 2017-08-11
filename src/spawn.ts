@@ -1,5 +1,6 @@
 import { data } from './data';
 import { Profile } from './profiler';
+import { Temporal, forEachRoom } from './util';
 
 export class CreepType {
   public readonly cost: number;
@@ -31,8 +32,25 @@ class CarryCreep extends CreepType {
   }
 }
 
+class GeneralCreep extends CreepType {
+  constructor(lvl: number) {
+    const body = [];
+    for (let i = 0; i < lvl; i++) {
+      body.push(WORK);
+      body.push(CARRY);
+      if (lvl % 2 === 0) {
+        body.push(MOVE);
+      }
+    }
+    super('general', body);
+  }
+}
+
+class MinerCreepSpawner {
+
+}
+
 export class SpawnManager {
-  private maxCreepCount = 13;
   private generalCreepCount = 1;
   private carryCreepCount = 6;
 
@@ -45,22 +63,32 @@ export class SpawnManager {
     new CreepType('general', [WORK, CARRY, MOVE])
   ];
 
+  private generalCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new GeneralCreep(6 - idx));
   private minerCreepTypes = [1,2,3,4,5,6].map((v, idx) => new MinerCreep(6 - idx));
   private carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
 
-  private creeps: Creep[];
 
   @Profile('Spawn')
   public loop() {
-    this.creeps = data.creepList();
+    forEachRoom(room => {
+      const roomData = data.of(room);
+      const spawns = roomData.spawns.get();
+      const availableSpawns = spawns.filter(s => !s.spawning);
+      if (availableSpawns.length === 0) {
+        return;
+      }
+
+
+    });
 
     for (let name in Game.spawns) {
       const spawn = Game.spawns[name];
-      const extensionEnergy = this.getEnergyInExtensions(spawn);
       if (spawn.spawning) {
         continue;
       }
-      const roomCreeps = data.roomCreeps(spawn.room);
+
+      const extensionEnergy = this.getEnergyInExtensions(spawn);
+      const roomCreeps = data.of(spawn.room).creeps.get();
       if (this.buildMinersAndCarriers(spawn, roomCreeps, extensionEnergy)) {
         continue;
       };
@@ -87,7 +115,7 @@ export class SpawnManager {
   }
 
   private spawnGeneralCreep(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]) {
-    const generalCreeps = data.roomCreepsByRole(spawn.room, 'general');
+    const generalCreeps = data.of(spawn.room).generalCreeps.get();
     if (spawn.spawning) {
       return false;
     }
@@ -103,7 +131,7 @@ export class SpawnManager {
   }
 
   private spawnCarriers(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]): boolean {
-    const carryCreeps = data.roomCreepsByRole(spawn.room, 'carry');
+    const carryCreeps = data.of(spawn.room).carryCreeps.get();
     if (spawn.spawning) {
       return false;
     }
@@ -120,17 +148,18 @@ export class SpawnManager {
   }
 
   private getEnergyInExtensions(spawn: Spawn) {
-    return data.roomExtensions(spawn.room).reduce((a, s) => a + s.energy, 0);
+    return data.of(spawn.room).extensions.get().reduce((a, s) => a + s.energy, 0);
   }
 
   private buildMinersAndCarriers(spawn: Spawn, creeps: Creep[], energyInExtensions: number) {
-    const miningFlags = data.roomMiningFlags(spawn.room);
+    const roomData = data.of(spawn.room);
+    const miningFlags = roomData.miningFlags.get();
     if (!miningFlags.length) {
       return true;
     }
     const maxMiners = Math.min(5, miningFlags.length);
-    const minerCreeps = data.roomCreepsByRole(spawn.room, 'miner');
-    const carryCreeps = data.roomCreepsByRole(spawn.room, 'carry');
+    const minerCreeps = data.of(spawn.room).minerCreeps.get();
+    const carryCreeps = data.of(spawn.room).carryCreeps.get();
 
     if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
       return false;
@@ -139,7 +168,7 @@ export class SpawnManager {
     let toBuildType: CreepType[];
     const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
     const noMaxMiners = minerCreeps.length < maxMiners;
-    const noContainer = !data.roomContainers(spawn.room).length;
+    const noContainer = !roomData.containers.get().length;
     if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
       toBuildType = this.minerCreepTypes;
       console.log('Build: miner');
