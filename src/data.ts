@@ -25,6 +25,68 @@ class MemoryStore<T = string> {
     }
   }
 }
+
+type MemoryKeyPath = (string | number)[];
+class MemoryHierarchyStore<T = string> {
+  constructor(private store: string) {
+    if (!Memory[store]) {
+      Memory[store] = {};
+    }
+  }
+
+  public get(path: MemoryKeyPath): T {
+    const leafKey = this.getLeafKey(path);
+    const leaf = this.traversePath(path, false) as any;
+    return leaf[leafKey] as T;
+  }
+
+  public set(path: MemoryKeyPath, value: T) {
+    const leafKey = this.getLeafKey(path);
+    const leaf = this.traversePath(path, true);
+    leaf[leafKey] = value;
+  }
+
+  public has(path: MemoryKeyPath): boolean {
+    return !!this.get(path);
+  }
+
+  public delete(path: MemoryKeyPath) {
+    const leafKey = this.getLeafKey(path);
+    const leaf = this.traversePath(path, true);
+    delete leaf[leafKey];
+
+    if (Object.keys(leaf).length === 0) {
+      this.delete(path.slice(0, -1));
+    }
+  }
+
+  public getKeyPath(from: RoomPosition, to: RoomPosition): MemoryKeyPath {
+    return [from.roomName, '' + from.x + '|' + from.y, '' + to.x + '|' +to.y];
+  }
+
+  private getLeafKey(keys: MemoryKeyPath) {
+    return keys[keys.length - 1];
+  }
+
+  private traversePath(path: MemoryKeyPath, makeWay: true): HashObject<any>
+  private traversePath(path: MemoryKeyPath, makeWay: false): HashObject<any> | undefined
+  private traversePath(path: MemoryKeyPath, makeWay: boolean): HashObject<any> | undefined {
+    let store = Memory[this.store];
+    for (let i = 0; i < path.length - 1; i++) {
+      const keyPart = path[i];
+      if (makeWay && !store[keyPart]) {
+        store[keyPart] = {};
+      } else if (!store) {
+        return undefined;
+      }
+      store = store[keyPart];
+    }
+    return store;
+  }
+
+
+}
+
 interface TTLEntry<T = string> { entry: T; maxAge: number };
 class TTLCache<T=string> {
   public cache: HashObject<TTLEntry<T>> = {};
@@ -193,28 +255,68 @@ class Data extends BaseData {
 
 class PathStore extends BaseData {
   private store = new MemoryStore('pathStore');
+  private hierarchyStore = new MemoryHierarchyStore('pathTreeStore');
+  private hierarchyStore2 = new MemoryHierarchyStore('pathTreeStore2');
+
   public renewed = 0;
 
   public getPath(from: RoomPosition, to: RoomPosition) {
     const key = this.getDistanceKey(from, to);
+    const keyPath = this.hierarchyStore.getKeyPath(from, to);
     if (!this.store.has(key)) {
       const path = from.findPathTo(to);
       const serializedPath = Room.serializePath(path);
       this.store.set(key, serializedPath);
+      this.hierarchyStore.set(keyPath, serializedPath);
+      this.hierarchyStore2.set(this.hierarchyStore2.getKeyPath(to, from), serializedPath);
       this.storeMiss++;
     } else {
       this.storeHit++;
     }
-    return this.store.get(key);
+
+    const result = this.store.get(key);
+    const result2 = this.hierarchyStore.get(keyPath);
+    if (result != result2) {
+      console.warn('Hierarhy and simple path store are different', result, result2);
+    }
+
+    return result2;
   }
 
   public renewPath(from: RoomPosition, to: RoomPosition) {
     this.renewed++;
     const key = this.getDistanceKey(from, to);
+    const path = this.hierarchyStore.getKeyPath(from, to);
     this.store.delete(key);
+    this.hierarchyStore.delete(path);
+    this.hierarchyStore2.delete(this.hierarchyStore2.getKeyPath(to, from));
     return this.getPath(from, to);
   }
 
+}
+
+interface MemoryPathHierarchy {
+  [roomName: string]: {
+    [fromX: number]: {
+      [fromY: number]: {
+        [toX: number]: {
+          [toY: number]: string;
+        }
+      }
+    }
+  };
+}
+
+class PathHierarchyStore {
+  constructor() {
+    if (!this.store) {
+      Memory.pathHierarchyStore = {} as MemoryPathHierarchy;
+    }
+  }
+
+  public get store(): MemoryPathHierarchy {
+    return Memory.pathHiearchyStore;
+  }
 }
 
 export const data = new Data();

@@ -74,19 +74,33 @@ class Profiler {
         console.log(`PathStore  hit / miss / renewed: ${data_1.pathStore.storeHit} / ${data_1.pathStore.storeMiss} / ${data_1.pathStore.renewed} | Hit ratio: ${(data_1.pathStore.storeHit / (data_1.pathStore.storeHit + data_1.pathStore.storeMiss)).toFixed(2)}`);
     }
     memoryParse() {
-        const stringified = JSON.stringify(Memory);
+        const stringified = JSON.stringify(Memory.pathStore);
         const startCpu = Game.cpu.getUsed();
         JSON.parse(stringified);
-        console.log('CPU spent on Memory parsing:', Game.cpu.getUsed() - startCpu);
+        const endCpu = Game.cpu.getUsed() - startCpu;
+        const stringified2 = JSON.stringify(Memory.pathTreeStore);
+        const startCpu2 = Game.cpu.getUsed();
+        JSON.parse(stringified2);
+        const endCpu2 = Game.cpu.getUsed() - startCpu2;
+        console.log('CPU spent on Memory parsing:', endCpu, endCpu2);
+    }
+    visualizePath(from, to) {
+        Object.keys(Memory.pathStore)
+            .slice(0, 1000)
+            .map(k => Memory.pathStore[k])
+            .map(p => Room.deserializePath(p))
+            .forEach(p => new RoomVisual('E64N49')
+            .poly(p, { stroke: '#fff', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' }));
     }
 }
 exports.profiler = new Profiler();
+global.Profiler = exports.profiler;
 function Profile(name = '') {
     return function (target, key, descriptor) {
         const originalMethod = descriptor.value;
         descriptor.value = function () {
             const done = exports.profiler.track(name + '::' + key);
-            const result = originalMethod.apply(this, ...arguments);
+            const result = originalMethod.apply(this, arguments);
             done();
             return result;
         };

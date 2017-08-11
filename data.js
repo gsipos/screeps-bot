@@ -22,6 +22,55 @@ class MemoryStore {
         }
     }
 }
+class MemoryHierarchyStore {
+    constructor(store) {
+        this.store = store;
+        if (!Memory[store]) {
+            Memory[store] = {};
+        }
+    }
+    get(path) {
+        const leafKey = this.getLeafKey(path);
+        const leaf = this.traversePath(path, false);
+        return leaf[leafKey];
+    }
+    set(path, value) {
+        const leafKey = this.getLeafKey(path);
+        const leaf = this.traversePath(path, true);
+        leaf[leafKey] = value;
+    }
+    has(path) {
+        return !!this.get(path);
+    }
+    delete(path) {
+        const leafKey = this.getLeafKey(path);
+        const leaf = this.traversePath(path, true);
+        delete leaf[leafKey];
+        if (Object.keys(leaf).length === 0) {
+            this.delete(path.slice(0, -1));
+        }
+    }
+    getKeyPath(from, to) {
+        return [from.roomName, '' + from.x + '|' + from.y, '' + to.x + '|' + to.y];
+    }
+    getLeafKey(keys) {
+        return keys[keys.length - 1];
+    }
+    traversePath(path, makeWay) {
+        let store = Memory[this.store];
+        for (let i = 0; i < path.length - 1; i++) {
+            const keyPart = path[i];
+            if (makeWay && !store[keyPart]) {
+                store[keyPart] = {};
+            }
+            else if (!store) {
+                return undefined;
+            }
+            store = store[keyPart];
+        }
+        return store;
+    }
+}
 ;
 class TTLCache {
     constructor() {
@@ -169,26 +218,49 @@ class PathStore extends BaseData {
     constructor() {
         super(...arguments);
         this.store = new MemoryStore('pathStore');
+        this.hierarchyStore = new MemoryHierarchyStore('pathTreeStore');
+        this.hierarchyStore2 = new MemoryHierarchyStore('pathTreeStore2');
         this.renewed = 0;
     }
     getPath(from, to) {
         const key = this.getDistanceKey(from, to);
+        const keyPath = this.hierarchyStore.getKeyPath(from, to);
         if (!this.store.has(key)) {
             const path = from.findPathTo(to);
             const serializedPath = Room.serializePath(path);
             this.store.set(key, serializedPath);
+            this.hierarchyStore.set(keyPath, serializedPath);
+            this.hierarchyStore2.set(this.hierarchyStore2.getKeyPath(to, from), serializedPath);
             this.storeMiss++;
         }
         else {
             this.storeHit++;
         }
-        return this.store.get(key);
+        const result = this.store.get(key);
+        const result2 = this.hierarchyStore.get(keyPath);
+        if (result != result2) {
+            console.warn('Hierarhy and simple path store are different', result, result2);
+        }
+        return result2;
     }
     renewPath(from, to) {
         this.renewed++;
         const key = this.getDistanceKey(from, to);
+        const path = this.hierarchyStore.getKeyPath(from, to);
         this.store.delete(key);
+        this.hierarchyStore.delete(path);
+        this.hierarchyStore2.delete(this.hierarchyStore2.getKeyPath(to, from));
         return this.getPath(from, to);
+    }
+}
+class PathHierarchyStore {
+    constructor() {
+        if (!this.store) {
+            Memory.pathHierarchyStore = {};
+        }
+    }
+    get store() {
+        return Memory.pathHiearchyStore;
     }
 }
 exports.data = new Data();
