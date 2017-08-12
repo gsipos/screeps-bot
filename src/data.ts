@@ -147,7 +147,7 @@ export class RoomData {
   public spawns =     new TTL(200, () => this.findMy<Spawn>(STRUCTURE_SPAWN));
   public containers = new TTL(1, () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
   public storage =    new TTL(10, () => this.room.storage);
-  public containerOrStorage = new TTL(10, () => [...this.containers.get(), this.room.storage]);
+  public containerOrStorage = new TTL(10, () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
   public extensions = new TTL(20, () => this.findMy<Extension>(STRUCTURE_EXTENSION));
   public extensionOrSpawns = new TTL(5, () => this.concat(this.extensions, this.spawns));
   public towers =     new TTL(200, () => this.findMy<Tower>(STRUCTURE_TOWER));
@@ -161,7 +161,7 @@ export class RoomData {
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room === this.room));
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
   public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
   public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
   public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));

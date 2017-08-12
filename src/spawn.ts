@@ -38,9 +38,7 @@ class GeneralCreep extends CreepType {
     for (let i = 0; i < lvl; i++) {
       body.push(WORK);
       body.push(CARRY);
-      if (lvl % 2 === 0) {
-        body.push(MOVE);
-      }
+      body.push(MOVE);
     }
     super('general', body);
   }
@@ -78,8 +76,10 @@ export class SpawnManager {
         return;
       }
       const spawnables: CreepType[][] = [];
+      roomData.minerCreeps.clear();
       const spawnMiner = roomData.minerCreeps.get().length < roomData.sources.get().length;
       if (spawnMiner) {
+        console.log('Spawn: miner', roomData.minerCreeps.get().length, roomData.sources.get().length);
         spawnables.push(this.minerCreepTypes);
         roomData.minerCreeps.clear();
       }

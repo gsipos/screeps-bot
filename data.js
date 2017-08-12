@@ -126,7 +126,7 @@ class RoomData {
         this.spawns = new util_1.TTL(200, () => this.findMy(STRUCTURE_SPAWN));
         this.containers = new util_1.TTL(1, () => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
         this.storage = new util_1.TTL(10, () => this.room.storage);
-        this.containerOrStorage = new util_1.TTL(10, () => [...this.containers.get(), this.room.storage]);
+        this.containerOrStorage = new util_1.TTL(10, () => !!this.room.storage ? [...this.containers.get(), this.room.storage] : this.containers.get());
         this.extensions = new util_1.TTL(20, () => this.findMy(STRUCTURE_EXTENSION));
         this.extensionOrSpawns = new util_1.TTL(5, () => this.concat(this.extensions, this.spawns));
         this.towers = new util_1.TTL(200, () => this.findMy(STRUCTURE_TOWER));
@@ -138,7 +138,7 @@ class RoomData {
         this.nonDefensiveStructures = new util_1.TTL(100, () => this.room.find(FIND_STRUCTURES)
             .filter(s => s.structureType !== STRUCTURE_WALL)
             .filter(s => s.structureType !== STRUCTURE_RAMPART));
-        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room === this.room));
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
         this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
         this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
         this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
