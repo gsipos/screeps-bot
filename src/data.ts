@@ -1,3 +1,5 @@
+import { TTL, Temporal } from './util';
+
 type HashObject<T> = { [idx: string]: T };
 
 class MemoryStore<T = string> {
@@ -25,6 +27,7 @@ class MemoryStore<T = string> {
     }
   }
 }
+
 interface TTLEntry<T = string> { entry: T; maxAge: number };
 class TTLCache<T=string> {
   public cache: HashObject<TTLEntry<T>> = {};
@@ -75,128 +78,106 @@ class BaseData {
 class CachedData extends BaseData {
   private distances: HashObject<number> = {};
 
+  private distanceMap: WeakMap<RoomPosition, WeakMap<RoomPosition, number>> = new WeakMap();
+
   public getDistance(from: RoomPosition, to: RoomPosition): number {
     const key = this.getDistanceKey(from, to);
     return this.storeTo(key, this.distances, () => from.getRangeTo(to));
   }
+
+  public getDistanceFromMap(from: RoomPosition, to: RoomPosition) {
+    if (!this.distanceMap.has(to)) {
+      this.distanceMap.set(to, new WeakMap());
+    }
+    const subMap = this.distanceMap.get(to) as WeakMap<RoomPosition, number>;
+    if (!subMap.has(from)) {
+      subMap.set(from, from.getRangeTo(to));
+      this.storeMiss++;
+    } else {
+      this.storeHit++;
+    }
+    return subMap.get(from);
+  }
 }
 
 class Data extends BaseData {
-  private roomData: HashObject<HashObject<any>> = {};
-  private roomDataTTL: HashObject<TTLCache<any>> = {};
-  private creepLists: HashObject<Creep[]> = {};
-
-
-  public reset() {
-    this.roomData = {};
-    this.creepLists = {};
-  }
-
-  private cacheByRoom<T>(room: Room, key: string, func: () => T): T {
-    if (!this.roomData[room.name]) {
-      this.roomData[room.name] = {};
-    }
-    return this.storeTo(key, this.roomData[room.name], func);
-  }
-
-  private cacheByRoomTTL<T>(room: Room, key: string, func: () => T, ttl: number): T {
-    if (!this.roomDataTTL[room.name]) {
-      this.roomDataTTL[room.name] = new TTLCache<any>();
-    }
-    return this.storeTTL(key, this.roomDataTTL[room.name], func, ttl);
-  }
+  private creepLists = new Temporal<HashObject<Creep[]>>(() => ({ }));
 
   private cacheCreepList(key: string, func: () => Creep[]): Creep[] {
-    return this.storeTo(key, this.creepLists, func);
+    return this.storeTo(key, this.creepLists.get(), func);
   }
 
-  public roomMiningFlags(room: Room) {
-    return this.cacheByRoom(room, 'miningFlags', () => room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
-  }
-
-
-  public findStructures<T>(room: Room, types: string[], where: number = FIND_MY_STRUCTURES, ttl = 0) {
-    const roomFindWhere = () => room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 });
-    const key = types.join('|') + where;
-    if (ttl > 0) {
-      return this.cacheByRoomTTL(room, key, roomFindWhere, ttl)
-    } else {
-      return this.cacheByRoom(room, key, roomFindWhere);
-    }
-  }
-
-  public roomContainers(room: Room) {
-    return this.findStructures<Container>(room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
-  }
-
-  public roomContainerConstruction(room: Room) {
-    return this.findStructures<ConstructionSite>(room, [STRUCTURE_CONTAINER], FIND_MY_CONSTRUCTION_SITES);
-  }
-
-  public roomContainerContructionChanged(room: Room) {
-    delete this.roomData[room.name][STRUCTURE_CONTAINER + FIND_MY_CONSTRUCTION_SITES];
-  }
-
-  public roomContainerOrStorage(room: Room) {
-    return this.findStructures<Container | Storage>(room, [STRUCTURE_CONTAINER, STRUCTURE_STORAGE], FIND_STRUCTURES, 3);
-  }
-
-  public roomExtensionOrSpawn(room: Room) {
-    return this.findStructures<Extension | Spawn>(room, [STRUCTURE_EXTENSION, STRUCTURE_SPAWN]);
-  }
-
-  public roomExtensions(room: Room) {
-    return this.findStructures<Extension>(room, [STRUCTURE_EXTENSION], FIND_MY_STRUCTURES, 3);
-  }
-
-  public roomTower(room: Room) {
-    return this.findStructures<Tower>(room, [STRUCTURE_TOWER], FIND_MY_STRUCTURES, 7);
-  }
-
-  public roomRoad(room: Room) {
-    return this.findStructures<StructureRoad>(room, [STRUCTURE_ROAD], FIND_STRUCTURES, 10);
-  }
-
-  public roomWall(room: Room) {
-    return this.findStructures<StructureWall>(room, [STRUCTURE_WALL], FIND_STRUCTURES, 5);
-  }
-
-  public roomRampart(room: Room) {
-    return this.findStructures<Rampart>(room, [STRUCTURE_RAMPART], FIND_MY_STRUCTURES, 7);
-  }
-
-  public creepList(): Creep[] {
-    return this.cacheCreepList('all', () => Object.keys(Game.creeps).map(n => Game.creeps[n]));
-  }
-
-  public creepByRole(role: string) {
-    return this.cacheCreepList(role, () => this.creepList().filter(c => c.memory.role === role));
-  }
-
-  public roomCreeps(room: Room): Creep[] {
-    return this.cacheByRoom(room, 'creeps', () => this.creepList().filter(c => c.room === room));
-  }
-
-  public roomCreepsByRole(room: Room, role: string) {
-    return this.cacheByRoom(room, 'creeps' + role, () => this.creepByRole(role).filter(c => c.room === room));
-  }
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
 
   public creepsByJobTarget(job: string, jobTarget: string) {
-    return this.cacheCreepList(job + '|' + jobTarget,() => this.creepList().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
+    return this.cacheCreepList(job + '|' + jobTarget,() => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
   }
 
   public registerCreepJob(creep: Creep) {
     this.creepsByJobTarget(creep.memory.job, creep.memory.jobTarget).push(creep);
   }
 
+  private rooms: { [roomName: string]: RoomData } = {};
+  public of(room: Room) {
+    if (!this.rooms[room.name]) {
+      this.rooms[room.name] = new RoomData(room);
+    }
+    return this.rooms[room.name]
+  }
+
+}
+
+export class RoomData {
+  constructor(private room: Room) { }
+
+  public find<T>(where: number, types: string[]): T[] {
+    return this.room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 }) || [];
+  }
+
+  public findMy<T>(type: string) { return this.find<T>(FIND_MY_STRUCTURES, [type]); }
+
+  private concat<F,S>(first: TTL<F[]>, second: TTL<S[]>): (F|S)[] {
+    return ([] as (F | S)[]).concat(first.get(), second.get());
+  }
+
+  public sources =    new TTL(200, () => this.room.find<Source>(FIND_SOURCES));
+  public spawns =     new TTL(200, () => this.findMy<Spawn>(STRUCTURE_SPAWN));
+  public containers = new TTL(1, () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
+  public storage =    new TTL(10, () => this.room.storage);
+  public containerOrStorage = new TTL(10, () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
+  public extensions = new TTL(20, () => this.findMy<Extension>(STRUCTURE_EXTENSION));
+  public extensionOrSpawns = new TTL(5, () => this.concat(this.extensions, this.spawns));
+  public towers =     new TTL(200, () => this.findMy<Tower>(STRUCTURE_TOWER));
+  public ramparts =   new TTL(7, () => this.findMy<Rampart>(STRUCTURE_RAMPART));
+  public walls =      new TTL(7, () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
+  public roads = new TTL(7, () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+  public miningFlags = new TTL(200, () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
+  public containerConstructions = new TTL(3, () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+
+  public nonDefensiveStructures = new TTL(100, () => this.room.find<Structure>(FIND_STRUCTURES)
+    .filter(s => s.structureType !== STRUCTURE_WALL)
+    .filter(s => s.structureType !== STRUCTURE_RAMPART));
+
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public fillableCreeps = new Temporal(() => this.creeps.get()
+    .filter(creep => creep.memory.role !== 'miner')
+    .filter(creep => creep.memory.role !== 'carry'));
 }
 
 class PathStore extends BaseData {
   private store = new MemoryStore('pathStore');
+
   public renewed = 0;
 
   public getPath(from: RoomPosition, to: RoomPosition) {
     const key = this.getDistanceKey(from, to);
+
     if (!this.store.has(key)) {
       const path = from.findPathTo(to);
       const serializedPath = Room.serializePath(path);

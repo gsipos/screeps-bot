@@ -7,10 +7,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const creep_1 = require("./creep");
-const room_1 = require("./room");
-const util_1 = require("./util");
 const profiler_1 = require("./profiler");
-const moveToContainer = new creep_1.CreepJob('moveToContainer', 'ffaa00', 'toContainer', (c, t) => c.moveTo(t), (c, t) => c.pos.isEqualTo(t.pos), c => [Game.getObjectById(c.memory.container)], creep_1.TargetSelectionPolicy.inOrder);
+const data_1 = require("./data");
+const moveToContainer = new creep_1.CreepJob('moveToContainer', 'ffaa00', 'toContainer', (c, t) => ERR_NOT_IN_RANGE, (c, t) => c.pos.isEqualTo(t.pos), c => [Game.getObjectById(c.memory.container)], creep_1.TargetSelectionPolicy.inOrder);
 const harvestForContainerBuild = new creep_1.CreepJob('harvestToBuild', 'ffaa00', 'harvest', (c, t) => c.harvest(t), (c, t) => {
     const container = Game.getObjectById(c.memory.container);
     const nonConstruction = !(container instanceof ConstructionSite);
@@ -42,11 +41,7 @@ class MinerCreepManager {
         ];
     }
     loop() {
-        const minerCreeps = Object
-            .keys(Game.creeps)
-            .map(n => Game.creeps[n])
-            .filter(c => !c.spawning)
-            .filter(c => c.memory.role === 'miner');
+        const minerCreeps = data_1.data.minerCreeps.get().filter(c => !c.spawning);
         minerCreeps.forEach(miner => {
             if (!miner.memory.source || !Game.getObjectById(miner.memory.container)) {
                 this.chooseMiningPosition(miner, minerCreeps);
@@ -55,23 +50,28 @@ class MinerCreepManager {
         });
     }
     chooseMiningPosition(creep, minerCreeps) {
+        const roomData = data_1.data.of(creep.room);
         const occupiedContainers = minerCreeps.map(c => c.memory.container);
-        const containers = util_1.findStructures(creep.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
-        const freeContainers = containers.filter(c => occupiedContainers.indexOf(c.id) < 0);
-        console.log(containers.map(c => c.id));
+        const containers = roomData.containers.get();
+        const freeContainers = containers.filter(c => !occupiedContainers.includes(c.id));
         let container;
         if (freeContainers.length) {
             container = freeContainers[0];
         }
         else {
-            const containerConstructions = util_1.findStructures(creep.room, [STRUCTURE_CONTAINER], FIND_CONSTRUCTION_SITES);
-            const freeConstructions = containerConstructions.filter(c => occupiedContainers.indexOf(c.id) < 0);
+            const containerConstructions = roomData.containerConstructions.get();
+            const freeConstructions = containerConstructions.filter(c => !occupiedContainers.includes(c.id));
             container = freeConstructions[0];
         }
-        console.log(creep.name, container.id);
-        const flag = room_1.roomManager.getMiningFlags(creep.room).filter(f => f.pos.isEqualTo(container.pos))[0];
-        creep.memory.container = container.id;
-        creep.memory.source = flag.memory.source;
+        if (container) {
+            console.log(creep.name, container.id);
+            const flag = roomData.miningFlags.get().filter(f => f.pos.isEqualTo(container.pos))[0];
+            creep.memory.container = container.id;
+            creep.memory.source = flag.memory.source;
+        }
+        else {
+            console.log('WARN: no container found for mining position');
+        }
     }
 }
 __decorate([

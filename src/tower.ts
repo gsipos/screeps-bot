@@ -23,7 +23,7 @@ class TowerManager {
 
     for (let name in Game.rooms) {
       const room = Game.rooms[name];
-      data.roomTower(room).forEach(tower => {
+      data.of(room).towers.get().forEach(tower => {
         this.clearExpiredJob(tower);
         let towerMemory = this.getTowerMemory(tower.id);
         if (!towerMemory) {
@@ -66,27 +66,19 @@ class TowerManager {
       return this.createJob('attack', tower, closestHostile);
     }
 
-    var closestDecayingRampart = tower.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
-      filter: (s: Structure) => (s.structureType === STRUCTURE_RAMPART && s.hits < 500)
-    });
-    if (closestDecayingRampart) {
-      return this.createJob('repair', tower, closestDecayingRampart);
+    var decayingRamparts = data.of(tower.room).ramparts.get().filter(r => r.hits < 500);
+    if (decayingRamparts.length) {
+      return this.createJob('repair', tower, decayingRamparts[0]);
     }
 
-    var closestDamagedStructure = tower.pos.findClosestByRange<Structure>(FIND_STRUCTURES, {
-      filter: (structure: Structure) => (structure.hits < structure.hitsMax)
-        && (structure.structureType !== STRUCTURE_WALL)
-        && (structure.structureType !== STRUCTURE_RAMPART)
-    });
-    if (closestDamagedStructure) {
-      return this.createJob('repair', tower, closestDamagedStructure);
+    var damagedStructures = data.of(tower.room).nonDefensiveStructures.get().filter(s => s.hits > s.hitsMax);
+    if (damagedStructures.length) {
+      return this.createJob('repair', tower, damagedStructures[0]);
     }
 
-    var closestDamagedCreep = tower.pos.findClosestByRange<Creep>(FIND_MY_CREEPS, {
-      filter: (creep: Creep) => creep.hits < creep.hitsMax
-    });
-    if (closestDamagedCreep) {
-      return this.createJob('heal', tower, closestDamagedCreep);
+    var damagedCreeps = data.of(tower.room).creeps.get().filter(c => c.hits < c.hitsMax)
+    if (damagedCreeps.length) {
+      return this.createJob('heal', tower, damagedCreeps[0]);
     }
 
     return this.createJob('jobless', tower, { id: 'nojob' });

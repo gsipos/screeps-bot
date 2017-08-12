@@ -16,24 +16,33 @@ class ConstructionManager {
         }
     }
     buildMiningContainers(room) {
-        const containers = data_1.data.roomContainers(room);
-        const containersUnderConstruction = data_1.data.roomContainerConstruction(room);
+        const roomData = data_1.data.of(room);
+        const containers = roomData.containers.get();
+        const containersUnderConstruction = roomData.containerConstructions.get();
         const currentContainers = containers.length + containersUnderConstruction.length;
         if (currentContainers === 5) {
             return;
         }
-        const miningFlags = data_1.data.roomMiningFlags(room);
-        const maxContainers = Math.min(5, miningFlags.length);
+        const miningFlags = roomData.miningFlags.get();
+        const maxContainers = Math.min(5, miningFlags.length, roomData.sources.get().length);
         if (currentContainers === maxContainers) {
             return;
         }
-        const buildableFlags = miningFlags
-            .filter(flag => containers.every(c => !c.pos.isEqualTo(flag.pos)))
-            .filter(flag => containersUnderConstruction.every(c => !c.pos.isEqualTo(flag.pos)));
-        const spawn = Object.keys(Game.spawns).map(k => Game.spawns[k]).filter(s => s.room === room)[0];
-        const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, { filter: (f) => buildableFlags.indexOf(f) > -1 });
-        chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
-        data_1.data.roomContainerContructionChanged(room);
+        const minerSources = roomData.minerCreeps.get().map(c => c.memory.source);
+        const coveredSources = miningFlags
+            .filter(flag => flag.memory.chosen)
+            .map(flag => flag.memory.source).concat(minerSources);
+        const buildableFlags = miningFlags.filter(flag => !coveredSources.includes(flag.memory.source));
+        const spawn = roomData.spawns.get()[0];
+        const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, { filter: (f) => buildableFlags.includes(f) });
+        if (chosen) {
+            chosen.memory.chosen = true;
+            chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
+            roomData.containerConstructions.clear();
+        }
+        else {
+            console.log('WARN: no chosen buildable flag', coveredSources, buildableFlags, chosen);
+        }
     }
 }
 __decorate([

@@ -16,11 +16,12 @@ class RoomManager {
         for (let name in Game.rooms) {
             const room = Game.rooms[name];
             if (!room.memory.miningFlags) {
-                const sources = room.find(FIND_SOURCES).forEach(source => {
+                data_1.data.of(room).sources.get().forEach(source => {
                     const miningSpots = this.getAdjacentNonWallPositions(room, source.pos);
                     miningSpots.forEach(spot => {
                         const flagName = 'mine|' + spot.x + ':' + spot.y;
                         room.createFlag(spot.x, spot.y, flagName, COLOR_BROWN, COLOR_BROWN);
+                        data_1.data.of(room).miningFlags.clear();
                         Memory.flags[flagName] = { role: 'mine', source: source.id };
                     });
                 });
@@ -33,7 +34,7 @@ class RoomManager {
         return terrain.filter(t => t.terrain !== 'wall');
     }
     getMiningFlags(room) {
-        return data_1.data.roomMiningFlags(room);
+        return data_1.data.of(room).miningFlags.get();
     }
 }
 __decorate([

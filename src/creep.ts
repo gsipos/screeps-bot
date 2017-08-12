@@ -1,4 +1,3 @@
-import { findStructures } from './util';
 import { data, cachedData, pathStore } from './data';
 import { Profile } from './profiler';
 
@@ -13,7 +12,7 @@ export class TargetSelectionPolicy {
 
   public static distance(targets: RoomObject[], creep: Creep) {
     const distances = new WeakMap();
-    targets.forEach(t => distances.set(t, cachedData.getDistance(creep.pos, t.pos)));
+    targets.forEach(t => distances.set(t, cachedData.getDistanceFromMap(creep.pos, t.pos)));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
   }
 
@@ -77,6 +76,10 @@ export class CreepJob {
   }
 
   private moveCreep(creep: Creep, target: RoomObject) {
+    if (creep.fatigue) {
+      creep.say('fatigue');
+      return;
+    }
     if (!creep.memory.path) {
       creep.memory.path = pathStore.getPath(creep.pos, target.pos);
     }
@@ -127,7 +130,7 @@ export class CreepManager {
     new CreepJob('smallWall', '#ffaa00', 'wall',
       (c, t) => c.repair(t),
       (c, t) => c.carry.energy == 0 || t.hits >= 500,
-      c => data.roomWall(c.room).filter(w => w.hits < 500),
+      c => data.of(c.room).walls.get().filter(w => w.hits < 500),
       TargetSelectionPolicy.distance
     ),
 
@@ -142,7 +145,7 @@ export class CreepManager {
 
   @Profile('Creep')
   public loop() {
-    data.creepByRole('general').forEach(creep => this.processCreep(creep, this.jobs));
+    data.generalCreeps.get().forEach(creep => this.processCreep(creep, this.jobs));
   }
 
   public processCreep(creep: Creep, jobs: CreepJob[]) {

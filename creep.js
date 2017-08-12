@@ -17,7 +17,7 @@ class TargetSelectionPolicy {
     }
     static distance(targets, creep) {
         const distances = new WeakMap();
-        targets.forEach(t => distances.set(t, data_1.cachedData.getDistance(creep.pos, t.pos)));
+        targets.forEach(t => distances.set(t, data_1.cachedData.getDistanceFromMap(creep.pos, t.pos)));
         return targets.sort((a, b) => distances.get(a) - distances.get(b));
     }
     static proportionalToDistance(targets, creep) {
@@ -75,6 +75,10 @@ class CreepJob {
         }
     }
     moveCreep(creep, target) {
+        if (creep.fatigue) {
+            creep.say('fatigue');
+            return;
+        }
         if (!creep.memory.path) {
             creep.memory.path = data_1.pathStore.getPath(creep.pos, target.pos);
         }
@@ -104,12 +108,12 @@ class CreepManager {
         this.jobs = [
             new CreepJob('idle', '#ffaa00', 'idle', c => 0, c => (c.carry.energy || 0) > 0, c => [c], TargetSelectionPolicy.inOrder),
             new CreepJob('build', '#ffaa00', '🚧 build', (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance),
-            new CreepJob('smallWall', '#ffaa00', 'wall', (c, t) => c.repair(t), (c, t) => c.carry.energy == 0 || t.hits >= 500, c => data_1.data.roomWall(c.room).filter(w => w.hits < 500), TargetSelectionPolicy.distance),
+            new CreepJob('smallWall', '#ffaa00', 'wall', (c, t) => c.repair(t), (c, t) => c.carry.energy == 0 || t.hits >= 500, c => data_1.data.of(c.room).walls.get().filter(w => w.hits < 500), TargetSelectionPolicy.distance),
             new CreepJob('upgrade', '#ffaa00', '⚡ upgrade', (c, t) => c.upgradeController(t), c => c.carry.energy == 0, c => [c.room.controller], TargetSelectionPolicy.inOrder),
         ];
     }
     loop() {
-        data_1.data.creepByRole('general').forEach(creep => this.processCreep(creep, this.jobs));
+        data_1.data.generalCreeps.get().forEach(creep => this.processCreep(creep, this.jobs));
     }
     processCreep(creep, jobs) {
         const jobsByName = {};
