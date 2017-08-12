@@ -23,55 +23,6 @@ class MemoryStore {
         }
     }
 }
-class MemoryHierarchyStore {
-    constructor(store) {
-        this.store = store;
-        if (!Memory[store]) {
-            Memory[store] = {};
-        }
-    }
-    get(path) {
-        const leafKey = this.getLeafKey(path);
-        const leaf = this.traversePath(path, false);
-        return leaf[leafKey];
-    }
-    set(path, value) {
-        const leafKey = this.getLeafKey(path);
-        const leaf = this.traversePath(path, true);
-        leaf[leafKey] = value;
-    }
-    has(path) {
-        return !!this.get(path);
-    }
-    delete(path) {
-        const leafKey = this.getLeafKey(path);
-        const leaf = this.traversePath(path, true);
-        delete leaf[leafKey];
-        if (Object.keys(leaf).length === 0) {
-            this.delete(path.slice(0, -1));
-        }
-    }
-    getKeyPath(from, to) {
-        return [from.roomName, '' + from.x + '|' + from.y, '' + to.x + '|' + to.y];
-    }
-    getLeafKey(keys) {
-        return keys[keys.length - 1];
-    }
-    traversePath(path, makeWay) {
-        let store = Memory[this.store];
-        for (let i = 0; i < path.length - 1; i++) {
-            const keyPart = path[i];
-            if (makeWay && !store[keyPart]) {
-                store[keyPart] = {};
-            }
-            else if (!store) {
-                return undefined;
-            }
-            store = store[keyPart];
-        }
-        return store;
-    }
-}
 ;
 class TTLCache {
     constructor() {
@@ -121,17 +72,32 @@ class CachedData extends BaseData {
     constructor() {
         super(...arguments);
         this.distances = {};
+        this.distanceMap = new WeakMap();
     }
     getDistance(from, to) {
         const key = this.getDistanceKey(from, to);
         return this.storeTo(key, this.distances, () => from.getRangeTo(to));
+    }
+    getDistanceFromMap(from, to) {
+        if (!this.distanceMap.has(to)) {
+            this.distanceMap.set(to, new WeakMap());
+        }
+        const subMap = this.distanceMap.get(to);
+        if (!subMap.has(from)) {
+            subMap.set(from, from.getRangeTo(to));
+            this.storeMiss++;
+        }
+        else {
+            this.storeHit++;
+        }
+        return subMap.get(from);
     }
 }
 class Data extends BaseData {
     constructor() {
         super(...arguments);
         this.creepLists = new util_1.Temporal(() => ({}));
-        this.creeps = new util_1.Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]));
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
         this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
         this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
         this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
@@ -158,7 +124,7 @@ class RoomData {
         this.room = room;
         this.sources = new util_1.TTL(200, () => this.room.find(FIND_SOURCES));
         this.spawns = new util_1.TTL(200, () => this.findMy(STRUCTURE_SPAWN));
-        this.containers = new util_1.TTL(0, () => this.findMy(STRUCTURE_CONTAINER));
+        this.containers = new util_1.TTL(1, () => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
         this.storage = new util_1.TTL(10, () => this.room.storage);
         this.containerOrStorage = new util_1.TTL(10, () => [...this.containers.get(), this.room.storage]);
         this.extensions = new util_1.TTL(20, () => this.findMy(STRUCTURE_EXTENSION));
@@ -167,12 +133,12 @@ class RoomData {
         this.ramparts = new util_1.TTL(7, () => this.findMy(STRUCTURE_RAMPART));
         this.walls = new util_1.TTL(7, () => this.find(FIND_STRUCTURES, [STRUCTURE_WALL]));
         this.roads = new util_1.TTL(7, () => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]));
-        this.miningFlags = new util_1.TTL(200, () => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' }));
-        this.containerConstructions = new util_1.TTL(3, () => this.room.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+        this.miningFlags = new util_1.TTL(200, () => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' } || []));
+        this.containerConstructions = new util_1.TTL(3, () => this.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
         this.nonDefensiveStructures = new util_1.TTL(100, () => this.room.find(FIND_STRUCTURES)
             .filter(s => s.structureType !== STRUCTURE_WALL)
             .filter(s => s.structureType !== STRUCTURE_RAMPART));
-        this.creeps = new util_1.Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]).filter(c => c.room === this.room));
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room === this.room));
         this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
         this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
         this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
@@ -181,9 +147,9 @@ class RoomData {
             .filter(creep => creep.memory.role !== 'carry'));
     }
     find(where, types) {
-        return this.room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 });
+        return this.room.find(where, { filter: (s) => types.indexOf(s.structureType) > -1 }) || [];
     }
-    findMy(types) { return this.find(FIND_MY_STRUCTURES, [types]); }
+    findMy(type) { return this.find(FIND_MY_STRUCTURES, [type]); }
     concat(first, second) {
         return [].concat(first.get(), second.get());
     }

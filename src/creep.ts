@@ -12,7 +12,7 @@ export class TargetSelectionPolicy {
 
   public static distance(targets: RoomObject[], creep: Creep) {
     const distances = new WeakMap();
-    targets.forEach(t => distances.set(t, cachedData.getDistance(creep.pos, t.pos)));
+    targets.forEach(t => distances.set(t, cachedData.getDistanceFromMap(creep.pos, t.pos)));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
   }
 
@@ -76,6 +76,10 @@ export class CreepJob {
   }
 
   private moveCreep(creep: Creep, target: RoomObject) {
+    if (creep.fatigue) {
+      creep.say('fatigue');
+      return;
+    }
     if (!creep.memory.path) {
       creep.memory.path = pathStore.getPath(creep.pos, target.pos);
     }

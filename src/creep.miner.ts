@@ -2,10 +2,11 @@ import { TargetSelectionPolicy, CreepJob, creepManager } from './creep';
 import { roomManager } from './room';
 import { findStructures } from './util';
 import { Profile } from './profiler';
+import { data } from './data';
 
 
 const moveToContainer = new CreepJob('moveToContainer', 'ffaa00', 'toContainer',
-  (c, t) => c.moveTo(t),
+  (c, t) => ERR_NOT_IN_RANGE,
   (c, t) => c.pos.isEqualTo(t.pos),
   c => [Game.getObjectById(c.memory.container)],
   TargetSelectionPolicy.inOrder
@@ -73,11 +74,7 @@ class MinerCreepManager {
 
   @Profile('Miner')
   public loop() {
-    const minerCreeps = Object
-      .keys(Game.creeps)
-      .map(n => Game.creeps[n])
-      .filter(c => !c.spawning)
-      .filter(c => c.memory.role === 'miner');
+    const minerCreeps = data.minerCreeps.get().filter(c => !c.spawning);
 
     minerCreeps.forEach(miner => {
       if (!miner.memory.source || !Game.getObjectById(miner.memory.container)) {
@@ -89,25 +86,28 @@ class MinerCreepManager {
   }
 
   public chooseMiningPosition(creep: Creep, minerCreeps: Creep[]) {
+    const roomData = data.of(creep.room);
     const occupiedContainers = minerCreeps.map<string>(c => c.memory.container);
-    const containers = findStructures<Container>(creep.room, [STRUCTURE_CONTAINER], FIND_STRUCTURES);
+    const containers = roomData.containers.get();
 
-    const freeContainers = containers.filter(c => occupiedContainers.indexOf(c.id) < 0);
-    console.log(containers.map(c => c.id));
+    const freeContainers = containers.filter(c => !occupiedContainers.includes(c.id));
+
     let container: Container | ConstructionSite;
     if (freeContainers.length) {
       container = freeContainers[0];
     } else {
-      const containerConstructions = findStructures<any>(creep.room, [STRUCTURE_CONTAINER], FIND_CONSTRUCTION_SITES);
-      const freeConstructions = containerConstructions.filter(c => occupiedContainers.indexOf(c.id) < 0)
+      const containerConstructions = roomData.containerConstructions.get();
+      const freeConstructions = containerConstructions.filter(c => !occupiedContainers.includes(c.id))
       container = freeConstructions[0];
     }
-
-    console.log(creep.name, container.id);
-
-      const flag = roomManager.getMiningFlags(creep.room).filter(f => f.pos.isEqualTo(container.pos))[0];
+    if (container) {
+      console.log(creep.name, container.id);
+      const flag = roomData.miningFlags.get().filter(f => f.pos.isEqualTo(container.pos))[0];
       creep.memory.container = container.id;
       creep.memory.source = flag.memory.source;
+    } else {
+      console.log('WARN: no container found for mining position');
+    }
   }
 
 }

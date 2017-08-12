@@ -30,6 +30,9 @@ class Temporal {
         }
         return this.value;
     }
+    clear() {
+        this.value = undefined;
+    }
 }
 exports.Temporal = Temporal;
 class TTL {
@@ -38,11 +41,27 @@ class TTL {
         this.supplier = supplier;
     }
     get() {
-        if (!this.value || this.old) {
-            this.value = this.supplier();
+        if (this.emptyValue || this.old || this.arrayValueHasNullOrUndefinedItem) {
+            try {
+                this.value = this.supplier();
+            }
+            catch (e) {
+                console.log('Caught in TTL', e);
+            }
             this.maxAge = Game.time + this.ttl;
         }
         return this.value;
+    }
+    get emptyValue() {
+        return this.value === null || this.value === undefined;
+    }
+    get arrayValueHasNullOrUndefinedItem() {
+        if (this.value instanceof Array) {
+            return this.value.some(item => item === null || item === undefined);
+        }
+        else {
+            return false;
+        }
     }
     get old() {
         return Game.time > this.maxAge;

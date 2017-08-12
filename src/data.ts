@@ -28,67 +28,6 @@ class MemoryStore<T = string> {
   }
 }
 
-type MemoryKeyPath = (string | number)[];
-class MemoryHierarchyStore<T = string> {
-  constructor(private store: string) {
-    if (!Memory[store]) {
-      Memory[store] = {};
-    }
-  }
-
-  public get(path: MemoryKeyPath): T {
-    const leafKey = this.getLeafKey(path);
-    const leaf = this.traversePath(path, false) as any;
-    return leaf[leafKey] as T;
-  }
-
-  public set(path: MemoryKeyPath, value: T) {
-    const leafKey = this.getLeafKey(path);
-    const leaf = this.traversePath(path, true);
-    leaf[leafKey] = value;
-  }
-
-  public has(path: MemoryKeyPath): boolean {
-    return !!this.get(path);
-  }
-
-  public delete(path: MemoryKeyPath) {
-    const leafKey = this.getLeafKey(path);
-    const leaf = this.traversePath(path, true);
-    delete leaf[leafKey];
-
-    if (Object.keys(leaf).length === 0) {
-      this.delete(path.slice(0, -1));
-    }
-  }
-
-  public getKeyPath(from: RoomPosition, to: RoomPosition): MemoryKeyPath {
-    return [from.roomName, '' + from.x + '|' + from.y, '' + to.x + '|' +to.y];
-  }
-
-  private getLeafKey(keys: MemoryKeyPath) {
-    return keys[keys.length - 1];
-  }
-
-  private traversePath(path: MemoryKeyPath, makeWay: true): HashObject<any>
-  private traversePath(path: MemoryKeyPath, makeWay: false): HashObject<any> | undefined
-  private traversePath(path: MemoryKeyPath, makeWay: boolean): HashObject<any> | undefined {
-    let store = Memory[this.store];
-    for (let i = 0; i < path.length - 1; i++) {
-      const keyPart = path[i];
-      if (makeWay && !store[keyPart]) {
-        store[keyPart] = {};
-      } else if (!store) {
-        return undefined;
-      }
-      store = store[keyPart];
-    }
-    return store;
-  }
-
-
-}
-
 interface TTLEntry<T = string> { entry: T; maxAge: number };
 class TTLCache<T=string> {
   public cache: HashObject<TTLEntry<T>> = {};
@@ -139,9 +78,25 @@ class BaseData {
 class CachedData extends BaseData {
   private distances: HashObject<number> = {};
 
+  private distanceMap: WeakMap<RoomPosition, WeakMap<RoomPosition, number>> = new WeakMap();
+
   public getDistance(from: RoomPosition, to: RoomPosition): number {
     const key = this.getDistanceKey(from, to);
     return this.storeTo(key, this.distances, () => from.getRangeTo(to));
+  }
+
+  public getDistanceFromMap(from: RoomPosition, to: RoomPosition) {
+    if (!this.distanceMap.has(to)) {
+      this.distanceMap.set(to, new WeakMap());
+    }
+    const subMap = this.distanceMap.get(to) as WeakMap<RoomPosition, number>;
+    if (!subMap.has(from)) {
+      subMap.set(from, from.getRangeTo(to));
+      this.storeMiss++;
+    } else {
+      this.storeHit++;
+    }
+    return subMap.get(from);
   }
 }
 
@@ -152,7 +107,7 @@ class Data extends BaseData {
     return this.storeTo(key, this.creepLists.get(), func);
   }
 
-  public creeps = new Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]));
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
   public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
   public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
   public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
@@ -179,10 +134,10 @@ export class RoomData {
   constructor(private room: Room) { }
 
   public find<T>(where: number, types: string[]): T[] {
-    return this.room.find(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 });
+    return this.room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 }) || [];
   }
 
-  public findMy<T>(types: string) { return this.find<T>(FIND_MY_STRUCTURES, [types]); }
+  public findMy<T>(type: string) { return this.find<T>(FIND_MY_STRUCTURES, [type]); }
 
   private concat<F,S>(first: TTL<F[]>, second: TTL<S[]>): (F|S)[] {
     return ([] as (F | S)[]).concat(first.get(), second.get());
@@ -190,7 +145,7 @@ export class RoomData {
 
   public sources =    new TTL(200, () => this.room.find<Source>(FIND_SOURCES));
   public spawns =     new TTL(200, () => this.findMy<Spawn>(STRUCTURE_SPAWN));
-  public containers = new TTL(0, () => this.findMy<Container>(STRUCTURE_CONTAINER));
+  public containers = new TTL(1, () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
   public storage =    new TTL(10, () => this.room.storage);
   public containerOrStorage = new TTL(10, () => [...this.containers.get(), this.room.storage]);
   public extensions = new TTL(20, () => this.findMy<Extension>(STRUCTURE_EXTENSION));
@@ -199,14 +154,14 @@ export class RoomData {
   public ramparts =   new TTL(7, () => this.findMy<Rampart>(STRUCTURE_RAMPART));
   public walls =      new TTL(7, () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
   public roads = new TTL(7, () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
-  public miningFlags = new TTL(200, () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' }));
-  public containerConstructions = new TTL(3, () => this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+  public miningFlags = new TTL(200, () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
+  public containerConstructions = new TTL(3, () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
 
   public nonDefensiveStructures = new TTL(100, () => this.room.find<Structure>(FIND_STRUCTURES)
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new Temporal(() => Object.keys(Game.creeps).map(n => Game.creeps[n]).filter(c => c.room === this.room));
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room === this.room));
   public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
   public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
   public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));

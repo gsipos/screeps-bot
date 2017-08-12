@@ -77,30 +77,35 @@ export class SpawnManager {
       if (availableSpawns.length === 0) {
         return;
       }
-
+      const spawnables: CreepType[][] = [];
+      const spawnMiner = roomData.minerCreeps.get().length < roomData.sources.get().length;
+      if (spawnMiner) {
+        spawnables.push(this.minerCreepTypes);
+        roomData.minerCreeps.clear();
+      }
+      if (roomData.carryCreeps.get().length < this.carryCreepCount) {
+        spawnables.push(this.carryCreepTypes);
+        roomData.carryCreeps.clear();
+      }
+      if (roomData.generalCreeps.get().length < this.generalCreepCount) {
+        spawnables.push(this.generalCreepTypes);
+        roomData.generalCreeps.clear();
+      }
+      availableSpawns.forEach(spawn => {
+        const extensionEnergy = this.getEnergyInExtensions(spawn);
+        const types = spawnables.shift();
+        if (types) {
+          const creep = types.filter(c => (spawn.energy + extensionEnergy) > c.cost)[0];
+          if (creep) {
+            const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
+            console.log('Spawning new ' + creep.name + ' ' + newName);
+            this.showSpawningLabel(spawn);
+            return;
+          }
+        }
+      });
 
     });
-
-    for (let name in Game.spawns) {
-      const spawn = Game.spawns[name];
-      if (spawn.spawning) {
-        continue;
-      }
-
-      const extensionEnergy = this.getEnergyInExtensions(spawn);
-      const roomCreeps = data.of(spawn.room).creeps.get();
-      if (this.buildMinersAndCarriers(spawn, roomCreeps, extensionEnergy)) {
-        continue;
-      };
-
-      if (this.spawnGeneralCreep(spawn, extensionEnergy, roomCreeps)) {
-        continue;
-      };
-      if (this.spawnCarriers(spawn, extensionEnergy, roomCreeps)) {
-        continue;
-      };
-      this.showSpawningLabel(spawn);
-    }
   }
 
   private showSpawningLabel(spawn: Spawn) {
@@ -114,76 +119,8 @@ export class SpawnManager {
     }
   }
 
-  private spawnGeneralCreep(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]) {
-    const generalCreeps = data.of(spawn.room).generalCreeps.get();
-    if (spawn.spawning) {
-      return false;
-    }
-    if (generalCreeps.length >= this.generalCreepCount) {
-      return false;
-    }
-    const creep = this.creepTypes.filter(c => (spawn.energy+energyInExtensions) > c.cost)[0];
-    if (creep) {
-      const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
-      console.log('Spawning new ' + creep.name + ' ' + newName);
-      return true;
-    }
-  }
-
-  private spawnCarriers(spawn: Spawn, energyInExtensions: number, roomCreeps: Creep[]): boolean {
-    const carryCreeps = data.of(spawn.room).carryCreeps.get();
-    if (spawn.spawning) {
-      return false;
-    }
-    if (carryCreeps.length >= this.carryCreepCount) {
-      return false;
-    }
-    const creep = this.carryCreepTypes.filter(c => (spawn.energy + energyInExtensions) > c.cost)[0];
-    if (creep) {
-      const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
-      console.log('Spawning new ' + creep.name + ' ' + newName);
-      return true;
-    }
-    return false;
-  }
-
   private getEnergyInExtensions(spawn: Spawn) {
     return data.of(spawn.room).extensions.get().reduce((a, s) => a + s.energy, 0);
-  }
-
-  private buildMinersAndCarriers(spawn: Spawn, creeps: Creep[], energyInExtensions: number) {
-    const roomData = data.of(spawn.room);
-    const miningFlags = roomData.miningFlags.get();
-    if (!miningFlags.length) {
-      return true;
-    }
-    const maxMiners = Math.min(5, miningFlags.length);
-    const minerCreeps = data.of(spawn.room).minerCreeps.get();
-    const carryCreeps = data.of(spawn.room).carryCreeps.get();
-
-    if (minerCreeps.length >= maxMiners && carryCreeps.length >= maxMiners) {
-      return false;
-    }
-
-    let toBuildType: CreepType[];
-    const lessOrEqualMinersThanCarrys = minerCreeps.length <= carryCreeps.length;
-    const noMaxMiners = minerCreeps.length < maxMiners;
-    const noContainer = !roomData.containers.get().length;
-    if ((lessOrEqualMinersThanCarrys || noContainer) && noMaxMiners) {
-      toBuildType = this.minerCreepTypes;
-      console.log('Build: miner');
-    } else {
-      toBuildType = this.carryCreepTypes;
-      console.log('Build: carry');
-    }
-
-    const affordableLevel = toBuildType.filter(c => (spawn.energy + energyInExtensions) > c.cost)[0];
-    if (affordableLevel) {
-      spawn.createCreep(affordableLevel.body, undefined, { role: affordableLevel.name });
-      return true;
-    } else {
-      return false;
-    }
   }
 
 }

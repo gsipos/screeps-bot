@@ -17,7 +17,7 @@ class TargetSelectionPolicy {
     }
     static distance(targets, creep) {
         const distances = new WeakMap();
-        targets.forEach(t => distances.set(t, data_1.cachedData.getDistance(creep.pos, t.pos)));
+        targets.forEach(t => distances.set(t, data_1.cachedData.getDistanceFromMap(creep.pos, t.pos)));
         return targets.sort((a, b) => distances.get(a) - distances.get(b));
     }
     static proportionalToDistance(targets, creep) {
@@ -75,6 +75,10 @@ class CreepJob {
         }
     }
     moveCreep(creep, target) {
+        if (creep.fatigue) {
+            creep.say('fatigue');
+            return;
+        }
         if (!creep.memory.path) {
             creep.memory.path = data_1.pathStore.getPath(creep.pos, target.pos);
         }
