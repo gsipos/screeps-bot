@@ -28,10 +28,10 @@ class ConstructionManager {
     if (currentContainers === maxContainers) {
       return;
     }
-
+    const minerSources = roomData.minerCreeps.get().map(c => c.memory.source);
     const coveredSources: string[] = miningFlags
       .filter(flag => flag.memory.chosen)
-      .map(flag => flag.memory.source);
+      .map(flag => flag.memory.source).concat(minerSources);
 
     const buildableFlags = miningFlags.filter(flag => !coveredSources.includes(flag.memory.source));
 

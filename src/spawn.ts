@@ -52,16 +52,7 @@ export class SpawnManager {
   private generalCreepCount = 1;
   private carryCreepCount = 6;
 
-  private creepTypes = [
-    new CreepType('general', [WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
-    new CreepType('general', [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
-    new CreepType('general', [WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]),
-    new CreepType('general', [WORK, WORK, CARRY, MOVE, MOVE, MOVE]),
-    new CreepType('general', [WORK, CARRY, CARRY, MOVE, MOVE]),
-    new CreepType('general', [WORK, CARRY, MOVE])
-  ];
-
-  private generalCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new GeneralCreep(6 - idx));
+  private generalCreepTypes = [1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13,14,15].map((v, idx) => new GeneralCreep(15 - idx));
   private minerCreepTypes = [1,2,3,4,5,6].map((v, idx) => new MinerCreep(6 - idx));
   private carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
 

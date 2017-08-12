@@ -28,9 +28,10 @@ class ConstructionManager {
         if (currentContainers === maxContainers) {
             return;
         }
+        const minerSources = roomData.minerCreeps.get().map(c => c.memory.source);
         const coveredSources = miningFlags
             .filter(flag => flag.memory.chosen)
-            .map(flag => flag.memory.source);
+            .map(flag => flag.memory.source).concat(minerSources);
         const buildableFlags = miningFlags.filter(flag => !coveredSources.includes(flag.memory.source));
         const spawn = roomData.spawns.get()[0];
         const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, { filter: (f) => buildableFlags.includes(f) });
