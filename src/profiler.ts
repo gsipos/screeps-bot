@@ -35,7 +35,7 @@ class Profiler {
     if (!Memory.profiling) {
       return;
     }
-    stats.metric(name, consumedCPU);
+    stats.metric('Profile::'+name, consumedCPU);
   }
 
   public start() {

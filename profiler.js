@@ -32,7 +32,7 @@ class Profiler {
         if (!Memory.profiling) {
             return;
         }
-        statistics_1.stats.metric(name, consumedCPU);
+        statistics_1.stats.metric('Profile::' + name, consumedCPU);
     }
     start() {
         Memory.profiling = true;
