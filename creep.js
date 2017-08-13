@@ -91,9 +91,8 @@ class CreepJob {
         room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: '##00ff00', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
-                creep.memory.path = data_1.pathStore.getPath(room, pos, to);
-                moveResult = creep.moveTo(to, { reusePath: 20 });
-                creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
+                creep.memory.path = undefined;
+                moveResult = creep.moveTo(to, { reusePath: 20, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
             }
             if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
                 creep.memory.path = data_1.pathStore.renewPath(room, pos, to);
