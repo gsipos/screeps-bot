@@ -87,7 +87,7 @@ class CreepJob {
         const moveResult = creep.moveByPath(creep.memory.path);
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
         if (moveResult === ERR_NOT_FOUND) {
-            console.log('WARN: Path not found for creep', creep, Room.deserializePath(creep.memory.path), creep.pos);
+            console.log('WARN: Path not found for creep', creep, creep.memory.path, creep.pos, target.pos);
             creep.memory.path = undefined;
         }
         else if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
