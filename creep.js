@@ -89,7 +89,7 @@ class CreepJob {
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
                 creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
-                moveResult = creep.moveByPath(creep.memory.path);
+                moveResult = creep.moveTo(target.pos, { reusePath: 20 });
                 creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: this.color, strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
             }
             if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
