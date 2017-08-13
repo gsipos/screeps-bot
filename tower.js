@@ -19,7 +19,6 @@ class TowerManager {
         for (let name in Game.rooms) {
             const room = Game.rooms[name];
             data_1.data.of(room).towers.get().forEach(tower => {
-                this.clearExpiredJob(tower);
                 let towerMemory = this.getTowerMemory(tower.id);
                 if (!towerMemory) {
                     towerMemory = this.assignJobToTower(tower);
@@ -33,10 +32,9 @@ class TowerManager {
         if (!target) {
             this.jobDone(tower);
         }
-        memory.jobTTL--;
         let result = OK;
         if (memory.job === 'jobless') {
-            return;
+            result = OK - 1;
         }
         if (memory.job === 'attack') {
             result = tower.attack(target);
@@ -57,30 +55,24 @@ class TowerManager {
         if (closestHostile) {
             return this.createJob('attack', tower, closestHostile);
         }
-        var decayingRamparts = data_1.data.of(tower.room).ramparts.get().filter(r => r.hits < 500);
-        if (decayingRamparts.length) {
-            return this.createJob('repair', tower, decayingRamparts[0]);
+        var decayingRampart = data_1.data.of(tower.room).ramparts.get().find(r => r.hits < 500);
+        if (decayingRampart) {
+            return this.createJob('repair', tower, decayingRampart);
         }
-        var damagedStructures = data_1.data.of(tower.room).nonDefensiveStructures.get().filter(s => s.hits > s.hitsMax);
-        if (damagedStructures.length) {
-            return this.createJob('repair', tower, damagedStructures[0]);
+        var damagedStructure = data_1.data.of(tower.room).nonDefensiveStructures.get().find(s => s.hits > s.hitsMax);
+        if (damagedStructure) {
+            return this.createJob('repair', tower, damagedStructure);
         }
-        var damagedCreeps = data_1.data.of(tower.room).creeps.get().filter(c => c.hits < c.hitsMax);
-        if (damagedCreeps.length) {
-            return this.createJob('heal', tower, damagedCreeps[0]);
+        var damagedCreep = data_1.data.of(tower.room).creeps.get().find(c => c.hits < c.hitsMax);
+        if (damagedCreep) {
+            return this.createJob('heal', tower, damagedCreep);
         }
         return this.createJob('jobless', tower, { id: 'nojob' });
     }
     createJob(job, tower, target) {
-        const towerMemory = { job: job, jobTarget: target.id, jobTTL: this.jobTTL };
+        const towerMemory = { job: job, jobTarget: target.id };
         Memory.towers[tower.id] = towerMemory;
         return towerMemory;
-    }
-    clearExpiredJob(tower) {
-        let mem = this.getTowerMemory(tower.id);
-        if (mem && mem.jobTTL <= 0) {
-            this.jobDone(tower);
-        }
     }
     jobDone(tower) {
         delete Memory.towers[tower.id];
