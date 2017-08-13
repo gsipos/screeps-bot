@@ -91,6 +91,7 @@ class CreepJob {
                 console.log('WARN: Path not found for creep', creep, creep.memory.path, creep.pos, target.pos);
                 creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
                 moveResult = creep.moveByPath(creep.memory.path);
+                statistics_1.stats.metric('Creep::Move::secondResult::' + moveResult, 1);
             }
             if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
                 creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);

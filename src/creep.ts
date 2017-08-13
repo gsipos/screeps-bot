@@ -92,6 +92,7 @@ export class CreepJob {
         console.log('WARN: Path not found for creep', creep, creep.memory.path, creep.pos, target.pos);
         creep.memory.path = pathStore.getPath(creep.room, creep.pos, target.pos);
         moveResult = creep.moveByPath(creep.memory.path);
+        stats.metric('Creep::Move::secondResult::' + moveResult, 1);
       }
       if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
         creep.memory.path = pathStore.renewPath(creep.room, creep.pos, target.pos);
