@@ -130,7 +130,7 @@ class PathStore extends BaseData {
             const path = from.findPathTo(to);
             const serializedPath = Room.serializePath(path);
             if (!serializedPath.startsWith('' + from.x + from.y)) {
-                console.log("path bug:", from, to, serializedPath, ...path);
+                console.log("path bug:", from, to, serializedPath, ...path.map(p => '' + p.x + p.y));
             }
             this.store.set(key, serializedPath);
             statistics_1.stats.metric('PathStore::miss', 1);
