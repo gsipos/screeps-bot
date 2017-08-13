@@ -15,7 +15,7 @@ export class ATTL<Value> {
 
   @Profile('ATTL')
   public get(): Value {
-    if (this.emptyValue || this.stale || this.arrayValueHasNullOrUndefinedItem) {
+    if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
       let newValue: Value | undefined = undefined;
       try {
         newValue = profiler.wrap('ATTL::Supplier', this.supplier);
@@ -24,12 +24,13 @@ export class ATTL<Value> {
       }
       if (this.valueEquals(this.value, newValue)) {
         this.ttl = this.nextTTL(this.ttl, newValue);
+        stats.metric('ATTL::TTL-increment', this.ttl);
       } else {
+        stats.metric('ATTL::TTL-reset', this.ttl);
         this.ttl = this.minTTL;
       }
       this.value = newValue;
       stats.metric('ATTL::TTL', this.ttl);
-      stats.metric('ATTL::miss', 1);
       this.maxAge = Game.time + this.ttl;
     } else {
       stats.metric('ATTL::hit', 1);
@@ -41,9 +42,11 @@ export class ATTL<Value> {
     return this.value === null || this.value === undefined;
   }
 
-  private get arrayValueHasNullOrUndefinedItem(): boolean {
+  private get arrayValueHasEmptyOrUnkownItem(): boolean {
     if (this.value instanceof Array) {
-      return this.value.some(item => item === null || item === undefined);
+      return this.value.some(item => item === null
+        || item === undefined
+        || !Game.getObjectById(item.id || item.name));
     } else {
       return false;
     }
@@ -57,7 +60,11 @@ export class ATTL<Value> {
       return false;
     }
     if (old instanceof Array && fresh instanceof Array) {
-      return old.length === fresh.length;
+      if (old.length !== fresh.length) return false;
+      const oldIds = old.map(o => o.id || o.name);
+      const freshIds = fresh.map(f => f.id || f.name);
+      return freshIds.every(e => oldIds.includes(e))
+        && oldIds.every(e => freshIds.includes(e));
     }
     return false;
   }
@@ -67,8 +74,7 @@ export class ATTL<Value> {
   }
 
   public clear() {
-    this.value = undefined;
-    this.ttl = this.minTTL;
+    this.maxAge = Game.time - 1;
   }
 
   private linearIncrementTTL(previousTTL: number): number {

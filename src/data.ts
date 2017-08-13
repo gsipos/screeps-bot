@@ -70,10 +70,10 @@ class Data extends BaseData {
     return this.storeTo(key, this.creepLists.get(), func);
   }
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
-  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
 
   public creepsByJobTarget(job: string, jobTarget: string) {
     return this.cacheCreepList(job + '|' + jobTarget,() => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));

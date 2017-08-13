@@ -61,10 +61,10 @@ class Data extends BaseData {
     constructor() {
         super(...arguments);
         this.creepLists = new util_1.Temporal(() => ({}));
-        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
-        this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-        this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-        this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+        this.creeps = new cache_ttl_adaptive_1.ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+        this.minerCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+        this.carryCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+        this.generalCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
         this.rooms = {};
     }
     cacheCreepList(key, func) {

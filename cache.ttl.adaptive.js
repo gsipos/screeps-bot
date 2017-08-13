@@ -17,7 +17,7 @@ class ATTL {
         this.linearIncrementParameter = 0.5;
     }
     get() {
-        if (this.emptyValue || this.stale || this.arrayValueHasNullOrUndefinedItem) {
+        if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
             let newValue = undefined;
             try {
                 newValue = profiler_1.profiler.wrap('ATTL::Supplier', this.supplier);
@@ -27,13 +27,14 @@ class ATTL {
             }
             if (this.valueEquals(this.value, newValue)) {
                 this.ttl = this.nextTTL(this.ttl, newValue);
+                statistics_1.stats.metric('ATTL::TTL-increment', this.ttl);
             }
             else {
+                statistics_1.stats.metric('ATTL::TTL-reset', this.ttl);
                 this.ttl = this.minTTL;
             }
             this.value = newValue;
             statistics_1.stats.metric('ATTL::TTL', this.ttl);
-            statistics_1.stats.metric('ATTL::miss', 1);
             this.maxAge = Game.time + this.ttl;
         }
         else {
@@ -44,9 +45,11 @@ class ATTL {
     get emptyValue() {
         return this.value === null || this.value === undefined;
     }
-    get arrayValueHasNullOrUndefinedItem() {
+    get arrayValueHasEmptyOrUnkownItem() {
         if (this.value instanceof Array) {
-            return this.value.some(item => item === null || item === undefined);
+            return this.value.some(item => item === null
+                || item === undefined
+                || !Game.getObjectById(item.id || item.name));
         }
         else {
             return false;
@@ -60,7 +63,12 @@ class ATTL {
             return false;
         }
         if (old instanceof Array && fresh instanceof Array) {
-            return old.length === fresh.length;
+            if (old.length !== fresh.length)
+                return false;
+            const oldIds = old.map(o => o.id || o.name);
+            const freshIds = fresh.map(f => f.id || f.name);
+            return freshIds.every(e => oldIds.includes(e))
+                && oldIds.every(e => freshIds.includes(e));
         }
         return false;
     }
@@ -68,8 +76,7 @@ class ATTL {
         return Game.time > this.maxAge;
     }
     clear() {
-        this.value = undefined;
-        this.ttl = this.minTTL;
+        this.maxAge = Game.time - 1;
     }
     linearIncrementTTL(previousTTL) {
         return previousTTL + Math.ceil(this.linearIncrementParameter * previousTTL);
