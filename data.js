@@ -21,7 +21,7 @@ class MemoryStore {
     }
     delete(key) {
         if (Memory[this.store]) {
-            delete Memory[this.store][key];
+            Memory[this.store][key] = undefined;
         }
     }
 }
@@ -129,9 +129,6 @@ class PathStore extends BaseData {
         if (!this.store.has(key)) {
             const path = room.findPath(from, to);
             const serializedPath = Room.serializePath(path);
-            if (!serializedPath.startsWith('' + from.x + from.y)) {
-                console.log("path bug:", from, to, serializedPath, ...path.map(p => '' + p.x + p.y));
-            }
             this.store.set(key, serializedPath);
             statistics_1.stats.metric('PathStore::miss', 1);
         }

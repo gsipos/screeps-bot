@@ -84,17 +84,20 @@ class CreepJob {
             creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
         }
         const currentPos = '' + creep.pos.x + creep.pos.y;
-        const moveResult = creep.moveByPath(creep.memory.path);
+        let moveResult = creep.moveByPath(creep.memory.path);
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
-        if (moveResult === ERR_NOT_FOUND) {
-            console.log('WARN: Path not found for creep', creep, creep.memory.path, creep.pos, target.pos);
-            creep.memory.path = undefined;
-        }
-        else if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
-            creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);
-        }
-        if (moveResult == ERR_NO_PATH) {
-            this.finishJob(creep, target);
+        if (moveResult !== OK) {
+            if (moveResult === ERR_NOT_FOUND) {
+                console.log('WARN: Path not found for creep', creep, creep.memory.path, creep.pos, target.pos);
+                creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
+                moveResult = creep.moveByPath(creep.memory.path);
+            }
+            if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
+                creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);
+            }
+            if (moveResult === ERR_NO_PATH) {
+                this.finishJob(creep, target);
+            }
         }
         creep.memory.prevPos = currentPos;
     }
