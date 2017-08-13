@@ -1,4 +1,6 @@
 import { TTL, Temporal } from './util';
+import { stats } from './statistics';
+import { ATTL } from './cache.ttl.adaptive';
 
 type HashObject<T> = { [idx: string]: T };
 
@@ -28,46 +30,14 @@ class MemoryStore<T = string> {
   }
 }
 
-interface TTLEntry<T = string> { entry: T; maxAge: number };
-class TTLCache<T=string> {
-  public cache: HashObject<TTLEntry<T>> = {};
-
-  public has(key: string): boolean {
-    const entry = this.cache[key];
-    return !!entry && entry.maxAge < Game.time;
-  }
-
-  public get(key: string): T {
-    return this.cache[key].entry;
-  }
-
-  public set(key: string, value: T, ttl: number) {
-    this.cache[key] = { entry: value, maxAge: Game.time + ttl };
-  }
-}
-
 class BaseData {
-  public storeHit: number = 0;
-  public storeMiss: number = 0;
 
   protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
     if (!cache[key]) {
       cache[key] = func();
-      this.storeMiss++;
     } else {
-      this.storeHit++;
     }
     return cache[key];
-  }
-
-  protected storeTTL<T>(key: string, cache: TTLCache<T>, supplier: () => T, ttl: number): T {
-    if (!cache.has(key)) {
-      cache.set(key, supplier(), ttl);
-      this.storeMiss++;
-    } else {
-      this.storeHit++;
-    }
-    return cache.get(key);
   }
 
   protected getDistanceKey(from: RoomPosition, to: RoomPosition) {
@@ -75,28 +45,21 @@ class BaseData {
   }
 }
 
-class CachedData extends BaseData {
-  private distances: HashObject<number> = {};
-
-  private distanceMap: WeakMap<RoomPosition, WeakMap<RoomPosition, number>> = new WeakMap();
-
-  public getDistance(from: RoomPosition, to: RoomPosition): number {
-    const key = this.getDistanceKey(from, to);
-    return this.storeTo(key, this.distances, () => from.getRangeTo(to));
-  }
+class CachedData {
+  private distanceMap: Map<string, Map<string, number>> = new Map();
 
   public getDistanceFromMap(from: RoomPosition, to: RoomPosition) {
-    if (!this.distanceMap.has(to)) {
-      this.distanceMap.set(to, new WeakMap());
+    if (!this.distanceMap.has(''+to)) {
+      this.distanceMap.set(''+to, new Map());
     }
-    const subMap = this.distanceMap.get(to) as WeakMap<RoomPosition, number>;
-    if (!subMap.has(from)) {
-      subMap.set(from, from.getRangeTo(to));
-      this.storeMiss++;
+    const subMap = this.distanceMap.get(''+to) as Map<string, number>;
+    if (!subMap.has(''+from)) {
+      subMap.set(''+from, from.getRangeTo(to));
+      stats.metric('Distances::miss', 1);
     } else {
-      this.storeHit++;
+      stats.metric('Distances::hit', 1);
     }
-    return subMap.get(from);
+    return subMap.get(''+from);
   }
 }
 
@@ -107,10 +70,10 @@ class Data extends BaseData {
     return this.storeTo(key, this.creepLists.get(), func);
   }
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
-  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
 
   public creepsByJobTarget(job: string, jobTarget: string) {
     return this.cacheCreepList(job + '|' + jobTarget,() => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
@@ -130,6 +93,10 @@ class Data extends BaseData {
 
 }
 
+interface ValueWrapper<T> {
+  get(): T;
+}
+
 export class RoomData {
   constructor(private room: Room) { }
 
@@ -139,41 +106,39 @@ export class RoomData {
 
   public findMy<T>(type: string) { return this.find<T>(FIND_MY_STRUCTURES, [type]); }
 
-  private concat<F,S>(first: TTL<F[]>, second: TTL<S[]>): (F|S)[] {
+  private concat<F, S>(first: ValueWrapper<F[]>, second: ValueWrapper<S[]>): (F|S)[] {
     return ([] as (F | S)[]).concat(first.get(), second.get());
   }
 
-  public sources =    new TTL(200, () => this.room.find<Source>(FIND_SOURCES));
-  public spawns =     new TTL(200, () => this.findMy<Spawn>(STRUCTURE_SPAWN));
-  public containers = new TTL(1, () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
-  public storage =    new TTL(10, () => this.room.storage);
-  public containerOrStorage = new TTL(10, () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
-  public extensions = new TTL(20, () => this.findMy<Extension>(STRUCTURE_EXTENSION));
-  public extensionOrSpawns = new TTL(5, () => this.concat(this.extensions, this.spawns));
-  public towers =     new TTL(200, () => this.findMy<Tower>(STRUCTURE_TOWER));
-  public ramparts =   new TTL(7, () => this.findMy<Rampart>(STRUCTURE_RAMPART));
-  public walls =      new TTL(7, () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
-  public roads = new TTL(7, () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
-  public miningFlags = new TTL(200, () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
-  public containerConstructions = new TTL(3, () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+  public sources =    new ATTL( () => this.room.find<Source>(FIND_SOURCES));
+  public spawns =     new ATTL( () => this.findMy<Spawn>(STRUCTURE_SPAWN));
+  public containers = new ATTL( () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
+  public storage =    new ATTL( () => this.room.storage);
+  public containerOrStorage = new ATTL( () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
+  public extensions = new ATTL( () => this.findMy<Extension>(STRUCTURE_EXTENSION));
+  public extensionOrSpawns = new ATTL( () => this.concat(this.extensions, this.spawns));
+  public towers =     new ATTL( () => this.findMy<Tower>(STRUCTURE_TOWER));
+  public ramparts =   new ATTL( () => this.findMy<Rampart>(STRUCTURE_RAMPART));
+  public walls =      new ATTL( () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
+  public roads = new ATTL( () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+  public miningFlags = new ATTL( () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
+  public containerConstructions = new ATTL( () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
 
-  public nonDefensiveStructures = new TTL(100, () => this.room.find<Structure>(FIND_STRUCTURES)
+  public nonDefensiveStructures = new ATTL( () => this.room.find<Structure>(FIND_STRUCTURES)
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
-  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
-  public fillableCreeps = new Temporal(() => this.creeps.get()
+  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public fillableCreeps = new ATTL(() => this.creeps.get()
     .filter(creep => creep.memory.role !== 'miner')
     .filter(creep => creep.memory.role !== 'carry'));
 }
 
 class PathStore extends BaseData {
   private store = new MemoryStore('pathStore');
-
-  public renewed = 0;
 
   public getPath(from: RoomPosition, to: RoomPosition) {
     const key = this.getDistanceKey(from, to);
@@ -182,15 +147,15 @@ class PathStore extends BaseData {
       const path = from.findPathTo(to);
       const serializedPath = Room.serializePath(path);
       this.store.set(key, serializedPath);
-      this.storeMiss++;
+      stats.metric('PathStore::miss', 1);
     } else {
-      this.storeHit++;
+      stats.metric('PathStore::hit', 1);
     }
     return this.store.get(key);
   }
 
   public renewPath(from: RoomPosition, to: RoomPosition) {
-    this.renewed++;
+    stats.metric('PathStore::renew', 1);
     const key = this.getDistanceKey(from, to);
     this.store.delete(key);
     return this.getPath(from, to);

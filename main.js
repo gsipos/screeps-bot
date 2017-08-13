@@ -7,6 +7,7 @@ const roomManager = require('room').roomManager;
 const constructionManager = require('construction').constructionManager;
 const data = require('data').data;
 const profiler = require('profiler').profiler;
+const reporter = require('reporter').reporter;
 
 module.exports.loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
