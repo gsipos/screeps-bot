@@ -3,6 +3,7 @@ import { stats } from './statistics';
 
 export class ATTL<Value> {
   private value: Value | undefined;
+  private valueArrayIds: string[];
   private maxAge: number;
 
   private readonly minTTL = 1;
@@ -17,12 +18,14 @@ export class ATTL<Value> {
   public get(): Value {
     if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
       let newValue: Value | undefined = undefined;
+      let newValueIds = [];
       try {
         newValue = profiler.wrap('ATTL::Supplier', this.supplier);
+        newValueIds = this.getValueIds(newValue);
       } catch (e) {
         console.log('Caught in ATTL', e);
       }
-      if (this.valueEquals(this.value, newValue)) {
+      if (this.valueEquals(this.value, newValue, newValueIds)) {
         this.ttl = this.nextTTL(this.ttl, newValue);
         stats.metric('ATTL::TTL-increment', this.ttl);
       } else {
@@ -30,6 +33,7 @@ export class ATTL<Value> {
         this.ttl = this.minTTL;
       }
       this.value = newValue;
+      this.valueArrayIds = newValueIds;
       stats.metric('ATTL::TTL', this.ttl);
       this.maxAge = Game.time + this.ttl;
     } else {
@@ -52,7 +56,7 @@ export class ATTL<Value> {
     }
   }
 
-  private valueEquals(old: Value | undefined, fresh: Value | undefined): boolean {
+  private valueEquals(old: Value | undefined, fresh: Value | undefined, newIds: string[]): boolean {
     if (old === fresh) {
       return true;
     }
@@ -61,10 +65,7 @@ export class ATTL<Value> {
     }
     if (old instanceof Array && fresh instanceof Array) {
       if (old.length !== fresh.length) return false;
-      const oldIds = old.map(o => o.id || o.name);
-      const freshIds = fresh.map(f => f.id || f.name);
-      return freshIds.every(e => oldIds.includes(e))
-        && oldIds.every(e => freshIds.includes(e));
+      return this.valueArrayIds.every(id => newIds.includes(id));
     }
     return false;
   }
@@ -102,5 +103,12 @@ export class ATTL<Value> {
 
   private toString() {
     return '' + this.value + '|' + this.ttl;
+  }
+
+  private getValueIds(value: Value) {
+    if (value instanceof Array) {
+      return value.map(i => i.id || i.name);
+    }
+    return [];
   }
 }

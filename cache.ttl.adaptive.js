@@ -19,13 +19,15 @@ class ATTL {
     get() {
         if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
             let newValue = undefined;
+            let newValueIds = [];
             try {
                 newValue = profiler_1.profiler.wrap('ATTL::Supplier', this.supplier);
+                newValueIds = this.getValueIds(newValue);
             }
             catch (e) {
                 console.log('Caught in ATTL', e);
             }
-            if (this.valueEquals(this.value, newValue)) {
+            if (this.valueEquals(this.value, newValue, newValueIds)) {
                 this.ttl = this.nextTTL(this.ttl, newValue);
                 statistics_1.stats.metric('ATTL::TTL-increment', this.ttl);
             }
@@ -34,6 +36,7 @@ class ATTL {
                 this.ttl = this.minTTL;
             }
             this.value = newValue;
+            this.valueArrayIds = newValueIds;
             statistics_1.stats.metric('ATTL::TTL', this.ttl);
             this.maxAge = Game.time + this.ttl;
         }
@@ -55,7 +58,7 @@ class ATTL {
             return false;
         }
     }
-    valueEquals(old, fresh) {
+    valueEquals(old, fresh, newIds) {
         if (old === fresh) {
             return true;
         }
@@ -65,10 +68,7 @@ class ATTL {
         if (old instanceof Array && fresh instanceof Array) {
             if (old.length !== fresh.length)
                 return false;
-            const oldIds = old.map(o => o.id || o.name);
-            const freshIds = fresh.map(f => f.id || f.name);
-            return freshIds.every(e => oldIds.includes(e))
-                && oldIds.every(e => freshIds.includes(e));
+            return this.valueArrayIds.every(id => newIds.includes(id));
         }
         return false;
     }
@@ -100,6 +100,12 @@ class ATTL {
     }
     toString() {
         return '' + this.value + '|' + this.ttl;
+    }
+    getValueIds(value) {
+        if (value instanceof Array) {
+            return value.map(i => i.id || i.name);
+        }
+        return [];
     }
 }
 __decorate([
