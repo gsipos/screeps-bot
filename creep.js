@@ -85,10 +85,12 @@ class CreepJob {
         }
         const currentPos = '' + creep.pos.x + creep.pos.y;
         let moveResult = creep.moveByPath(creep.memory.path);
+        creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: this.color, strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
                 creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
                 moveResult = creep.moveByPath(creep.memory.path);
+                creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: this.color, strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
             }
             if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
                 creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);
