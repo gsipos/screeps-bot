@@ -83,26 +83,23 @@ class CreepJob {
         const room = creep.room;
         const pos = creep.pos;
         const to = target.pos;
-        if (!creep.memory.path) {
-            creep.memory.path = data_1.pathStore.getPath(room, pos, to);
-        }
-        const currentPos = '' + pos.x + pos.y;
-        let moveResult = creep.moveByPath(creep.memory.path);
-        room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: '##00ff00', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
+        const path = data_1.pathStore.getPath(room, pos, to);
+        let moveResult = creep.moveByPath(path);
+        room.visual.poly(Room.deserializePath(path), { stroke: '#00ff00', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
                 creep.memory.path = undefined;
                 moveResult = creep.moveTo(to, { reusePath: 20, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
             }
-            if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
-                creep.memory.path = data_1.pathStore.renewPath(room, pos, to);
+            if (moveResult !== ERR_TIRED && creep.pos === creep.memory.prevPos) {
+                data_1.pathStore.renewPath(room, pos, to);
             }
             if (moveResult === ERR_NO_PATH) {
                 this.finishJob(creep, target);
             }
         }
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
-        creep.memory.prevPos = currentPos;
+        creep.memory.prevPos = creep.pos;
     }
     finishJob(creep, target) {
         delete creep.memory.job;
