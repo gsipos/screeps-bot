@@ -80,20 +80,23 @@ class CreepJob {
             creep.say('tired');
             return;
         }
+        const room = creep.room;
+        const pos = creep.pos;
+        const to = target.pos;
         if (!creep.memory.path) {
-            creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
+            creep.memory.path = data_1.pathStore.getPath(room, pos, to);
         }
-        const currentPos = '' + creep.pos.x + creep.pos.y;
+        const currentPos = '' + pos.x + pos.y;
         let moveResult = creep.moveByPath(creep.memory.path);
-        creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: this.color, strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
+        room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: '##00ff00', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
-                creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
-                moveResult = creep.moveTo(target.pos, { reusePath: 20 });
-                creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: this.color, strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
+                creep.memory.path = data_1.pathStore.getPath(room, pos, to);
+                moveResult = creep.moveTo(to, { reusePath: 20 });
+                creep.room.visual.poly(Room.deserializePath(creep.memory.path), { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
             }
             if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
-                creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);
+                creep.memory.path = data_1.pathStore.renewPath(room, pos, to);
             }
             if (moveResult === ERR_NO_PATH) {
                 this.finishJob(creep, target);
