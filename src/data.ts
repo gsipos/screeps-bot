@@ -1,4 +1,5 @@
 import { TTL, Temporal } from './util';
+import { ATTL } from './cache.ttl.adaptive';
 
 type HashObject<T> = { [idx: string]: T };
 
@@ -130,6 +131,10 @@ class Data extends BaseData {
 
 }
 
+interface ValueWrapper<T> {
+  get(): T;
+}
+
 export class RoomData {
   constructor(private room: Room) { }
 
@@ -139,25 +144,25 @@ export class RoomData {
 
   public findMy<T>(type: string) { return this.find<T>(FIND_MY_STRUCTURES, [type]); }
 
-  private concat<F,S>(first: TTL<F[]>, second: TTL<S[]>): (F|S)[] {
+  private concat<F, S>(first: ValueWrapper<F[]>, second: ValueWrapper<S[]>): (F|S)[] {
     return ([] as (F | S)[]).concat(first.get(), second.get());
   }
 
-  public sources =    new TTL(200, () => this.room.find<Source>(FIND_SOURCES));
-  public spawns =     new TTL(200, () => this.findMy<Spawn>(STRUCTURE_SPAWN));
-  public containers = new TTL(1, () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
-  public storage =    new TTL(10, () => this.room.storage);
-  public containerOrStorage = new TTL(10, () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
-  public extensions = new TTL(20, () => this.findMy<Extension>(STRUCTURE_EXTENSION));
-  public extensionOrSpawns = new TTL(5, () => this.concat(this.extensions, this.spawns));
-  public towers =     new TTL(200, () => this.findMy<Tower>(STRUCTURE_TOWER));
-  public ramparts =   new TTL(7, () => this.findMy<Rampart>(STRUCTURE_RAMPART));
-  public walls =      new TTL(7, () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
-  public roads = new TTL(7, () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
-  public miningFlags = new TTL(200, () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
-  public containerConstructions = new TTL(3, () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+  public sources =    new ATTL( () => this.room.find<Source>(FIND_SOURCES));
+  public spawns =     new ATTL( () => this.findMy<Spawn>(STRUCTURE_SPAWN));
+  public containers = new ATTL( () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
+  public storage =    new ATTL( () => this.room.storage);
+  public containerOrStorage = new ATTL( () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
+  public extensions = new ATTL( () => this.findMy<Extension>(STRUCTURE_EXTENSION));
+  public extensionOrSpawns = new ATTL( () => this.concat(this.extensions, this.spawns));
+  public towers =     new ATTL( () => this.findMy<Tower>(STRUCTURE_TOWER));
+  public ramparts =   new ATTL( () => this.findMy<Rampart>(STRUCTURE_RAMPART));
+  public walls =      new ATTL( () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
+  public roads = new ATTL( () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+  public miningFlags = new ATTL( () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
+  public containerConstructions = new ATTL( () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
 
-  public nonDefensiveStructures = new TTL(100, () => this.room.find<Structure>(FIND_STRUCTURES)
+  public nonDefensiveStructures = new ATTL( () => this.room.find<Structure>(FIND_STRUCTURES)
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 

@@ -1,5 +1,3 @@
-import { data, cachedData, pathStore } from './data';
-
 class Profiler {
 
   constructor() {
@@ -26,6 +24,13 @@ class Profiler {
     }
     const startCPU = Game.cpu.getUsed();
     return () => this.trackMethod(name, Game.cpu.getUsed() - startCPU);
+  }
+
+  public wrap<T>(name: string, func: () => T): T {
+    const done = this.track(name);
+    const result = func();
+    done();
+    return result;
   }
 
   public trackMethod(name: string, consumedCPU: number) {
@@ -64,22 +69,7 @@ class Profiler {
     Memory.profile = {};
   }
 
-  public print() {
-    const entries = Object.keys(Memory.profileMethod).map(name => ({
-      name: name,
-      calls: Memory.profile[name + '_call'],
-      cpu: Memory.profile[name + '_cpu'],
-      min: Memory.profile[name + '_min'],
-      max: Memory.profile[name + '_max'],
-    }));
-    console.log('----------------------------------------------');
-    console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick | Min | Max');
-    entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu.toFixed(2)} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)} | ${e.min.toFixed(2)} | ${e.max.toFixed(2)}`));
-    console.log('----------------------------------------------');
-    console.log(`Data       hit / miss: ${data.storeHit} / ${data.storeMiss} | Hit ratio: ${(data.storeHit / (data.storeHit + data.storeMiss)).toFixed(2)}`);
-    console.log(`CachedData hit / miss: ${cachedData.storeHit} / ${cachedData.storeMiss} | Hit ratio: ${(cachedData.storeHit / (cachedData.storeHit + cachedData.storeMiss)).toFixed(2)}`);
-    console.log(`PathStore  hit / miss / renewed: ${pathStore.storeHit} / ${pathStore.storeMiss} / ${pathStore.renewed} | Hit ratio: ${(pathStore.storeHit / (pathStore.storeHit + pathStore.storeMiss)).toFixed(2)}`);
-  }
+
 
   public memoryParse() {
     const stringified = JSON.stringify(Memory.pathStore);

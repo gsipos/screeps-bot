@@ -49,6 +49,10 @@ class TTL {
                 console.log('Caught in TTL', e);
             }
             this.maxAge = Game.time + this.ttl;
+            TTL.miss++;
+        }
+        else {
+            TTL.hit++;
         }
         return this.value;
     }
@@ -70,6 +74,8 @@ class TTL {
         this.value = undefined;
     }
 }
+TTL.hit = 0;
+TTL.miss = 0;
 exports.TTL = TTL;
 function forEachRoom(call) {
     for (let roomName in Game.rooms) {

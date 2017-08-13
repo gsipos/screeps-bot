@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const data_1 = require("./data");
 class Profiler {
     constructor() {
         if (!Memory.profileMethod) {
@@ -24,6 +23,12 @@ class Profiler {
         }
         const startCPU = Game.cpu.getUsed();
         return () => this.trackMethod(name, Game.cpu.getUsed() - startCPU);
+    }
+    wrap(name, func) {
+        const done = this.track(name);
+        const result = func();
+        done();
+        return result;
     }
     trackMethod(name, consumedCPU) {
         if (!Memory.profiling) {
@@ -56,22 +61,6 @@ class Profiler {
         Memory.profileTicks = 0;
         Memory.profileMethod = {};
         Memory.profile = {};
-    }
-    print() {
-        const entries = Object.keys(Memory.profileMethod).map(name => ({
-            name: name,
-            calls: Memory.profile[name + '_call'],
-            cpu: Memory.profile[name + '_cpu'],
-            min: Memory.profile[name + '_min'],
-            max: Memory.profile[name + '_max'],
-        }));
-        console.log('----------------------------------------------');
-        console.log('| Name | Total Calls | Total CPU | Avg. Cpu | Avg Calls/Tick | Min | Max');
-        entries.forEach(e => console.log(`| ${e.name} | ${e.calls} | ${e.cpu.toFixed(2)} | ${(e.cpu / e.calls).toFixed(2)} | ${(e.calls / Memory.profileTicks).toFixed(2)} | ${e.min.toFixed(2)} | ${e.max.toFixed(2)}`));
-        console.log('----------------------------------------------');
-        console.log(`Data       hit / miss: ${data_1.data.storeHit} / ${data_1.data.storeMiss} | Hit ratio: ${(data_1.data.storeHit / (data_1.data.storeHit + data_1.data.storeMiss)).toFixed(2)}`);
-        console.log(`CachedData hit / miss: ${data_1.cachedData.storeHit} / ${data_1.cachedData.storeMiss} | Hit ratio: ${(data_1.cachedData.storeHit / (data_1.cachedData.storeHit + data_1.cachedData.storeMiss)).toFixed(2)}`);
-        console.log(`PathStore  hit / miss / renewed: ${data_1.pathStore.storeHit} / ${data_1.pathStore.storeMiss} / ${data_1.pathStore.renewed} | Hit ratio: ${(data_1.pathStore.storeHit / (data_1.pathStore.storeHit + data_1.pathStore.storeMiss)).toFixed(2)}`);
     }
     memoryParse() {
         const stringified = JSON.stringify(Memory.pathStore);

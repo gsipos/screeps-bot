@@ -39,6 +39,9 @@ export class Temporal < T > {
 }
 
 export class TTL<T> {
+  public static hit = 0;
+  public static miss = 0;
+
   private value: T | undefined;
   private maxAge: number;
 
@@ -52,6 +55,9 @@ export class TTL<T> {
         console.log('Caught in TTL', e);
       }
       this.maxAge = Game.time + this.ttl;
+      TTL.miss++;
+    } else {
+      TTL.hit++;
     }
     return this.value as T;
   }
