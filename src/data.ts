@@ -1,4 +1,5 @@
 import { TTL, Temporal } from './util';
+import { stats } from './statistics';
 import { ATTL } from './cache.ttl.adaptive';
 
 type HashObject<T> = { [idx: string]: T };
@@ -29,46 +30,14 @@ class MemoryStore<T = string> {
   }
 }
 
-interface TTLEntry<T = string> { entry: T; maxAge: number };
-class TTLCache<T=string> {
-  public cache: HashObject<TTLEntry<T>> = {};
-
-  public has(key: string): boolean {
-    const entry = this.cache[key];
-    return !!entry && entry.maxAge < Game.time;
-  }
-
-  public get(key: string): T {
-    return this.cache[key].entry;
-  }
-
-  public set(key: string, value: T, ttl: number) {
-    this.cache[key] = { entry: value, maxAge: Game.time + ttl };
-  }
-}
-
 class BaseData {
-  public storeHit: number = 0;
-  public storeMiss: number = 0;
 
   protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
     if (!cache[key]) {
       cache[key] = func();
-      this.storeMiss++;
     } else {
-      this.storeHit++;
     }
     return cache[key];
-  }
-
-  protected storeTTL<T>(key: string, cache: TTLCache<T>, supplier: () => T, ttl: number): T {
-    if (!cache.has(key)) {
-      cache.set(key, supplier(), ttl);
-      this.storeMiss++;
-    } else {
-      this.storeHit++;
-    }
-    return cache.get(key);
   }
 
   protected getDistanceKey(from: RoomPosition, to: RoomPosition) {
@@ -76,28 +45,21 @@ class BaseData {
   }
 }
 
-class CachedData extends BaseData {
-  private distances: HashObject<number> = {};
-
-  private distanceMap: WeakMap<RoomPosition, WeakMap<RoomPosition, number>> = new WeakMap();
-
-  public getDistance(from: RoomPosition, to: RoomPosition): number {
-    const key = this.getDistanceKey(from, to);
-    return this.storeTo(key, this.distances, () => from.getRangeTo(to));
-  }
+class CachedData {
+  private distanceMap: Map<string, Map<string, number>> = new Map();
 
   public getDistanceFromMap(from: RoomPosition, to: RoomPosition) {
-    if (!this.distanceMap.has(to)) {
-      this.distanceMap.set(to, new WeakMap());
+    if (!this.distanceMap.has(''+to)) {
+      this.distanceMap.set(''+to, new Map());
     }
-    const subMap = this.distanceMap.get(to) as WeakMap<RoomPosition, number>;
-    if (!subMap.has(from)) {
-      subMap.set(from, from.getRangeTo(to));
-      this.storeMiss++;
+    const subMap = this.distanceMap.get(''+to) as Map<string, number>;
+    if (!subMap.has(''+from)) {
+      subMap.set(''+from, from.getRangeTo(to));
+      stats.metric('Distances::miss', 1);
     } else {
-      this.storeHit++;
+      stats.metric('Distances::hit', 1);
     }
-    return subMap.get(from);
+    return subMap.get(''+from);
   }
 }
 
@@ -166,19 +128,17 @@ export class RoomData {
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
-  public minerCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
-  public fillableCreeps = new Temporal(() => this.creeps.get()
+  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public fillableCreeps = new ATTL(() => this.creeps.get()
     .filter(creep => creep.memory.role !== 'miner')
     .filter(creep => creep.memory.role !== 'carry'));
 }
 
 class PathStore extends BaseData {
   private store = new MemoryStore('pathStore');
-
-  public renewed = 0;
 
   public getPath(from: RoomPosition, to: RoomPosition) {
     const key = this.getDistanceKey(from, to);
@@ -187,15 +147,15 @@ class PathStore extends BaseData {
       const path = from.findPathTo(to);
       const serializedPath = Room.serializePath(path);
       this.store.set(key, serializedPath);
-      this.storeMiss++;
+      stats.metric('PathStore::miss', 1);
     } else {
-      this.storeHit++;
+      stats.metric('PathStore::hit', 1);
     }
     return this.store.get(key);
   }
 
   public renewPath(from: RoomPosition, to: RoomPosition) {
-    this.renewed++;
+    stats.metric('PathStore::renew', 1);
     const key = this.getDistanceKey(from, to);
     this.store.delete(key);
     return this.getPath(from, to);

@@ -1,13 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const statistics_1 = require("./statistics");
-const data_1 = require("./data");
 class Reporter {
-    printProfile() {
-        console.log(`Data       hit / miss: ${data_1.data.storeHit} / ${data_1.data.storeMiss} | Hit ratio: ${(data_1.data.storeHit / (data_1.data.storeHit + data_1.data.storeMiss)).toFixed(2)}`);
-        console.log(`CachedData hit / miss: ${data_1.cachedData.storeHit} / ${data_1.cachedData.storeMiss} | Hit ratio: ${(data_1.cachedData.storeHit / (data_1.cachedData.storeHit + data_1.cachedData.storeMiss)).toFixed(2)}`);
-        console.log(`PathStore  hit / miss / renewed: ${data_1.pathStore.storeHit} / ${data_1.pathStore.storeMiss} / ${data_1.pathStore.renewed} | Hit ratio: ${(data_1.pathStore.storeHit / (data_1.pathStore.storeHit + data_1.pathStore.storeMiss)).toFixed(2)}`);
-    }
     printStat() {
         const separator = '\t\t| ';
         const f2 = (n) => n.toFixed(2);
@@ -22,7 +16,6 @@ class Reporter {
         console.log('----------------------------------------------');
     }
     print() {
-        this.printProfile();
         this.printStat();
     }
 }
