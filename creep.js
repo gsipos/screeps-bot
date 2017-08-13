@@ -81,7 +81,7 @@ class CreepJob {
             return;
         }
         if (!creep.memory.path) {
-            creep.memory.path = data_1.pathStore.getPath(creep.pos, target.pos);
+            creep.memory.path = data_1.pathStore.getPath(creep.room, creep.pos, target.pos);
         }
         const currentPos = '' + creep.pos.x + creep.pos.y;
         const moveResult = creep.moveByPath(creep.memory.path);
@@ -91,7 +91,7 @@ class CreepJob {
             creep.memory.path = undefined;
         }
         else if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
-            creep.memory.path = data_1.pathStore.renewPath(creep.pos, target.pos);
+            creep.memory.path = data_1.pathStore.renewPath(creep.room, creep.pos, target.pos);
         }
         if (moveResult == ERR_NO_PATH) {
             this.finishJob(creep, target);

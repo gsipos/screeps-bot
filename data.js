@@ -124,10 +124,10 @@ class PathStore extends BaseData {
         super(...arguments);
         this.store = new MemoryStore('pathStore');
     }
-    getPath(from, to) {
+    getPath(room, from, to) {
         const key = this.getDistanceKey(from, to);
         if (!this.store.has(key)) {
-            const path = from.findPathTo(to);
+            const path = room.findPath(from, to);
             const serializedPath = Room.serializePath(path);
             if (!serializedPath.startsWith('' + from.x + from.y)) {
                 console.log("path bug:", from, to, serializedPath, ...path.map(p => '' + p.x + p.y));
@@ -140,11 +140,11 @@ class PathStore extends BaseData {
         }
         return this.store.get(key);
     }
-    renewPath(from, to) {
+    renewPath(room, from, to) {
         statistics_1.stats.metric('PathStore::renew', 1);
         const key = this.getDistanceKey(from, to);
         this.store.delete(key);
-        return this.getPath(from, to);
+        return this.getPath(room, from, to);
     }
 }
 exports.data = new Data();
