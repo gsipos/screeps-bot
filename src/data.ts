@@ -144,11 +144,8 @@ class PathStore extends BaseData {
     const key = this.getDistanceKey(from, to);
 
     if (!this.store.has(key)) {
-      const path = room.findPath(from, to);
-
-      const serializedPath = Room.serializePath(path);
-
-      this.store.set(key, serializedPath);
+      const path = room.findPath(from, to, { serialize: true });
+      this.store.set(key, path as any);
       stats.metric('PathStore::miss', 1);
     } else {
       stats.metric('PathStore::hit', 1);
