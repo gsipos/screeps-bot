@@ -9,76 +9,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const profiler_1 = require("./profiler");
 const data_1 = require("./data");
 class TowerManager {
-    constructor() {
-        this.jobTTL = 5;
-        if (!Memory.towers) {
-            Memory.towers = {};
-        }
-    }
     loop() {
         for (let name in Game.rooms) {
             const room = Game.rooms[name];
-            data_1.data.of(room).towers.get().forEach(tower => {
-                let towerMemory = this.getTowerMemory(tower.id);
-                if (!towerMemory) {
-                    towerMemory = this.assignJobToTower(tower);
-                }
-                this.executeTowerJob(tower, towerMemory);
-            });
+            const roomData = data_1.data.of(room);
+            const towers = roomData.towers.get();
+            const closestHostile = towers[0].pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            if (closestHostile) {
+                towers.forEach(t => t.attack(closestHostile));
+                return;
+            }
+            const decayingRampart = roomData.ramparts.get().find(r => r.hits < 500);
+            if (decayingRampart) {
+                towers.forEach(t => t.repair(decayingRampart));
+                return;
+            }
+            const damagedStructure = roomData.nonDefensiveStructures.get().find(s => s.hits > s.hitsMax);
+            if (damagedStructure) {
+                towers.forEach(t => t.repair(damagedStructure));
+                return;
+            }
+            const damagedCreep = roomData.creeps.get().find(c => c.hits < c.hitsMax);
+            if (!!damagedCreep) {
+                towers.forEach(t => t.heal(damagedCreep));
+                return;
+            }
         }
-    }
-    executeTowerJob(tower, memory) {
-        const target = Game.getObjectById(memory.jobTarget);
-        if (!target) {
-            this.jobDone(tower);
-        }
-        let result = OK;
-        if (memory.job === 'jobless') {
-            result = OK - 1;
-        }
-        if (memory.job === 'attack') {
-            result = tower.attack(target);
-        }
-        if (memory.job === 'repair') {
-            result = tower.repair(target);
-        }
-        if (memory.job === 'heal') {
-            result = tower.heal(target);
-        }
-        if (result !== OK) {
-            this.jobDone(tower);
-        }
-    }
-    assignJobToTower(tower) {
-        var towerMemory;
-        var closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-        if (closestHostile) {
-            return this.createJob('attack', tower, closestHostile);
-        }
-        var decayingRampart = data_1.data.of(tower.room).ramparts.get().find(r => r.hits < 500);
-        if (decayingRampart) {
-            return this.createJob('repair', tower, decayingRampart);
-        }
-        var damagedStructure = data_1.data.of(tower.room).nonDefensiveStructures.get().find(s => s.hits > s.hitsMax);
-        if (damagedStructure) {
-            return this.createJob('repair', tower, damagedStructure);
-        }
-        var damagedCreep = data_1.data.of(tower.room).creeps.get().find(c => c.hits < c.hitsMax);
-        if (damagedCreep) {
-            return this.createJob('heal', tower, damagedCreep);
-        }
-        return this.createJob('jobless', tower, { id: 'nojob' });
-    }
-    createJob(job, tower, target) {
-        const towerMemory = { job: job, jobTarget: target.id };
-        Memory.towers[tower.id] = towerMemory;
-        return towerMemory;
-    }
-    jobDone(tower) {
-        delete Memory.towers[tower.id];
-    }
-    getTowerMemory(towerId) {
-        return Memory.towers[towerId];
     }
 }
 __decorate([
