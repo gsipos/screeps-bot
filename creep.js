@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 const data_1 = require("./data");
 const profiler_1 = require("./profiler");
+const statistics_1 = require("./statistics");
 class TargetSelectionPolicy {
     static random(targets) {
         return targets.sort(() => Math.floor((Math.random() * 3)) - 1);
@@ -76,7 +77,7 @@ class CreepJob {
     }
     moveCreep(creep, target) {
         if (creep.fatigue) {
-            creep.say('fatigue');
+            creep.say('tired');
             return;
         }
         if (!creep.memory.path) {
@@ -84,6 +85,7 @@ class CreepJob {
         }
         const currentPos = '' + creep.pos.x + creep.pos.y;
         const moveResult = creep.moveByPath(creep.memory.path);
+        statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
         if (moveResult !== ERR_TIRED && currentPos === creep.memory.prevPos) {
             creep.memory.path = data_1.pathStore.renewPath(creep.pos, target.pos);
         }
