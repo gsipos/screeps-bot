@@ -6,16 +6,16 @@ class Reporter {
 
   public printStat() {
     const separator = '\t\t| ';
-    const f2 = (n: number) => n.toFixed(2);
+    const f2 = (n: number) => (n||0).toFixed(2);
     const pad = (s: string) => (s + '          ').substring(0, 10);
     console.log('----------------------------------------------');
-    console.log(['Sum', 'Count', 'Min', 'Max', 'Avg', 'Name'].map(pad).join(separator));
+    console.log(['Sum', 'Count', 'Min', 'Max', 'Avg', '50Avg', 'Name'].map(pad).join(separator));
     Object
       .keys(stats.stats)
       .sort((a, b) => a.localeCompare(b))
       .forEach(name => {
         const m = stats.stats[name];
-        const metricString = [m.sum, m.count, m.min, m.max, m.avg].map(n => f2(n)).map(pad).join(separator);
+        const metricString = [m.sum, m.count, m.min, m.max, m.avg, m.last50Avg].map(n => f2(n)).map(pad).join(separator);
         console.log(metricString + separator + name);
       });
 

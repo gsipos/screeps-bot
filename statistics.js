@@ -16,7 +16,9 @@ class Statistics {
                 max: 0,
                 min: Infinity,
                 count: 0,
-                avg: 0
+                avg: 0,
+                last50: [],
+                last50Avg: 0
             };
         }
         return this.stats[name];
@@ -28,6 +30,8 @@ class Statistics {
         metric.max = Math.max(metric.max, value);
         metric.count++;
         metric.avg = metric.sum / metric.count;
+        metric.last50 = [value, ...(metric.last50 || []).slice(0, 48)];
+        metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
     }
 }
 exports.stats = new Statistics();
