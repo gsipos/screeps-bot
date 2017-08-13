@@ -23,7 +23,7 @@ class TowerManager {
         return;
       }
 
-      const damagedStructure = roomData.nonDefensiveStructures.get().find(s => s.hits > s.hitsMax);
+      const damagedStructure = roomData.nonDefensiveStructures.get().find(s => s.hits < s.hitsMax);
       if (damagedStructure) {
         towers.forEach(t => t.repair(damagedStructure));
         return;
