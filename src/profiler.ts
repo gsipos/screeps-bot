@@ -1,11 +1,9 @@
+import { stats } from './statistics';
 class Profiler {
 
   constructor() {
     if (!Memory.profileMethod) {
       Memory.profileMethod = {};
-    }
-    if (!Memory.profile) {
-      Memory.profile = {};
     }
     if (!Memory.profileTicks) {
       Memory.profileTicks = 0;
@@ -37,21 +35,7 @@ class Profiler {
     if (!Memory.profiling) {
       return;
     }
-    if (!Memory.profile[name + '_call']) {
-      Memory.profileMethod[name] = 1;
-      Memory.profile[name + '_call'] = 0;
-      Memory.profile[name + '_cpu'] = 0;
-      Memory.profile[name + '_min'] = consumedCPU;
-      Memory.profile[name + '_max'] = consumedCPU;
-    }
-    Memory.profile[name + '_call']++;
-    Memory.profile[name + '_cpu'] += consumedCPU;
-    if (Memory.profile[name + '_max'] < consumedCPU) {
-      Memory.profile[name + '_max'] = consumedCPU
-    }
-    if (Memory.profile[name + '_min'] > consumedCPU) {
-      Memory.profile[name + '_min'] = consumedCPU
-    }
+    stats.metric(name, consumedCPU);
   }
 
   public start() {
@@ -66,10 +50,7 @@ class Profiler {
     this.stop();
     Memory.profileTicks = 0;
     Memory.profileMethod = {};
-    Memory.profile = {};
   }
-
-
 
   public memoryParse() {
     const stringified = JSON.stringify(Memory.pathStore);

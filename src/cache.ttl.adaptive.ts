@@ -2,9 +2,6 @@ import { Profile, profiler } from './profiler';
 import { stats } from './statistics';
 
 export class ATTL<Value> {
-  public static hit = 0;
-  public static miss = 0;
-
   private value: Value | undefined;
   private maxAge: number;
 
@@ -21,22 +18,21 @@ export class ATTL<Value> {
     if (this.emptyValue || this.stale || this.arrayValueHasNullOrUndefinedItem) {
       let newValue: Value | undefined = undefined;
       try {
-        profiler.wrap('ATTL::Supplier', () =>
-          newValue = this.supplier());
+        newValue = profiler.wrap('ATTL::Supplier', this.supplier);
       } catch (e) {
         console.log('Caught in ATTL', e);
       }
-
       if (this.valueEquals(this.value, newValue)) {
         this.ttl = this.nextTTL(this.ttl, newValue);
       } else {
         this.ttl = this.minTTL;
       }
+      this.value = newValue;
       stats.metric('ATTL::TTL', this.ttl);
+      stats.metric('ATTL::miss', 1);
       this.maxAge = Game.time + this.ttl;
-      ATTL.miss++;
     } else {
-      ATTL.hit++;
+      stats.metric('ATTL::hit', 1);
     }
     return this.value as Value;
   }
@@ -96,5 +92,9 @@ export class ATTL<Value> {
 
   private nextTTL(previousTTL: number, value: Value | undefined) {
     return Math.min(this.calcMaxTTL(value), this.linearIncrementTTL(previousTTL));
+  }
+
+  private toString() {
+    return '' + this.value + '|' + this.ttl;
   }
 }

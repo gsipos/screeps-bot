@@ -20,7 +20,7 @@ class ATTL {
         if (this.emptyValue || this.stale || this.arrayValueHasNullOrUndefinedItem) {
             let newValue = undefined;
             try {
-                profiler_1.profiler.wrap('ATTL::Supplier', () => newValue = this.supplier());
+                newValue = profiler_1.profiler.wrap('ATTL::Supplier', this.supplier);
             }
             catch (e) {
                 console.log('Caught in ATTL', e);
@@ -31,12 +31,13 @@ class ATTL {
             else {
                 this.ttl = this.minTTL;
             }
+            this.value = newValue;
             statistics_1.stats.metric('ATTL::TTL', this.ttl);
+            statistics_1.stats.metric('ATTL::miss', 1);
             this.maxAge = Game.time + this.ttl;
-            ATTL.miss++;
         }
         else {
-            ATTL.hit++;
+            statistics_1.stats.metric('ATTL::hit', 1);
         }
         return this.value;
     }
@@ -90,9 +91,10 @@ class ATTL {
     nextTTL(previousTTL, value) {
         return Math.min(this.calcMaxTTL(value), this.linearIncrementTTL(previousTTL));
     }
+    toString() {
+        return '' + this.value + '|' + this.ttl;
+    }
 }
-ATTL.hit = 0;
-ATTL.miss = 0;
 __decorate([
     profiler_1.Profile('ATTL')
 ], ATTL.prototype, "get", null);

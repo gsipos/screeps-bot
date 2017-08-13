@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const statistics_1 = require("./statistics");
 class Profiler {
     constructor() {
         if (!Memory.profileMethod) {
             Memory.profileMethod = {};
-        }
-        if (!Memory.profile) {
-            Memory.profile = {};
         }
         if (!Memory.profileTicks) {
             Memory.profileTicks = 0;
@@ -34,21 +32,7 @@ class Profiler {
         if (!Memory.profiling) {
             return;
         }
-        if (!Memory.profile[name + '_call']) {
-            Memory.profileMethod[name] = 1;
-            Memory.profile[name + '_call'] = 0;
-            Memory.profile[name + '_cpu'] = 0;
-            Memory.profile[name + '_min'] = consumedCPU;
-            Memory.profile[name + '_max'] = consumedCPU;
-        }
-        Memory.profile[name + '_call']++;
-        Memory.profile[name + '_cpu'] += consumedCPU;
-        if (Memory.profile[name + '_max'] < consumedCPU) {
-            Memory.profile[name + '_max'] = consumedCPU;
-        }
-        if (Memory.profile[name + '_min'] > consumedCPU) {
-            Memory.profile[name + '_min'] = consumedCPU;
-        }
+        statistics_1.stats.metric(name, consumedCPU);
     }
     start() {
         Memory.profiling = true;
@@ -60,7 +44,6 @@ class Profiler {
         this.stop();
         Memory.profileTicks = 0;
         Memory.profileMethod = {};
-        Memory.profile = {};
     }
     memoryParse() {
         const stringified = JSON.stringify(Memory.pathStore);
