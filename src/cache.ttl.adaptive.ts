@@ -7,7 +7,7 @@ export class ATTL<Value> {
   private maxAge: number;
 
   private readonly minTTL = 1;
-  private readonly maxTTL = 2000;
+  private readonly maxTTL = 200;
   private ttl: number = this.minTTL;
 
   private linearIncrementParameter = 0.5;
