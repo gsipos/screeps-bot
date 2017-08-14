@@ -76,7 +76,7 @@ class CreepJob {
         }
     }
     moveCreep(creep, target) {
-        if (creep.fatigue) {
+        if (creep.fatigue > 0) {
             creep.say('tired');
             return;
         }

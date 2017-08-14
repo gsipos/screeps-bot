@@ -77,7 +77,7 @@ export class CreepJob {
   }
 
   private moveCreep(creep: Creep, target: RoomObject) {
-    if (creep.fatigue) {
+    if (creep.fatigue > 0) {
       creep.say('tired');
       return;
     }
