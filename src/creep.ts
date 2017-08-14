@@ -100,6 +100,7 @@ export class CreepJob {
     }
     stats.metric('Creep::Move::' + moveResult, 1);
     creep.memory.prevPos = creep.pos;
+    return moveResult;
   }
 
   private finishJob(creep: Creep, target: any) {

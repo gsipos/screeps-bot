@@ -98,6 +98,7 @@ class CreepJob {
         }
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
         creep.memory.prevPos = creep.pos;
+        return moveResult;
     }
     finishJob(creep, target) {
         delete creep.memory.job;
