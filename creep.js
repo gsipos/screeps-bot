@@ -90,7 +90,7 @@ class CreepJob {
                 statistics_1.stats.metric('Creep::Move::PATH_NOT_FOUND', 1);
                 creep.moveTo(target.pos);
             }
-            if (moveResult !== ERR_TIRED && creep.pos === creep.memory.prevPos) {
+            if (moveResult !== ERR_TIRED && creep.pos.toString() === creep.memory.prevPos) {
                 data_1.pathStore.renewPath(room, pos, to);
             }
             if (moveResult === ERR_NO_PATH) {
@@ -98,7 +98,7 @@ class CreepJob {
             }
         }
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
-        creep.memory.prevPos = creep.pos;
+        creep.memory.prevPos = '' + creep.pos;
         return moveResult;
     }
     finishJob(creep, target) {
