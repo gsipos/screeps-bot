@@ -84,8 +84,8 @@ export class CreepJob {
     const room = creep.room;
     const pos = creep.pos;
     const to = target.pos;
-    const path = pathStore.getPath(room, pos, to);
-    let moveResult = creep.moveByPath(path);
+    //const path = pathStore.getPath(room, pos, to);
+    let moveResult = creep.moveTo(target.pos);
 
     if (moveResult !== OK) {
       if (moveResult === ERR_NOT_FOUND) {

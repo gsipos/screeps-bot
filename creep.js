@@ -83,11 +83,10 @@ class CreepJob {
         const room = creep.room;
         const pos = creep.pos;
         const to = target.pos;
-        const path = data_1.pathStore.getPath(room, pos, to);
-        let moveResult = creep.moveByPath(path);
+        //const path = pathStore.getPath(room, pos, to);
+        let moveResult = creep.moveTo(target.pos);
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
-                creep.memory.path = undefined;
                 moveResult = creep.moveTo(to, { reusePath: 5, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
             }
             if (moveResult !== ERR_TIRED && creep.pos === creep.memory.prevPos) {
