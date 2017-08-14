@@ -86,12 +86,10 @@ export class CreepJob {
     const to = target.pos;
     const path = pathStore.getPath(room, pos, to);
     let moveResult = creep.moveByPath(path);
-    room.visual.poly(Room.deserializePath(path) as any, { stroke: '#00ff00', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' });
 
     if (moveResult !== OK) {
       if (moveResult === ERR_NOT_FOUND) {
-        creep.memory.path = undefined;
-        moveResult = creep.moveTo(to, { reusePath: 20, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
+        moveResult = creep.moveTo(to, { reusePath: 5, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
       }
       if (moveResult !== ERR_TIRED && creep.pos === creep.memory.prevPos) {
         pathStore.renewPath(room, pos, to);
