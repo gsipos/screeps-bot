@@ -87,7 +87,7 @@ class CreepJob {
         let moveResult = creep.moveTo(target.pos);
         if (moveResult !== OK) {
             if (moveResult === ERR_NOT_FOUND) {
-                moveResult = creep.moveTo(to, { reusePath: 5, visualizePathStyle: { stroke: '#ff0000', strokeWidth: .15, opacity: .2, lineStyle: 'dashed' } });
+                statistics_1.stats.metric('Creep::Move::PATH_NOT_FOUND', 1);
             }
             if (moveResult !== ERR_TIRED && creep.pos === creep.memory.prevPos) {
                 data_1.pathStore.renewPath(room, pos, to);
