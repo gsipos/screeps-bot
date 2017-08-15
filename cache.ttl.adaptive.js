@@ -12,7 +12,7 @@ class ATTL {
     constructor(supplier) {
         this.supplier = supplier;
         this.minTTL = 1;
-        this.maxTTL = 200;
+        this.maxTTL = 10;
         this.ttl = this.minTTL;
         this.linearIncrementParameter = 0.5;
     }
