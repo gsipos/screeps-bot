@@ -39,6 +39,7 @@ class Statistics {
     }
     loop() {
         const cpu = Game.cpu.getUsed();
+        this.metric('Stat::entries', this.metricsToProcess.length);
         this.metricsToProcess.forEach(entry => this.storeMetric(entry.name, entry.value));
         this.metricsToProcess = [];
         this.storeMetric('Stat::loop', Game.cpu.getUsed() - cpu);
