@@ -8,6 +8,7 @@ const constructionManager = require('construction').constructionManager;
 const data = require('data').data;
 const profiler = require('profiler').profiler;
 const reporter = require('reporter').reporter;
+const stats = require(statistics).stats;
 
 module.exports.loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
@@ -28,5 +29,6 @@ module.exports.loop = function () {
   carryCreepManager.loop();
   creepManager.loop();
 
+  stats.loop();
   done();
 }
