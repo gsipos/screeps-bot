@@ -85,6 +85,10 @@ export class TTL<T> {
 
 export function forEachRoom(call: (room: Room) => any) {
   for (let roomName in Game.rooms) {
-    call(Game.rooms[roomName]);
+    try {
+      call(Game.rooms[roomName]);
+    } catch (e) {
+      console.log(e);
+    }
   }
 }

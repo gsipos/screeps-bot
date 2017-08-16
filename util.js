@@ -79,7 +79,12 @@ TTL.miss = 0;
 exports.TTL = TTL;
 function forEachRoom(call) {
     for (let roomName in Game.rooms) {
-        call(Game.rooms[roomName]);
+        try {
+            call(Game.rooms[roomName]);
+        }
+        catch (e) {
+            console.log(e);
+        }
     }
 }
 exports.forEachRoom = forEachRoom;
