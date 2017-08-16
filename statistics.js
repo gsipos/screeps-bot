@@ -10,6 +10,8 @@ class Statistics {
     get stats() {
         return Memory['statistics'];
     }
+    get gatheringStats() { return Memory['gatheringStats']; }
+    set gatheringStats(gathering) { Memory['gatheringStats'] = gathering; }
     getMetric(name) {
         if (!this.stats[name]) {
             this.stats[name] = {
@@ -25,6 +27,9 @@ class Statistics {
         return this.stats[name];
     }
     metric(name, value) {
+        if (!this.gatheringStats) {
+            return;
+        }
         this.metricsToProcess.push({ name, value });
     }
     storeMetric(name, value) {
@@ -44,6 +49,8 @@ class Statistics {
         this.metricsToProcess = [];
         this.storeMetric('Stat::loop', Game.cpu.getUsed() - cpu);
     }
+    start() { this.gatheringStats = true; }
+    stop() { this.gatheringStats = false; }
 }
 exports.stats = new Statistics();
 global.Stats = exports.stats;
