@@ -70,7 +70,7 @@ class Data extends BaseData {
     return this.storeTo(key, this.creepLists.get(), func);
   }
 
-  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
   public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
   public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
   public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
@@ -128,7 +128,7 @@ export class RoomData {
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
   public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
   public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
   public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));

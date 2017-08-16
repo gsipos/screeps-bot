@@ -61,7 +61,7 @@ class Data extends BaseData {
     constructor() {
         super(...arguments);
         this.creepLists = new util_1.Temporal(() => ({}));
-        this.creeps = new cache_ttl_adaptive_1.ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
         this.minerCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
         this.carryCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
         this.generalCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
@@ -102,7 +102,7 @@ class RoomData {
         this.nonDefensiveStructures = new cache_ttl_adaptive_1.ATTL(() => this.room.find(FIND_STRUCTURES)
             .filter(s => s.structureType !== STRUCTURE_WALL)
             .filter(s => s.structureType !== STRUCTURE_RAMPART));
-        this.creeps = new cache_ttl_adaptive_1.ATTL(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
         this.minerCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
         this.carryCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
         this.generalCreeps = new cache_ttl_adaptive_1.ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
