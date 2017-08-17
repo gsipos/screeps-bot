@@ -118,8 +118,8 @@ class ArrayAdaptiveTTLCache extends ATTL {
     }
     isEmpty() {
         if (!this.value)
-            return false;
-        return this.value.every(i => i !== undefined && i !== null);
+            return true;
+        return this.value.some(i => i === undefined || i === null);
     }
 }
 exports.ArrayAdaptiveTTLCache = ArrayAdaptiveTTLCache;

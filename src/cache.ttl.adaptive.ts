@@ -130,8 +130,8 @@ export class ArrayAdaptiveTTLCache<T extends HasId> extends ATTL<T[]> {
   }
 
   protected isEmpty() {
-    if (!this.value) return false;
-    return this.value.every(i => i !== undefined && i !== null);
+    if (!this.value) return true;
+    return this.value.some(i => i === undefined || i === null);
   }
 
 }
