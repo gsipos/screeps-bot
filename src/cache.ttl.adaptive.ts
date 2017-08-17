@@ -1,13 +1,15 @@
 import { Profile, profiler } from './profiler';
 import { stats } from './statistics';
+import { Temporal } from "./util";
 
 export class ATTL<Value> {
-  private value: Value | undefined;
-  private valueArrayIds: string[];
+  protected metricId = 'ATTL';
+  protected value: Value | undefined;
+
   private maxAge: number;
 
   private readonly minTTL = 1;
-  private readonly maxTTL = 10;
+  private readonly maxTTL = 100;
   private ttl: number = this.minTTL;
 
   private linearIncrementParameter = 0.5;
@@ -16,58 +18,49 @@ export class ATTL<Value> {
 
   @Profile('ATTL')
   public get(): Value {
-    if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
-      let newValue: Value | undefined = undefined;
-      let newValueIds = [];
-      try {
-        newValue = profiler.wrap('ATTL::Supplier', this.supplier);
-        newValueIds = this.getValueIds(newValue);
-      } catch (e) {
-        console.log('Caught in ATTL', e);
-      }
-      if (this.valueEquals(this.value, newValue, newValueIds)) {
-        this.ttl = this.nextTTL(this.ttl, newValue);
-        stats.metric('ATTL::TTL-increment', this.ttl);
-      } else {
-        stats.metric('ATTL::TTL-reset', this.ttl);
-        this.ttl = this.minTTL;
-      }
+    if (this.stale || this.isEmpty()) {
+
+      let newValue = this.getNewValue();
+
+      this.adjustTTL(newValue);
+
       this.value = newValue;
-      this.valueArrayIds = newValueIds;
-      stats.metric('ATTL::TTL', this.ttl);
+
+      stats.metric(this.metricId+'::TTL', this.ttl);
       this.maxAge = Game.time + this.ttl;
+
     } else {
-      stats.metric('ATTL::hit', 1);
+      stats.metric(this.metricId +'::hit', 1);
     }
     return this.value as Value;
   }
 
-  private get emptyValue() {
+  private getNewValue() {
+    let newValue: Value | undefined = undefined;
+    try {
+      newValue = profiler.wrap(this.metricId +'::Supplier', this.supplier);
+    } catch (e) {
+      console.log('Caught in '+this.metricId, e);
+    }
+    return newValue;
+  }
+
+  private adjustTTL(newValue: Value | undefined) {
+    if (this.valueEquals(this.value, newValue)) {
+      this.ttl = this.nextTTL(this.ttl, newValue);
+      stats.metric(this.metricId +'::TTL-increment', this.ttl);
+    } else {
+      stats.metric(this.metricId +'::TTL-reset', this.ttl);
+      this.ttl = this.minTTL;
+    }
+  }
+
+  protected isEmpty() {
     return this.value === null || this.value === undefined;
   }
 
-  private get arrayValueHasEmptyOrUnkownItem(): boolean {
-    if (this.value instanceof Array) {
-      return this.value.some(item => item === null
-        || item === undefined
-        || !Game.getObjectById(item.id || item.name));
-    } else {
-      return false;
-    }
-  }
-
-  private valueEquals(old: Value | undefined, fresh: Value | undefined, newIds: string[]): boolean {
-    if (old === fresh) {
-      return true;
-    }
-    if (old === undefined || old === null) {
-      return false;
-    }
-    if (old instanceof Array && fresh instanceof Array) {
-      if (old.length !== fresh.length) return false;
-      return this.valueArrayIds.every(id => newIds.includes(id));
-    }
-    return false;
+  protected valueEquals(old: Value | undefined, fresh: Value | undefined): boolean {
+    return old === fresh;
   }
 
   private get stale() {
@@ -105,11 +98,40 @@ export class ATTL<Value> {
     return '' + this.value + '|' + this.ttl;
   }
 
-  private getValueIds(value: Value) {
-    if (value instanceof Array) {
-      return value.map(i => i.id || i.name);
-    }
-    return [];
+}
+
+export interface HasId {
+  id?: string;
+  name?: string;
+}
+
+export class ArrayAdaptiveTTLCache<T extends HasId> extends ATTL<T[]> {
+  protected metricId = 'AATTL';
+
+  private valueIds: string[];
+  private _calulatedValue = new Temporal<T[]>(() => (this.valueIds || []).map(id => Game.getObjectById<T>(id) as T));
+
+  protected get value() {
+    return this._calulatedValue.get();
+  }
+
+  protected set value(newValue: T[]) {
+    this.valueIds = newValue.map(i => i.id || i.name as string);
+    this._calulatedValue.clear();
+  }
+
+  protected valueEquals(old: T[] | undefined, fresh: T[] | undefined) {
+    if (!old) return false;
+    if (!fresh) return false;
+    if (!this.valueIds) return false;
+    if (old.length !== fresh.length) return false;
+    const freshIds = fresh.map(f => f.id || f.name);
+    return this.valueIds.every(id => freshIds.includes(id));
+  }
+
+  protected isEmpty() {
+    if (!this.value) return false;
+    return this.value.every(i => i !== undefined && i !== null);
   }
 
 }

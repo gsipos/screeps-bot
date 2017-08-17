@@ -8,69 +8,54 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 const profiler_1 = require("./profiler");
 const statistics_1 = require("./statistics");
+const util_1 = require("./util");
 class ATTL {
     constructor(supplier) {
         this.supplier = supplier;
+        this.metricId = 'ATTL';
         this.minTTL = 1;
-        this.maxTTL = 10;
+        this.maxTTL = 100;
         this.ttl = this.minTTL;
         this.linearIncrementParameter = 0.5;
     }
     get() {
-        if (this.emptyValue || this.stale || this.arrayValueHasEmptyOrUnkownItem) {
-            let newValue = undefined;
-            let newValueIds = [];
-            try {
-                newValue = profiler_1.profiler.wrap('ATTL::Supplier', this.supplier);
-                newValueIds = this.getValueIds(newValue);
-            }
-            catch (e) {
-                console.log('Caught in ATTL', e);
-            }
-            if (this.valueEquals(this.value, newValue, newValueIds)) {
-                this.ttl = this.nextTTL(this.ttl, newValue);
-                statistics_1.stats.metric('ATTL::TTL-increment', this.ttl);
-            }
-            else {
-                statistics_1.stats.metric('ATTL::TTL-reset', this.ttl);
-                this.ttl = this.minTTL;
-            }
+        if (this.stale || this.isEmpty()) {
+            let newValue = this.getNewValue();
+            this.adjustTTL(newValue);
             this.value = newValue;
-            this.valueArrayIds = newValueIds;
-            statistics_1.stats.metric('ATTL::TTL', this.ttl);
+            statistics_1.stats.metric(this.metricId + '::TTL', this.ttl);
             this.maxAge = Game.time + this.ttl;
         }
         else {
-            statistics_1.stats.metric('ATTL::hit', 1);
+            statistics_1.stats.metric(this.metricId + '::hit', 1);
         }
         return this.value;
     }
-    get emptyValue() {
-        return this.value === null || this.value === undefined;
+    getNewValue() {
+        let newValue = undefined;
+        try {
+            newValue = profiler_1.profiler.wrap(this.metricId + '::Supplier', this.supplier);
+        }
+        catch (e) {
+            console.log('Caught in ' + this.metricId, e);
+        }
+        return newValue;
     }
-    get arrayValueHasEmptyOrUnkownItem() {
-        if (this.value instanceof Array) {
-            return this.value.some(item => item === null
-                || item === undefined
-                || !Game.getObjectById(item.id || item.name));
+    adjustTTL(newValue) {
+        if (this.valueEquals(this.value, newValue)) {
+            this.ttl = this.nextTTL(this.ttl, newValue);
+            statistics_1.stats.metric(this.metricId + '::TTL-increment', this.ttl);
         }
         else {
-            return false;
+            statistics_1.stats.metric(this.metricId + '::TTL-reset', this.ttl);
+            this.ttl = this.minTTL;
         }
     }
-    valueEquals(old, fresh, newIds) {
-        if (old === fresh) {
-            return true;
-        }
-        if (old === undefined || old === null) {
-            return false;
-        }
-        if (old instanceof Array && fresh instanceof Array) {
-            if (old.length !== fresh.length)
-                return false;
-            return this.valueArrayIds.every(id => newIds.includes(id));
-        }
-        return false;
+    isEmpty() {
+        return this.value === null || this.value === undefined;
+    }
+    valueEquals(old, fresh) {
+        return old === fresh;
     }
     get stale() {
         return Game.time > this.maxAge;
@@ -101,14 +86,40 @@ class ATTL {
     toString() {
         return '' + this.value + '|' + this.ttl;
     }
-    getValueIds(value) {
-        if (value instanceof Array) {
-            return value.map(i => i.id || i.name);
-        }
-        return [];
-    }
 }
 __decorate([
     profiler_1.Profile('ATTL')
 ], ATTL.prototype, "get", null);
 exports.ATTL = ATTL;
+class ArrayAdaptiveTTLCache extends ATTL {
+    constructor() {
+        super(...arguments);
+        this.metricId = 'AATTL';
+        this._calulatedValue = new util_1.Temporal(() => (this.valueIds || []).map(id => Game.getObjectById(id)));
+    }
+    get value() {
+        return this._calulatedValue.get();
+    }
+    set value(newValue) {
+        this.valueIds = newValue.map(i => i.id || i.name);
+        this._calulatedValue.clear();
+    }
+    valueEquals(old, fresh) {
+        if (!old)
+            return false;
+        if (!fresh)
+            return false;
+        if (!this.valueIds)
+            return false;
+        if (old.length !== fresh.length)
+            return false;
+        const freshIds = fresh.map(f => f.id || f.name);
+        return this.valueIds.every(id => freshIds.includes(id));
+    }
+    isEmpty() {
+        if (!this.value)
+            return false;
+        return this.value.every(i => i !== undefined && i !== null);
+    }
+}
+exports.ArrayAdaptiveTTLCache = ArrayAdaptiveTTLCache;

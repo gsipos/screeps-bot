@@ -1,6 +1,6 @@
 import { TTL, Temporal } from './util';
 import { stats } from './statistics';
-import { ATTL } from './cache.ttl.adaptive';
+import { ATTL, ArrayAdaptiveTTLCache } from './cache.ttl.adaptive';
 
 type HashObject<T> = { [idx: string]: T };
 
@@ -64,19 +64,22 @@ class CachedData {
 }
 
 class Data extends BaseData {
-  private creepLists = new Temporal<HashObject<Creep[]>>(() => ({ }));
+  private creepLists = new Temporal<HashObject<Creep[]>>(() => ({}));
+
+  private creepsByJob: HashObject<Temporal<Creep[]>> = { };
 
   private cacheCreepList(key: string, func: () => Creep[]): Creep[] {
     return this.storeTo(key, this.creepLists.get(), func);
   }
 
   public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
-  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public minerCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'general'));
 
   public creepsByJobTarget(job: string, jobTarget: string) {
-    return this.cacheCreepList(job + '|' + jobTarget,() => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget));
+    const getCreeps = () => this.creeps.get().filter(c => c.memory.job === job && c.memory.jobTarget === jobTarget);
+    return this.storeTo(job + '|' + jobTarget, this.creepsByJob, () => new Temporal(getCreeps)).get();
   }
 
   public registerCreepJob(creep: Creep) {
@@ -110,29 +113,29 @@ export class RoomData {
     return ([] as (F | S)[]).concat(first.get(), second.get());
   }
 
-  public sources =    new ATTL( () => this.room.find<Source>(FIND_SOURCES));
-  public spawns =     new ATTL( () => this.findMy<Spawn>(STRUCTURE_SPAWN));
-  public containers = new ATTL( () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
+  public sources = new ArrayAdaptiveTTLCache( () => this.room.find<Source>(FIND_SOURCES));
+  public spawns = new ArrayAdaptiveTTLCache( () => this.findMy<Spawn>(STRUCTURE_SPAWN));
+  public containers = new ArrayAdaptiveTTLCache( () => this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
   public storage =    new ATTL( () => this.room.storage);
-  public containerOrStorage = new ATTL( () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
-  public extensions = new ATTL( () => this.findMy<Extension>(STRUCTURE_EXTENSION));
-  public extensionOrSpawns = new ATTL( () => this.concat(this.extensions, this.spawns));
-  public towers =     new ATTL( () => this.findMy<Tower>(STRUCTURE_TOWER));
-  public ramparts =   new ATTL( () => this.findMy<Rampart>(STRUCTURE_RAMPART));
-  public walls =      new ATTL( () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
-  public roads = new ATTL( () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+  public containerOrStorage = new ArrayAdaptiveTTLCache( () => !!this.room.storage ? [...this.containers.get(),  this.room.storage]: this.containers.get());
+  public extensions = new ArrayAdaptiveTTLCache( () => this.findMy<Extension>(STRUCTURE_EXTENSION));
+  public extensionOrSpawns = new ArrayAdaptiveTTLCache( () => this.concat(this.extensions, this.spawns));
+  public towers = new ArrayAdaptiveTTLCache( () => this.findMy<Tower>(STRUCTURE_TOWER));
+  public ramparts = new ArrayAdaptiveTTLCache( () => this.findMy<Rampart>(STRUCTURE_RAMPART));
+  public walls = new ArrayAdaptiveTTLCache( () => this.find<StructureWall>(FIND_STRUCTURES, [STRUCTURE_WALL]));
+  public roads = new ArrayAdaptiveTTLCache( () => this.find<StructureRoad>(FIND_STRUCTURES, [STRUCTURE_ROAD]));
   public miningFlags = new ATTL( () => this.room.find<Flag>(FIND_FLAGS, { filter: (flag: Flag) => flag.memory.role === 'mine' } || []));
-  public containerConstructions = new ATTL( () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+  public containerConstructions = new ArrayAdaptiveTTLCache( () => this.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
 
-  public nonDefensiveStructures = new ATTL( () => this.room.find<Structure>(FIND_STRUCTURES)
+  public nonDefensiveStructures = new ArrayAdaptiveTTLCache( () => this.room.find<Structure>(FIND_STRUCTURES)
     .filter(s => s.structureType !== STRUCTURE_WALL)
     .filter(s => s.structureType !== STRUCTURE_RAMPART));
 
-  public creeps = new Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
-  public minerCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-  public carryCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-  public generalCreeps = new ATTL(() => this.creeps.get().filter(c => c.memory.role === 'general'));
-  public fillableCreeps = new ATTL(() => this.creeps.get()
+  public creeps = new ArrayAdaptiveTTLCache(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+  public minerCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+  public carryCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+  public generalCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+  public fillableCreeps = new ArrayAdaptiveTTLCache(() => this.creeps.get()
     .filter(creep => creep.memory.role !== 'miner')
     .filter(creep => creep.memory.role !== 'carry'));
 }
