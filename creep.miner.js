@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const creep_1 = require("./creep");
 const profiler_1 = require("./profiler");
 const data_1 = require("./data");
-const moveToContainer = new creep_1.CreepJob('moveToContainer', 'ffaa00', 'toContainer', (c, t) => ERR_NOT_IN_RANGE, (c, t) => c.pos.isEqualTo(t.pos), c => [Game.getObjectById(c.memory.container)], creep_1.TargetSelectionPolicy.inOrder);
+const moveToContainer = new creep_1.CreepJob('moveToContainer', 'ffaa00', 'toContainer', (c, t) => ERR_NOT_IN_RANGE, (c, t) => !!t && c.pos.isEqualTo(t.pos), c => [Game.getObjectById(c.memory.container)], creep_1.TargetSelectionPolicy.inOrder);
 const harvestForContainerBuild = new creep_1.CreepJob('harvestToBuild', 'ffaa00', 'harvest', (c, t) => c.harvest(t), (c, t) => {
     const container = Game.getObjectById(c.memory.container);
     const nonConstruction = !(container instanceof ConstructionSite);
