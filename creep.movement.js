@@ -15,7 +15,7 @@ class CreepMovement {
         let moveResult = OK;
         if (this.isStuck(creep, fromKey)) {
             creep.move(this.getRandomDirection());
-            this.setPrevPos(creep, fromKey);
+            this.setPrevPos(creep);
             statistics_1.stats.metric('Creep::Move::Stuck', 1);
             return OK;
         }
@@ -37,7 +37,7 @@ class CreepMovement {
                 creep.move(this.getRandomDirection());
             }
         }
-        this.setPrevPos(creep, fromKey);
+        this.setPrevPos(creep);
         return moveResult;
     }
     isStuck(creep, fromKey) {
@@ -51,9 +51,10 @@ class CreepMovement {
         }
         return false;
     }
-    setPrevPos(creep, fromKey) {
-        if (creep.memory.prevPos !== fromKey) {
-            creep.memory.prevPos = fromKey;
+    setPrevPos(creep) {
+        const creepPos = creep.pos;
+        if (creep.memory.prevPos !== creepPos) {
+            creep.memory.prevPos = '' + creepPos;
             creep.memory.posSince = Game.time;
         }
     }
