@@ -8,7 +8,10 @@ import { data } from './data';
 const moveToContainer = new CreepJob('moveToContainer', 'ffaa00', 'toContainer',
   (c, t) => ERR_NOT_IN_RANGE,
   (c, t) => !!t && c.pos.isEqualTo(t.pos),
-  c => [Game.getObjectById(c.memory.container)],
+  c => {
+    const container = Game.getObjectById(c.memory.container);
+    return !!container ? [container] : [];
+  },
   TargetSelectionPolicy.inOrder
 );
 

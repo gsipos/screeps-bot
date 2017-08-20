@@ -124,6 +124,7 @@ class CreepManager {
     assignJob(creep, jobs) {
         jobs.some(j => j.targetSelectionPolicy(j
             .possibleTargets(creep)
+            .filter(t => !!t)
             .filter(t => !j.jobDone(creep, t))
             .filter(t => j.needMoreCreeps(t)), creep)
             .some(target => {
