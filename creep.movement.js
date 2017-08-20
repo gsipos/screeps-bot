@@ -22,10 +22,12 @@ class CreepMovement {
         let path;
         if (this.hasPath(fromKey, toKey)) {
             path = this.getPath(fromKey, toKey);
+            statistics_1.stats.metric('Creep::Move::Reusepath', 1);
         }
         else {
             path = creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true });
             this.storePath(fromKey, toKey, path);
+            statistics_1.stats.metric('Creep::Move::FindPath', 1);
         }
         moveResult = creep.moveByPath(path);
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);

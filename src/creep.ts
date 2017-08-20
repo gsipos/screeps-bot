@@ -1,5 +1,5 @@
 import { data, cachedData, pathStore } from './data';
-import { Profile } from './profiler';
+import { Profile, profiler } from './profiler';
 import { stats } from './statistics';
 import { creepMovement } from './creep.movement';
 
@@ -80,7 +80,7 @@ export class CreepJob {
 
   private moveCreep(creep: Creep, target: RoomObject) {
     if (!target) return;
-    let moveResult = creepMovement.moveCreep(creep, target.pos);
+    let moveResult = profiler.wrap('Creep::Move', () => creepMovement.moveCreep(creep, target.pos));
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
     }

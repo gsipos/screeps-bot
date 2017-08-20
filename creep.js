@@ -80,7 +80,7 @@ class CreepJob {
     moveCreep(creep, target) {
         if (!target)
             return;
-        let moveResult = creep_movement_1.creepMovement.moveCreep(creep, target.pos);
+        let moveResult = profiler_1.profiler.wrap('Creep::Move', () => creep_movement_1.creepMovement.moveCreep(creep, target.pos));
         if (moveResult === ERR_NO_PATH) {
             this.finishJob(creep, target);
         }
