@@ -43,11 +43,14 @@ class Statistics {
         metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
     }
     loop() {
+        if (Game.cpu.bucket < 500) {
+            return;
+        }
         const cpu = Game.cpu.getUsed();
         this.metric('Stat::entries', this.metricsToProcess.length);
         this.metricsToProcess.forEach(entry => this.storeMetric(entry.name, entry.value));
         this.metricsToProcess = [];
-        this.storeMetric('Stat::loop', Game.cpu.getUsed() - cpu);
+        this.storeMetric('Profile::Stat::loop', Game.cpu.getUsed() - cpu);
     }
     start() { this.gatheringStats = true; }
     stop() { this.gatheringStats = false; }

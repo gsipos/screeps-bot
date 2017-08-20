@@ -62,11 +62,14 @@ class Statistics {
   }
 
   public loop() {
+    if (Game.cpu.bucket < 500) {
+      return;
+    }
     const cpu = Game.cpu.getUsed();
     this.metric('Stat::entries', this.metricsToProcess.length);
     this.metricsToProcess.forEach(entry => this.storeMetric(entry.name, entry.value));
     this.metricsToProcess = [];
-    this.storeMetric('Stat::loop', Game.cpu.getUsed() - cpu);
+    this.storeMetric('Profile::Stat::loop', Game.cpu.getUsed() - cpu);
   }
 
   public start() { this.gatheringStats = true; }
