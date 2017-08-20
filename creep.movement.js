@@ -42,8 +42,6 @@ class CreepMovement {
     }
     isStuck(creep, fromKey) {
         const prevPos = creep.memory.prevPos;
-        if (fromKey !== prevPos)
-            return false;
         if (!creep.memory.posSince)
             return false;
         if (Game.time - creep.memory.posSince > 3) {
