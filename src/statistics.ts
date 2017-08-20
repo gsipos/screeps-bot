@@ -62,7 +62,7 @@ class Statistics {
   }
 
   public loop() {
-    if (Game.cpu.bucket < 500) {
+    if (Game.cpu.bucket < 5000) {
       return;
     }
     const cpu = Game.cpu.getUsed();

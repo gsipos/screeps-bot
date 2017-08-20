@@ -43,7 +43,7 @@ class Statistics {
         metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
     }
     loop() {
-        if (Game.cpu.bucket < 500) {
+        if (Game.cpu.bucket < 5000) {
             return;
         }
         const cpu = Game.cpu.getUsed();
