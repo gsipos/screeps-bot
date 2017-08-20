@@ -13,9 +13,14 @@ export class CreepMovement {
     const fromKey = '' + creep.pos;
     const toKey = '' + target;
 
-    creep.memory.prevPos = '' + creep.pos;
-
     this.initTo(toKey);
+    let moveResult: number = OK;
+    if (this.isStuck(creep, fromKey)) {
+      creep.move(this.getRandomDirection());
+      this.setPrevPos(creep, fromKey);
+      stats.metric('Creep::Move::Stuck', 1);
+      return OK;
+    }
 
     let path: string;
     if (this.hasPath(fromKey, toKey)) {
@@ -25,18 +30,35 @@ export class CreepMovement {
       this.storePath(fromKey, toKey, path);
     }
 
-    let moveResult = creep.moveByPath(path);
+    moveResult = creep.moveByPath(path);
 
     stats.metric('Creep::Move::' + moveResult, 1);
 
     if (moveResult !== OK) {
       console.log('Creep\tMove\t' + moveResult);
-      stats.metric('Creep::Move::PATH_NOT_FOUND', 1);
       if (moveResult === ERR_NOT_FOUND) {
         creep.move(this.getRandomDirection());
       }
     }
+    this.setPrevPos(creep, fromKey);
+
     return moveResult;
+  }
+
+  public isStuck(creep: Creep, fromKey: string) {
+    const prevPos = creep.memory.prevPos
+    if (fromKey !== prevPos) return false;
+    if (!creep.memory.posSince) return false;
+    if (Game.time - creep.memory.posSince > 3) {
+      return true;
+    }
+    return false;
+  }
+  public setPrevPos(creep: Creep, fromKey: string) {
+    if (creep.memory.prevPos !== fromKey) {
+      creep.memory.prevPos = fromKey;
+      creep.memory.posSince = Game.time;
+    }
   }
 
   public initTo(toKey: string) {
