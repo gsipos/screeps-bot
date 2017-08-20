@@ -78,6 +78,7 @@ export class CreepJob {
   }
 
   private moveCreep(creep: Creep, target: RoomObject) {
+    if (!target) return;
     let moveResult = creepMovement.moveCreep(creep, target.pos);
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
