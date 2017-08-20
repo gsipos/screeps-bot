@@ -2,6 +2,10 @@ export function findStructures<T extends Structure>(room: Room, types: string[],
   return room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 });
 }
 
+export function getRandomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 export class Lazy<T> {
   private value: T | undefined;
 

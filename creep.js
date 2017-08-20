@@ -8,7 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 const data_1 = require("./data");
 const profiler_1 = require("./profiler");
-const statistics_1 = require("./statistics");
+const creep_movement_1 = require("./creep.movement");
 class TargetSelectionPolicy {
     static random(targets) {
         return targets.sort(() => Math.floor((Math.random() * 3)) - 1);
@@ -76,29 +76,10 @@ class CreepJob {
         }
     }
     moveCreep(creep, target) {
-        if (creep.fatigue > 0) {
-            creep.say('tired');
-            return;
+        let moveResult = creep_movement_1.creepMovement.moveCreep(creep, target.pos);
+        if (moveResult === ERR_NO_PATH) {
+            this.finishJob(creep, target);
         }
-        const room = creep.room;
-        const pos = creep.pos;
-        const to = target.pos;
-        const path = data_1.pathStore.getPath(room, pos, to);
-        let moveResult = creep.moveByPath(path);
-        if (moveResult !== OK) {
-            if (moveResult === ERR_NOT_FOUND) {
-                statistics_1.stats.metric('Creep::Move::PATH_NOT_FOUND', 1);
-                creep.moveTo(target.pos);
-            }
-            if (moveResult !== ERR_TIRED && creep.pos.toString() === creep.memory.prevPos) {
-                data_1.pathStore.renewPath(room, pos, to);
-            }
-            if (moveResult === ERR_NO_PATH) {
-                this.finishJob(creep, target);
-            }
-        }
-        statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
-        creep.memory.prevPos = '' + creep.pos;
         return moveResult;
     }
     finishJob(creep, target) {

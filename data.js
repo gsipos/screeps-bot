@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("./util");
 const statistics_1 = require("./statistics");
-const cache_ttl_adaptive_1 = require("./cache.ttl.adaptive");
 class MemoryStore {
     constructor(store) {
         this.store = store;
@@ -63,9 +62,9 @@ class Data extends BaseData {
         this.creepLists = new util_1.Temporal(() => ({}));
         this.creepsByJob = {};
         this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]));
-        this.minerCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-        this.carryCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-        this.generalCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+        this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+        this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+        this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
         this.rooms = {};
     }
     cacheCreepList(key, func) {
@@ -88,27 +87,27 @@ class Data extends BaseData {
 class RoomData {
     constructor(room) {
         this.room = room;
-        this.sources = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.room.find(FIND_SOURCES));
-        this.spawns = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.findMy(STRUCTURE_SPAWN));
-        this.containers = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
-        this.storage = new cache_ttl_adaptive_1.ATTL(() => this.room.storage);
-        this.containerOrStorage = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => !!this.room.storage ? [...this.containers.get(), this.room.storage] : this.containers.get());
-        this.extensions = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.findMy(STRUCTURE_EXTENSION));
-        this.extensionOrSpawns = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.concat(this.extensions, this.spawns));
-        this.towers = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.findMy(STRUCTURE_TOWER));
-        this.ramparts = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.findMy(STRUCTURE_RAMPART));
-        this.walls = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.find(FIND_STRUCTURES, [STRUCTURE_WALL]));
-        this.roads = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]));
-        this.miningFlags = new cache_ttl_adaptive_1.ATTL(() => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' } || []));
-        this.containerConstructions = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
-        this.nonDefensiveStructures = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.room.find(FIND_STRUCTURES)
+        this.sources = new util_1.Temporal(() => this.room.find(FIND_SOURCES));
+        this.spawns = new util_1.Temporal(() => this.findMy(STRUCTURE_SPAWN));
+        this.containers = new util_1.Temporal(() => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]));
+        this.storage = new util_1.Temporal(() => this.room.storage);
+        this.containerOrStorage = new util_1.Temporal(() => !!this.room.storage ? [...this.containers.get(), this.room.storage] : this.containers.get());
+        this.extensions = new util_1.Temporal(() => this.findMy(STRUCTURE_EXTENSION));
+        this.extensionOrSpawns = new util_1.Temporal(() => this.concat(this.extensions, this.spawns));
+        this.towers = new util_1.Temporal(() => this.findMy(STRUCTURE_TOWER));
+        this.ramparts = new util_1.Temporal(() => this.findMy(STRUCTURE_RAMPART));
+        this.walls = new util_1.Temporal(() => this.find(FIND_STRUCTURES, [STRUCTURE_WALL]));
+        this.roads = new util_1.Temporal(() => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]));
+        this.miningFlags = new util_1.Temporal(() => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' } || []));
+        this.containerConstructions = new util_1.Temporal(() => this.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+        this.nonDefensiveStructures = new util_1.Temporal(() => this.room.find(FIND_STRUCTURES)
             .filter(s => s.structureType !== STRUCTURE_WALL)
             .filter(s => s.structureType !== STRUCTURE_RAMPART));
-        this.creeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
-        this.minerCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
-        this.carryCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
-        this.generalCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get().filter(c => c.memory.role === 'general'));
-        this.fillableCreeps = new cache_ttl_adaptive_1.ArrayAdaptiveTTLCache(() => this.creeps.get()
+        this.creeps = new util_1.Temporal(() => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name));
+        this.minerCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'miner'));
+        this.carryCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'carry'));
+        this.generalCreeps = new util_1.Temporal(() => this.creeps.get().filter(c => c.memory.role === 'general'));
+        this.fillableCreeps = new util_1.Temporal(() => this.creeps.get()
             .filter(creep => creep.memory.role !== 'miner')
             .filter(creep => creep.memory.role !== 'carry'));
     }

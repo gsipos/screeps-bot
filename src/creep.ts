@@ -1,6 +1,7 @@
 import { data, cachedData, pathStore } from './data';
 import { Profile } from './profiler';
 import { stats } from './statistics';
+import { creepMovement } from './creep.movement';
 
 export class TargetSelectionPolicy {
   public static random(targets: any[]) {
@@ -77,29 +78,10 @@ export class CreepJob {
   }
 
   private moveCreep(creep: Creep, target: RoomObject) {
-    if (creep.fatigue > 0) {
-      creep.say('tired');
-      return;
+    let moveResult = creepMovement.moveCreep(creep, target.pos);
+    if (moveResult === ERR_NO_PATH) {
+      this.finishJob(creep, target);
     }
-    const room = creep.room;
-    const pos = creep.pos;
-    const to = target.pos;
-    const path = pathStore.getPath(room, pos, to);
-    let moveResult = creep.moveByPath(path);
-    if (moveResult !== OK) {
-      if (moveResult === ERR_NOT_FOUND) {
-        stats.metric('Creep::Move::PATH_NOT_FOUND', 1);
-        creep.moveTo(target.pos);
-      }
-      if (moveResult !== ERR_TIRED && creep.pos.toString() === creep.memory.prevPos) {
-        pathStore.renewPath(room, pos, to);
-      }
-      if (moveResult === ERR_NO_PATH) {
-        this.finishJob(creep, target);
-      }
-    }
-    stats.metric('Creep::Move::' + moveResult, 1);
-    creep.memory.prevPos = '' + creep.pos;
     return moveResult;
   }
 
