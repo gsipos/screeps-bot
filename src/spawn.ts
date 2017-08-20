@@ -86,7 +86,7 @@ export class SpawnManager {
         const extensionEnergy = this.getEnergyInExtensions(spawn);
         const types = spawnables.shift();
         if (types) {
-          const creep = types.filter(c => (spawn.energy + extensionEnergy) > c.cost)[0];
+          const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
           if (creep) {
             const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
             console.log('Spawning new ' + creep.name + ' ' + newName);
