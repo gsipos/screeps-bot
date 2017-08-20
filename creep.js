@@ -17,6 +17,8 @@ class TargetSelectionPolicy {
         return targets;
     }
     static distance(targets, creep) {
+        if (targets.length < 2)
+            return targets;
         const distances = new WeakMap();
         targets.forEach(t => distances.set(t, data_1.cachedData.getDistanceFromMap(creep.pos, t.pos)));
         return targets.sort((a, b) => distances.get(a) - distances.get(b));

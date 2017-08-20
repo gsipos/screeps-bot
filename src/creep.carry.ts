@@ -29,7 +29,7 @@ const fillTower = new CreepJob('fillTower', '#ffffff', 'fill:tower',
 
 const fillCreeps = new CreepJob('fillCreep', '#ee00aa', 'fill:creep',
   (c, t) => c.transfer(t, RESOURCE_ENERGY),
-  (c, t: Creep) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) > 0),
+  (c, t: Creep) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) < t.carryCapacity),
   c => data.of(c.room).fillableCreeps.get(),
   TargetSelectionPolicy.distance,
   (ac, t: Creep) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac)

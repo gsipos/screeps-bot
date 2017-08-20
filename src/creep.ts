@@ -13,6 +13,7 @@ export class TargetSelectionPolicy {
   }
 
   public static distance(targets: RoomObject[], creep: Creep) {
+    if (targets.length < 2) return targets;
     const distances = new WeakMap();
     targets.forEach(t => distances.set(t, cachedData.getDistanceFromMap(creep.pos, t.pos)));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
