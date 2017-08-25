@@ -9,6 +9,7 @@ const data = require('data').data;
 const profiler = require('profiler').profiler;
 const reporter = require('reporter').reporter;
 const stats = require('statistics').stats;
+const efficiency = require('efficiency').efficiency;
 
 module.exports.loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
@@ -29,6 +30,7 @@ module.exports.loop = function () {
   carryCreepManager.loop();
   creepManager.loop();
 
+  efficiency.loop();
   stats.loop();
   done();
 }
