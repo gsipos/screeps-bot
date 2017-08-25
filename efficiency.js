@@ -17,6 +17,7 @@ class Efficiency {
         util_1.forEachRoom(room => {
             this.containerUsage(room);
             this.carryCreepUtilization(room);
+            this.sourceMining(room);
         });
     }
     containerUsage(room) {
@@ -28,6 +29,11 @@ class Efficiency {
         data_1.data.of(room).carryCreeps.get()
             .map(carry => (carry.carry.energy || 0) / carry.carryCapacity)
             .forEach(utilization => statistics_1.stats.metric(`Efficiency::${room.name}::carry`, utilization));
+    }
+    sourceMining(room) {
+        data_1.data.of(room).sources.get()
+            .map(s => s.energy / s.energyCapacity)
+            .forEach(unMined => statistics_1.stats.metric(`Efficiency::${room.name}::source`, unMined));
     }
 }
 __decorate([

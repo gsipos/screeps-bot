@@ -11,6 +11,7 @@ export class Efficiency {
     forEachRoom(room => {
       this.containerUsage(room);
       this.carryCreepUtilization(room);
+      this.sourceMining(room);
     });
 
   }
@@ -25,6 +26,12 @@ export class Efficiency {
     data.of(room).carryCreeps.get()
       .map(carry => (carry.carry.energy || 0) / carry.carryCapacity)
       .forEach(utilization => stats.metric(`Efficiency::${room.name}::carry`, utilization));
+  }
+
+  private sourceMining(room: Room) {
+    data.of(room).sources.get()
+      .map(s => s.energy / s.energyCapacity)
+      .forEach(unMined => stats.metric(`Efficiency::${room.name}::source`, unMined));
   }
 
 }
