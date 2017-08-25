@@ -4,7 +4,11 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "jasmine": "jasmine .compiled/**/*.spec.js",
+    "test:build": "tsc -p test/tsconfig.json",
+    "test:run": "nyc npm run jasmine",
+    "test:report": "nyc report",
+    "test": "run-s test:*"
   },
   "repository": {
     "type": "git",
@@ -15,5 +19,17 @@
   "dependencies": {
     "typescript": "^2.4.1"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/jasmine": "^2.5.54",
+    "jasmine": "^2.7.0",
+    "npm-run-all": "^4.0.2",
+    "nyc": "^11.1.0"
+  },
+  "nyc": {
+    "include": [".compiled/**/*.js"],
+    "exclude": [".compiled/**/*.spec.js"],
+    "all": true,
+    "reporter": ["html", "text-summary"]
+  }
 }
