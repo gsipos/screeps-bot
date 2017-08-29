@@ -12,6 +12,7 @@ export class Efficiency {
       this.containerUsage(room);
       this.carryCreepUtilization(room);
       this.sourceMining(room);
+      this.energyAvailable(room);
     });
 
   }
@@ -32,6 +33,10 @@ export class Efficiency {
     data.of(room).sources.get()
       .map(s => s.energy / s.energyCapacity)
       .forEach(unMined => stats.metric(`Efficiency::${room.name}::source`, unMined));
+  }
+
+  private energyAvailable(room: Room) {
+    stats.metric(`Efficiency::${room.name}::energy`, room.energyAvailable / room.energyCapacityAvailable);
   }
 
 }
