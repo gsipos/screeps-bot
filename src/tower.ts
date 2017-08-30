@@ -13,9 +13,9 @@ class TowerManager {
       const towers = roomData.towers.get();
       if (!towers || !towers.length) continue;
 
-      const closestHostile = towers[0].pos.findClosestByRange<Creep>(FIND_HOSTILE_CREEPS);
-      if (closestHostile) {
-        towers.forEach(t => t.attack(closestHostile));
+      const hostileCreeps = data.of(room).hostileCreeps.get();
+      if (hostileCreeps && hostileCreeps.length) {
+        towers.forEach(t => t.attack(hostileCreeps[0]));
         return;
       }
 

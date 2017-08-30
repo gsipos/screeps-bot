@@ -100,6 +100,7 @@ class RoomData {
         this.roads = new util_1.Temporal(() => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]));
         this.miningFlags = new util_1.Temporal(() => this.room.find(FIND_FLAGS, { filter: (flag) => flag.memory.role === 'mine' } || []));
         this.containerConstructions = new util_1.Temporal(() => this.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]));
+        this.hostileCreeps = new util_1.Temporal(() => this.room.find(FIND_HOSTILE_CREEPS));
         this.nonDefensiveStructures = new util_1.Temporal(() => this.room.find(FIND_STRUCTURES)
             .filter(s => s.structureType !== STRUCTURE_WALL)
             .filter(s => s.structureType !== STRUCTURE_RAMPART));
