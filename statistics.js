@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class Statistics {
     constructor() {
         this.metricsToProcess = [];
+        this.metricsToCalculate = new Set();
         if (!this.stats) {
             Memory['statistics'] = {};
         }
@@ -38,8 +39,11 @@ class Statistics {
         metric.min = Math.min(metric.min, value);
         metric.max = Math.max(metric.max, value);
         metric.count++;
-        metric.avg = metric.sum / metric.count;
         metric.last50 = this.addToWindow(metric.last50, value, 50);
+        return metric;
+    }
+    calculateMetric(metric) {
+        metric.avg = metric.sum / metric.count;
         metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
     }
     addToWindow(items, newValue, windowSize) {
@@ -56,8 +60,12 @@ class Statistics {
         }
         const cpu = Game.cpu.getUsed();
         this.metric('Stat::entries', this.metricsToProcess.length);
-        this.metricsToProcess.forEach(entry => this.storeMetric(entry.name, entry.value));
+        this.metricsToProcess
+            .map(entry => this.storeMetric(entry.name, entry.value))
+            .forEach(metric => this.metricsToCalculate.add(metric));
+        this.metricsToCalculate.forEach(metric => this.calculateMetric(metric));
         this.metricsToProcess = [];
+        this.metricsToCalculate.clear();
         this.storeMetric('Profile::Stat::loop', Game.cpu.getUsed() - cpu);
     }
     start() { this.gatheringStats = true; }
