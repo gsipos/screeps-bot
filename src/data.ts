@@ -46,24 +46,6 @@ class BaseData {
   }
 }
 
-class CachedData {
-  private distanceMap: Map<string, Map<string, number>> = new Map();
-
-  public getDistanceFromMap(from: RoomPosition, to: RoomPosition) {
-    if (!this.distanceMap.has(''+to)) {
-      this.distanceMap.set(''+to, new Map());
-    }
-    const subMap = this.distanceMap.get(''+to) as Map<string, number>;
-    if (!subMap.has(''+from)) {
-      subMap.set(''+from, profiler.wrap('Distances::getRangeTo', () => from.getRangeTo(to)));
-      stats.metric('Distances::miss', 1);
-    } else {
-      stats.metric('Distances::hit', 1);
-    }
-    return subMap.get(''+from);
-  }
-}
-
 class Data extends BaseData {
   private creepLists = new Temporal<HashObject<Creep[]>>(() => ({}));
 
@@ -171,5 +153,4 @@ class PathStore extends BaseData {
 }
 
 export const data = new Data();
-export const cachedData = new CachedData();
 export const pathStore = new PathStore();

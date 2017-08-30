@@ -1,4 +1,4 @@
-import { data, cachedData, pathStore } from './data';
+import { data, pathStore } from './data';
 import { Profile, profiler } from './profiler';
 import { stats } from './statistics';
 import { creepMovement } from './creep.movement';
@@ -15,7 +15,7 @@ export class TargetSelectionPolicy {
   public static distance(targets: RoomObject[], creep: Creep) {
     if (targets.length < 2) return targets;
     const distances = new WeakMap();
-    targets.forEach(t => distances.set(t, profiler.wrap('Distances::get', () => cachedData.getDistanceFromMap(creep.pos, t.pos))));
+    targets.forEach(t => distances.set(t, profiler.wrap('Distances::getRangeTo', () => creep.pos.getRangeTo(t.pos))));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
   }
 

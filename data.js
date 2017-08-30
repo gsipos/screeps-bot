@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("./util");
 const statistics_1 = require("./statistics");
-const profiler_1 = require("./profiler");
 class MemoryStore {
     constructor(store) {
         this.store = store;
@@ -36,25 +35,6 @@ class BaseData {
     }
     getDistanceKey(from, to) {
         return `${from.roomName}|${from.x}:${from.y}|${to.x}:${to.y}`;
-    }
-}
-class CachedData {
-    constructor() {
-        this.distanceMap = new Map();
-    }
-    getDistanceFromMap(from, to) {
-        if (!this.distanceMap.has('' + to)) {
-            this.distanceMap.set('' + to, new Map());
-        }
-        const subMap = this.distanceMap.get('' + to);
-        if (!subMap.has('' + from)) {
-            subMap.set('' + from, profiler_1.profiler.wrap('Distances::getRangeTo', () => from.getRangeTo(to)));
-            statistics_1.stats.metric('Distances::miss', 1);
-        }
-        else {
-            statistics_1.stats.metric('Distances::hit', 1);
-        }
-        return subMap.get('' + from);
     }
 }
 class Data extends BaseData {
@@ -150,5 +130,4 @@ class PathStore extends BaseData {
     }
 }
 exports.data = new Data();
-exports.cachedData = new CachedData();
 exports.pathStore = new PathStore();

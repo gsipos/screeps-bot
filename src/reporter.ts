@@ -1,6 +1,6 @@
 import { profiler } from './profiler';
 import { stats } from './statistics';
-import { data, cachedData, pathStore } from './data';
+import { data, pathStore } from './data';
 
 class Reporter {
 
