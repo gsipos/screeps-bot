@@ -1,5 +1,5 @@
-
 import { Profile } from "./profiler";
+import { stats } from "./statistics";
 
 interface Message {
   type: string;
@@ -40,6 +40,7 @@ export class Messaging {
   }
 
   public send(type: string, value: string) {
+    stats.metric('Messaging:sent', 1);
     this.messages.push({
       type,
       value,

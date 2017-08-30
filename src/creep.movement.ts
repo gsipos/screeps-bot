@@ -91,6 +91,7 @@ export class CreepMovement {
   @Profile('Creep::Move')
   public loop() {
     messaging.consumeMessages('path').forEach(m => {
+      console.log('consume message', m);
       const splitMessage = m.value.split('|');
       this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
     })

@@ -7,6 +7,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const profiler_1 = require("./profiler");
+const statistics_1 = require("./statistics");
 class Messaging {
     constructor() {
         this.nodeId = this.generateId();
@@ -31,6 +32,7 @@ class Messaging {
         });
     }
     send(type, value) {
+        statistics_1.stats.metric('Messaging:sent', 1);
         this.messages.push({
             type,
             value,
