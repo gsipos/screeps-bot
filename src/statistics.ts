@@ -57,8 +57,17 @@ class Statistics {
     metric.max = Math.max(metric.max, value);
     metric.count++;
     metric.avg = metric.sum / metric.count;
-    metric.last50 = [value, ...(metric.last50 || []).slice(0, 48)];
+    metric.last50 = this.addToWindow(metric.last50, value, 50);
     metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
+  }
+
+  private addToWindow<T>(items: T[] | undefined, newValue: T, windowSize: number) {
+    let workItems = items || [];
+    workItems.push(newValue);
+    while (workItems.length > windowSize) {
+      workItems.shift();
+    }
+    return workItems;
   }
 
   public loop() {
