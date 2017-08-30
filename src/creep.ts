@@ -144,10 +144,10 @@ export class CreepManager {
     jobs.forEach(j => jobsByName[j.name] = j); // TODO
 
     if (!creep.memory.job) {
-      this.assignJob(creep, jobs);
+      profiler.wrap('Creep::assignJob', () => this.assignJob(creep, jobs));
     }
     if (creep.memory.job) {
-      this.executeJob(creep, jobsByName);
+      profiler.wrap('Creep::executeJob', () => this.executeJob(creep, jobsByName));
     }
   }
 
