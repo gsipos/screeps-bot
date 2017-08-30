@@ -1,3 +1,5 @@
+import { Profile, profiler } from "./profiler";
+
 export function findStructures<T extends Structure>(room: Room, types: string[], where: number = FIND_MY_STRUCTURES) {
   return room.find<T>(where, { filter: (s: Structure) => types.indexOf(s.structureType) > -1 });
 }
@@ -29,9 +31,10 @@ export class Temporal < T > {
 
   constructor(private supplier: () => T) { }
 
+  @Profile('Temporal')
   public get(): T {
     if (!this.value || this.captureTime !== Game.time) {
-      this.value = this.supplier();
+      this.value = profiler.wrap('Temporal::supplier', this.supplier);
       this.captureTime = Game.time;
     }
     return this.value;
