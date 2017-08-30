@@ -1,6 +1,7 @@
 import { TTL, Temporal } from './util';
 import { stats } from './statistics';
 import { ATTL, ArrayAdaptiveTTLCache } from './cache.ttl.adaptive';
+import { profiler } from "./profiler";
 
 type HashObject<T> = { [idx: string]: T };
 
@@ -54,7 +55,7 @@ class CachedData {
     }
     const subMap = this.distanceMap.get(''+to) as Map<string, number>;
     if (!subMap.has(''+from)) {
-      subMap.set(''+from, from.getRangeTo(to));
+      subMap.set(''+from, profiler.wrap('Distances::getRangeTo', () => from.getRangeTo(to)));
       stats.metric('Distances::miss', 1);
     } else {
       stats.metric('Distances::hit', 1);

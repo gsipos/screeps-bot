@@ -20,6 +20,7 @@ class Efficiency {
             this.sourceMining(room);
             this.energyAvailable(room);
         });
+        profiler_1.profiler.wrap('Efficiency::EmptyFunction', () => 1);
     }
     containerUsage(room) {
         data_1.data.of(room).containers.get()

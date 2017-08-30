@@ -20,27 +20,8 @@ class TargetSelectionPolicy {
         if (targets.length < 2)
             return targets;
         const distances = new WeakMap();
-        targets.forEach(t => distances.set(t, data_1.cachedData.getDistanceFromMap(creep.pos, t.pos)));
+        targets.forEach(t => distances.set(t, profiler_1.profiler.wrap('Distances::get', () => data_1.cachedData.getDistanceFromMap(creep.pos, t.pos))));
         return targets.sort((a, b) => distances.get(a) - distances.get(b));
-    }
-    static proportionalToDistance(targets, creep) {
-        let distance = targets.map(t => creep.pos.getRangeTo(t));
-        const sumDistance = distance.reduce((a, b) => a + b, 0);
-        const weights = distance.map(d => sumDistance / d);
-        const sumWeight = weights.reduce((a, b) => a + b, 0);
-        const weightByTarget = new WeakMap();
-        targets.forEach((t, idx) => weightByTarget.set(t, weights[idx]));
-        const targetsByWeightDesc = targets.sort((a, b) => weightByTarget.get(b) - weightByTarget.get(a));
-        let probability = Math.random() * sumWeight;
-        console.log('Prob:', probability, 'sumwhe', sumWeight, targetsByWeightDesc.map(t => weightByTarget.get(t)));
-        while (probability > 0.0) {
-            probability -= weightByTarget.get(targetsByWeightDesc[0]);
-            if (probability > 0.0) {
-                targetsByWeightDesc.shift();
-            }
-        }
-        console.log('Wheights', targetsByWeightDesc.map(t => weightByTarget.get(t)));
-        return targetsByWeightDesc;
     }
 }
 exports.TargetSelectionPolicy = TargetSelectionPolicy;
@@ -113,10 +94,10 @@ class CreepManager {
         const jobsByName = {};
         jobs.forEach(j => jobsByName[j.name] = j); // TODO
         if (!creep.memory.job) {
-            profiler_1.profiler.wrap('Creep::assignJob', () => this.assignJob(creep, jobs));
+            profiler_1.profiler.wrap('Creep::assignJob::' + creep.memory.role, () => this.assignJob(creep, jobs));
         }
         if (creep.memory.job) {
-            profiler_1.profiler.wrap('Creep::executeJob', () => this.executeJob(creep, jobsByName));
+            profiler_1.profiler.wrap('Creep::executeJob::' + creep.memory.role, () => this.executeJob(creep, jobsByName));
         }
     }
     executeJob(creep, jobsByName) {

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("./util");
 const statistics_1 = require("./statistics");
+const profiler_1 = require("./profiler");
 class MemoryStore {
     constructor(store) {
         this.store = store;
@@ -47,7 +48,7 @@ class CachedData {
         }
         const subMap = this.distanceMap.get('' + to);
         if (!subMap.has('' + from)) {
-            subMap.set('' + from, from.getRangeTo(to));
+            subMap.set('' + from, profiler_1.profiler.wrap('Distances::getRangeTo', () => from.getRangeTo(to)));
             statistics_1.stats.metric('Distances::miss', 1);
         }
         else {

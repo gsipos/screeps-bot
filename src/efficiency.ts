@@ -1,6 +1,6 @@
 import { data } from './data';
 import { stats } from './statistics';
-import { Profile } from './profiler';
+import { Profile, profiler } from './profiler';
 import { forEachRoom } from './util';
 
 export class Efficiency {
@@ -14,7 +14,7 @@ export class Efficiency {
       this.sourceMining(room);
       this.energyAvailable(room);
     });
-
+    profiler.wrap('Efficiency::EmptyFunction', () => 1);
   }
 
   private containerUsage(room: Room) {
