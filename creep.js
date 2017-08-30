@@ -46,7 +46,7 @@ class CreepJob {
             this.finishJob(creep, target);
             return;
         }
-        const result = this.action(creep, target);
+        const result = profiler_1.profiler.wrap('Creep::action::' + this.name, () => this.action(creep, target));
         if (result == ERR_NOT_IN_RANGE) {
             this.moveCreep(creep, target);
         }
