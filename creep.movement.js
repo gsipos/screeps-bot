@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const statistics_1 = require("./statistics");
 const util_1 = require("./util");
+const profiler_1 = require("./profiler");
 class CreepMovement {
     constructor() {
         this.pathsToTarget = {};
@@ -25,11 +26,11 @@ class CreepMovement {
             statistics_1.stats.metric('Creep::Move::Reusepath', 1);
         }
         else {
-            path = creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true });
+            path = profiler_1.profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }));
             this.storePath(fromKey, toKey, path);
             statistics_1.stats.metric('Creep::Move::FindPath', 1);
         }
-        moveResult = creep.moveByPath(path);
+        moveResult = profiler_1.profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
         statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
         if (moveResult !== OK) {
             console.log('Creep\tMove\t' + moveResult);

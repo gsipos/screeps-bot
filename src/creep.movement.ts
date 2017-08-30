@@ -1,6 +1,8 @@
 import { data } from './data';
 import { stats } from './statistics';
 import { getRandomInt } from './util';
+import { profiler } from "./profiler";
+
 export class CreepMovement {
   private pathsToTarget: {
     [to: string]: {
@@ -27,12 +29,12 @@ export class CreepMovement {
       path = this.getPath(fromKey, toKey);
       stats.metric('Creep::Move::Reusepath', 1);
     } else {
-      path = creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }) as any;
+      path = profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }) as any);
       this.storePath(fromKey, toKey, path);
       stats.metric('Creep::Move::FindPath', 1);
     }
 
-    moveResult = creep.moveByPath(path);
+    moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
 
     stats.metric('Creep::Move::' + moveResult, 1);
 
