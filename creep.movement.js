@@ -1,8 +1,15 @@
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const statistics_1 = require("./statistics");
 const util_1 = require("./util");
 const profiler_1 = require("./profiler");
+const messaging_1 = require("./messaging");
 class CreepMovement {
     constructor() {
         this.pathsToTarget = {};
@@ -27,6 +34,7 @@ class CreepMovement {
         }
         else {
             path = profiler_1.profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }));
+            messaging_1.messaging.send('path', fromKey + '|' + toKey + '|' + path);
             this.storePath(fromKey, toKey, path);
             statistics_1.stats.metric('Creep::Move::FindPath', 1);
         }
@@ -73,6 +81,15 @@ class CreepMovement {
     storePath(fromKey, toKey, path) {
         this.pathsToTarget[toKey][fromKey] = path;
     }
+    loop() {
+        messaging_1.messaging.consumeMessages('path').forEach(m => {
+            const splitMessage = m.value.split('|');
+            this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
+        });
+    }
 }
+__decorate([
+    profiler_1.Profile('Creep::Move')
+], CreepMovement.prototype, "loop", null);
 exports.CreepMovement = CreepMovement;
 exports.creepMovement = new CreepMovement();

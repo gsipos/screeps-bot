@@ -10,6 +10,8 @@ const profiler = require('profiler').profiler;
 const reporter = require('reporter').reporter;
 const stats = require('statistics').stats;
 const efficiency = require('efficiency').efficiency;
+const messaging = require('messaging').messaging;
+const creepMovement = require('creep.movement').creepMovement;
 
 module.exports.loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
@@ -29,6 +31,8 @@ module.exports.loop = function () {
   minerCreepManager.loop();
   carryCreepManager.loop();
   creepManager.loop();
+  messaging.loop();
+  creepMovement.loop();
 
   efficiency.loop();
   stats.loop();

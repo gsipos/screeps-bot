@@ -1,7 +1,8 @@
 import { data } from './data';
 import { stats } from './statistics';
 import { getRandomInt } from './util';
-import { profiler } from "./profiler";
+import { profiler, Profile } from "./profiler";
+import { messaging } from './messaging';
 
 export class CreepMovement {
   private pathsToTarget: {
@@ -30,6 +31,7 @@ export class CreepMovement {
       stats.metric('Creep::Move::Reusepath', 1);
     } else {
       path = profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }) as any);
+      messaging.send('path',fromKey+'|'+toKey+'|'+path);
       this.storePath(fromKey, toKey, path);
       stats.metric('Creep::Move::FindPath', 1);
     }
@@ -84,6 +86,14 @@ export class CreepMovement {
 
   private storePath(fromKey: string, toKey: string, path: string) {
     this.pathsToTarget[toKey][fromKey] = path;
+  }
+
+  @Profile('Creep::Move')
+  public loop() {
+    messaging.consumeMessages('path').forEach(m => {
+      const splitMessage = m.value.split('|');
+      this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
+    })
   }
 }
 
