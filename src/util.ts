@@ -27,7 +27,7 @@ export class Lazy<T> {
 
 export class Temporal < T > {
   private value: T | undefined;
-  private captureTime: number;
+  private captureTime: number | undefined;
 
   constructor(private supplier: () => T) { }
 
@@ -50,7 +50,7 @@ export class TTL<T> {
   public static miss = 0;
 
   private value: T | undefined;
-  private maxAge: number;
+  private maxAge: number = Game.time - 1;
 
   constructor(private ttl: number, private supplier: () => T) { }
 

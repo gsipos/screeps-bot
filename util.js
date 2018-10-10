@@ -53,6 +53,7 @@ class TTL {
     constructor(ttl, supplier) {
         this.ttl = ttl;
         this.supplier = supplier;
+        this.maxAge = Game.time - 1;
     }
     get() {
         if (this.emptyValue || this.old || this.arrayValueHasNullOrUndefinedItem) {

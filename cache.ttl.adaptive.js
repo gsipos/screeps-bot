@@ -13,6 +13,7 @@ class ATTL {
     constructor(supplier) {
         this.supplier = supplier;
         this.metricId = 'ATTL';
+        this.maxAge = Game.time - 1;
         this.minTTL = 1;
         this.maxTTL = 100;
         this.ttl = this.minTTL;
@@ -95,6 +96,7 @@ class ArrayAdaptiveTTLCache extends ATTL {
     constructor() {
         super(...arguments);
         this.metricId = 'AATTL';
+        this.valueIds = [];
         this._calulatedValue = new util_1.Temporal(() => (this.valueIds || []).map(id => Game.getObjectById(id)));
     }
     get value() {

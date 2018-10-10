@@ -6,7 +6,7 @@ export class ATTL<Value> {
   protected metricId = 'ATTL';
   protected value: Value | undefined;
 
-  private maxAge: number;
+  private maxAge: number = Game.time - 1;
 
   private readonly minTTL = 1;
   private readonly maxTTL = 100;
@@ -108,7 +108,7 @@ export interface HasId {
 export class ArrayAdaptiveTTLCache<T extends HasId> extends ATTL<T[]> {
   protected metricId = 'AATTL';
 
-  private valueIds: string[];
+  private valueIds: string[] = [];
   private _calulatedValue = new Temporal<T[]>(() => (this.valueIds || []).map(id => Game.getObjectById<T>(id) as T));
 
   protected get value() {

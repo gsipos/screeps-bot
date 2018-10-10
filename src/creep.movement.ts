@@ -26,7 +26,7 @@ export class CreepMovement {
     }
 
     let path: string;
-    if (this.hasPath(fromKey, toKey)) {
+    if (false && this.hasPath(fromKey, toKey)) { //TODO: some bug
       path = this.getPath(fromKey, toKey);
       stats.metric('Creep::Move::Reusepath', 1);
     } else {
