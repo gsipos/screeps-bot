@@ -18,12 +18,12 @@ export class CreepMovement {
 
     this.initTo(toKey);
     let moveResult: number = OK;
-    if (this.isStuck(creep)) {
-      creep.move(this.getRandomDirection());
-      this.setPrevPos(creep);
-      stats.metric('Creep::Move::Stuck', 1);
-      return OK;
-    }
+    // if (this.isStuck(creep)) {
+    //   creep.move(this.getRandomDirection());
+    //   this.setPrevPos(creep);
+    //   stats.metric('Creep::Move::Stuck', 1);
+    //   return OK;
+    // }
 
     let path: string;
     if (false && this.hasPath(fromKey, toKey)) { //TODO: some bug
