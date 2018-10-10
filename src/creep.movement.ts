@@ -36,7 +36,8 @@ export class CreepMovement {
       stats.metric('Creep::Move::FindPath', 1);
     }
 
-    moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
+    //moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
+    creep.moveTo(target);
 
     stats.metric('Creep::Move::' + moveResult, 1);
 
