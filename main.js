@@ -223,6 +223,8 @@ const statistics_1 = require("./statistics");
 
 class Profiler {
   constructor() {
+    this.noop = () => undefined;
+
     if (!Memory.profileMethod) {
       Memory.profileMethod = {};
     }
@@ -240,7 +242,7 @@ class Profiler {
 
   track(name) {
     if (!Memory.profiling) {
-      return () => undefined;
+      return this.noop;
     }
 
     const startCPU = Game.cpu.getUsed();
@@ -1274,7 +1276,7 @@ class TargetSelectionPolicy {
   static distance(targets, creep) {
     if (targets.length < 2) return targets;
     const distances = new WeakMap();
-    targets.forEach(t => distances.set(t, profiler_1.profiler.wrap('Distances::getRangeTo', () => creep.pos.getRangeTo(t.pos))));
+    targets.forEach(t => distances.set(t, profiler_1.profiler.wrap("Distances::getRangeTo", () => creep.pos.getRangeTo(t.pos))));
     return targets.sort((a, b) => distances.get(a) - distances.get(b));
   }
 
@@ -1307,7 +1309,7 @@ class CreepJob {
       return;
     }
 
-    const result = profiler_1.profiler.wrap('Creep::action::' + this.name, () => this.action(creep, target));
+    const result = profiler_1.profiler.wrap("Creep::action::" + this.name, () => this.action(creep, target));
 
     if (result == ERR_NOT_IN_RANGE) {
       this.moveCreep(creep, target);
@@ -1323,7 +1325,7 @@ class CreepJob {
 
   moveCreep(creep, target) {
     if (!target) return;
-    let moveResult = profiler_1.profiler.wrap('Creep::Move', () => creep_movement_1.creepMovement.moveCreep(creep, target.pos));
+    let moveResult = profiler_1.profiler.wrap("Creep::Move", () => creep_movement_1.creepMovement.moveCreep(creep, target.pos));
 
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
@@ -1349,7 +1351,41 @@ exports.CreepJob = CreepJob;
 
 class CreepManager {
   constructor() {
-    this.jobs = [new CreepJob('idle', '#ffaa00', 'idle', c => 0, c => (c.carry.energy || 0) > 0, c => [c], TargetSelectionPolicy.inOrder), new CreepJob('build', '#ffaa00', '🚧 build', (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance), new CreepJob('smallWall', '#ffaa00', 'wall', (c, t) => c.repair(t), (c, t) => c.carry.energy == 0 || t.hits >= 500, c => data_1.data.of(c.room).walls.get().filter(w => w.hits < 500), TargetSelectionPolicy.distance), new CreepJob('upgrade', '#ffaa00', '⚡ upgrade', (c, t) => c.upgradeController(t), c => c.carry.energy == 0, c => [c.room.controller], TargetSelectionPolicy.inOrder)];
+    this.jobs = [new CreepJob("idle", "#ffaa00", "idle", c => 0, c => (c.carry.energy || 0) > 0, c => [c], TargetSelectionPolicy.inOrder), new CreepJob("build", "#ffaa00", "🚧 build", (c, t) => c.build(t), c => c.carry.energy == 0, c => c.room.find(FIND_MY_CONSTRUCTION_SITES), TargetSelectionPolicy.distance), new CreepJob("smallWall", "#ffaa00", "wall", (c, t) => c.repair(t), (c, t) => c.carry.energy == 0 || t.hits >= 500, c => data_1.data.of(c.room).walls.get().filter(w => w.hits < 500), TargetSelectionPolicy.distance), new CreepJob("upgrade", "#ffaa00", "⚡ upgrade", (c, t) => c.upgradeController(t), c => c.carry.energy == 0, c => [c.room.controller], TargetSelectionPolicy.inOrder)];
+    this.currentJobs = this.jobs;
+    this.currentJobsByname = {};
+
+    this.fillJobsByName = j => this.currentJobsByname[j.name] = j;
+
+    this.executeJob = () => {
+      const job = this.currentJobsByname[this.currentCreep.memory.job];
+      job.execute(this.currentCreep, this.currentCreep.memory.jobTarget);
+    };
+
+    this.assignJob = () => this.currentJobs.some(this.findAndAssignJob);
+
+    this.defined = t => !!t;
+
+    this.findAndAssignJob = j => {
+      this.currentJob = j;
+      return j.targetSelectionPolicy(j.possibleTargets(this.currentCreep).filter(this.defined).filter(this.jobDoneOnTarget).filter(this.targetNeedsMoreCreep), this.currentCreep).some(this.setUnfinishedJobTargetToCreep);
+    };
+
+    this.jobDoneOnTarget = t => !this.currentJob.jobDone(this.currentCreep, t);
+
+    this.targetNeedsMoreCreep = t => this.currentJob.needMoreCreeps(t);
+
+    this.setUnfinishedJobTargetToCreep = target => {
+      if (!this.currentJob.jobDone(this.currentCreep, target)) {
+        this.currentCreep.memory.job = this.currentJob.name;
+        this.currentCreep.memory.jobTarget = target.id;
+        this.currentCreep.say(this.currentJob.say);
+        data_1.data.registerCreepJob(this.currentCreep);
+        return true;
+      } else {
+        return false;
+      }
+    };
   }
 
   loop() {
@@ -1357,40 +1393,23 @@ class CreepManager {
   }
 
   processCreep(creep, jobs) {
-    const jobsByName = {};
-    jobs.forEach(j => jobsByName[j.name] = j); // TODO
+    this.currentCreep = creep;
+    this.currentJobs = jobs;
+    this.currentJobsByname = {};
+    jobs.forEach(this.fillJobsByName); // TODO
 
     if (!creep.memory.job) {
-      profiler_1.profiler.wrap('Creep::assignJob::' + creep.memory.role, () => this.assignJob(creep, jobs));
+      profiler_1.profiler.wrap("Creep::assignJob::" + creep.memory.role, this.assignJob);
     }
 
     if (creep.memory.job) {
-      profiler_1.profiler.wrap('Creep::executeJob::' + creep.memory.role, () => this.executeJob(creep, jobsByName));
+      profiler_1.profiler.wrap("Creep::executeJob::" + creep.memory.role, this.executeJob);
     }
-  }
-
-  executeJob(creep, jobsByName) {
-    const job = jobsByName[creep.memory.job];
-    jobsByName[creep.memory.job].execute(creep, creep.memory.jobTarget);
-  }
-
-  assignJob(creep, jobs) {
-    jobs.some(j => j.targetSelectionPolicy(j.possibleTargets(creep).filter(t => !!t).filter(t => !j.jobDone(creep, t)).filter(t => j.needMoreCreeps(t)), creep).some(target => {
-      if (!j.jobDone(creep, target)) {
-        creep.memory.job = j.name;
-        creep.memory.jobTarget = target.id;
-        creep.say(j.say);
-        data_1.data.registerCreepJob(creep);
-        return true;
-      } else {
-        return false;
-      }
-    }));
   }
 
 }
 
-__decorate([profiler_1.Profile('Creep')], CreepManager.prototype, "loop", null);
+__decorate([profiler_1.Profile("Creep")], CreepManager.prototype, "loop", null);
 
 exports.CreepManager = CreepManager;
 exports.creepManager = new CreepManager();
