@@ -15,10 +15,10 @@ class Profiler {
       Memory.profileTicks++;
     }
   }
-
+  private noop = () => undefined;
   public track(name: string): () => void {
     if (!Memory.profiling) {
-      return () => undefined;
+      return this.noop;
     }
     const startCPU = Game.cpu.getUsed();
     return () => this.trackMethod(name, Game.cpu.getUsed() - startCPU);
