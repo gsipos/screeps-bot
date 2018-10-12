@@ -1,8 +1,8 @@
-import { data } from './data';
-import { stats } from './statistics';
-import { getRandomInt } from './util';
-import { profiler, Profile } from "./profiler";
-import { messaging } from './messaging';
+import { data } from '../data/data';
+import { stats } from '../telemetry/statistics';
+import { getRandomInt } from '../util';
+import { profiler, Profile } from "../telemetry/profiler";
+import { messaging } from '../messaging';
 
 export class CreepMovement {
   private pathsToTarget: {

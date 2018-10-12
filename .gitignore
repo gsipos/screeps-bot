@@ -2,3 +2,5 @@ node_modules
 .compiled
 .nyc_output
 coverage
+.cache
+dist

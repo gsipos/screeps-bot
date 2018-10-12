@@ -1,5 +1,5 @@
-import { Profile } from './profiler';
-import { data } from './data';
+import { Profile } from './telemetry/profiler';
+import { data } from './data/data';
 
 class TowerManager {
 
@@ -19,25 +19,28 @@ class TowerManager {
         return;
       }
 
-      const decayingRampart = roomData.ramparts.get().find(r => r.hits < 500);
+      const decayingRampart = roomData.ramparts.get().find(this.lowerThan500HP);
       if (decayingRampart) {
         towers.forEach(t => t.repair(decayingRampart));
         return;
       }
 
-      const damagedStructure = roomData.nonDefensiveStructures.get().find(s => s.hits < s.hitsMax);
+      const damagedStructure = roomData.nonDefensiveStructures.get().find(this.notMaxHP);
       if (damagedStructure) {
         towers.forEach(t => t.repair(damagedStructure));
         return;
       }
 
-      const damagedCreep = roomData.creeps.get().find(c => c.hits < c.hitsMax)
+      const damagedCreep = roomData.creeps.get().find(this.notMaxHP)
       if (!!damagedCreep) {
         towers.forEach(t => t.heal(damagedCreep));
         return;
       }
     }
   }
+
+  private notMaxHP = (c: { hits: number; hitsMax: number }) => c.hits < c.hitsMax;
+  private lowerThan500HP = (r: { hits: number }) => r.hits < 500
 }
 
 export const towerManager = new TowerManager();

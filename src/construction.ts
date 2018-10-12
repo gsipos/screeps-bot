@@ -1,6 +1,10 @@
 import { roomManager } from './room';
-import { data } from './data';
-import { Profile } from './profiler';
+import { data } from './data/data';
+import { Profile } from './telemetry/profiler';
+
+interface HasMemory {
+  memory: any;
+}
 
 class ConstructionManager {
 
@@ -28,10 +32,10 @@ class ConstructionManager {
     if (currentContainers === maxContainers) {
       return;
     }
-    const minerSources = roomData.minerCreeps.get().map(c => c.memory.source);
+    const minerSources = roomData.minerCreeps.get().map(this.memorySource);
     const coveredSources: string[] = miningFlags
-      .filter(flag => flag.memory.chosen)
-      .map(flag => flag.memory.source).concat(minerSources);
+      .filter(this.memoryChosen)
+      .map(this.memorySource).concat(minerSources);
 
     const buildableFlags = miningFlags.filter(flag => !coveredSources.includes(flag.memory.source));
 
@@ -46,6 +50,9 @@ class ConstructionManager {
       console.log('WARN: no chosen buildable flag', coveredSources, buildableFlags, chosen);
     }
   }
+
+  private memorySource = (item: HasMemory) => item.memory.source;
+  private memoryChosen = (item: HasMemory) => item.memory.chosen;
 
 }
 

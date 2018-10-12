@@ -1,7 +1,7 @@
-import { data } from './data';
+import { data } from '../data/data';
 import { stats } from './statistics';
 import { Profile, profiler } from './profiler';
-import { forEachRoom } from './util';
+import { forEachRoom } from '../util';
 
 export class Efficiency {
 

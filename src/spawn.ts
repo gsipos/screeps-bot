@@ -1,11 +1,14 @@
-import { data } from './data';
-import { Profile } from './profiler';
-import { Temporal, forEachRoom } from './util';
+import { data } from './data/data';
+import { Profile } from './telemetry/profiler';
+import { forEachRoom } from './util';
+
+const mapToCost = (p: string) => BODYPART_COST[p];
+const sum = (a: number, b: number) => a + b;
 
 export class CreepType {
   public readonly cost: number;
   constructor(public name: string, public body: string[]) {
-    this.cost = this.body.map(p => BODYPART_COST[p]).reduce((a, c) => a + c, 0);
+    this.cost = this.body.map(mapToCost).reduce(sum, 0);
   }
 }
 
@@ -62,7 +65,7 @@ export class SpawnManager {
     forEachRoom(room => {
       const roomData = data.of(room);
       const spawns = roomData.spawns.get();
-      const availableSpawns = spawns.filter(s => !s.spawning);
+      const availableSpawns = spawns.filter(this.notSpawning);
       if (availableSpawns.length === 0) {
         return;
       }
@@ -83,7 +86,6 @@ export class SpawnManager {
         roomData.generalCreeps.clear();
       }
       availableSpawns.forEach(spawn => {
-        const extensionEnergy = this.getEnergyInExtensions(spawn);
         const types = spawnables.shift();
         if (types) {
           const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
@@ -110,9 +112,7 @@ export class SpawnManager {
     }
   }
 
-  private getEnergyInExtensions(spawn: Spawn) {
-    return data.of(spawn.room).extensions.get().reduce((a, s) => a + s.energy, 0);
-  }
+  private notSpawning = (s:StructureSpawn) => !s.spawning;
 
 }
 

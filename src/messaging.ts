@@ -1,5 +1,5 @@
-import { Profile } from "./profiler";
-import { stats } from "./statistics";
+import { Profile } from "./telemetry/profiler";
+import { stats } from "./telemetry/statistics";
 
 interface Message {
   type: string;
