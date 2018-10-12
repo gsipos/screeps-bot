@@ -1,6 +1,6 @@
-import { data, pathStore } from './data';
-import { Profile, profiler } from './profiler';
-import { stats } from './statistics';
+import { data, pathStore } from '../data/data';
+import { Profile, profiler } from '../telemetry/profiler';
+import { stats } from '../telemetry/statistics';
 import { creepMovement } from './creep.movement';
 
 export class TargetSelectionPolicy {

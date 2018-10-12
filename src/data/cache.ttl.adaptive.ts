@@ -1,6 +1,6 @@
-import { Profile, profiler } from './profiler';
-import { stats } from './statistics';
-import { Temporal } from "./util";
+import { Profile, profiler } from '../telemetry/profiler';
+import { stats } from '../telemetry/statistics';
+import { Temporal } from "../util";
 
 export class ATTL<Value> {
   protected metricId = 'ATTL';
