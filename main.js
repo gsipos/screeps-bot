@@ -642,6 +642,30 @@ function forEachRoom(call) {
 }
 
 exports.forEachRoom = forEachRoom;
+
+class Interval {
+  constructor(ticks, callBack, lowCPU = false) {
+    this.ticks = ticks;
+    this.callBack = callBack;
+    this.lowCPU = lowCPU;
+    this.nextCall = Game.time;
+    this.nextCall = Game.time + ticks;
+  }
+
+  run() {
+    if (!this.lowCPU && exports.lowCPU()) return;
+
+    if (Game.time > this.nextCall) {
+      this.callBack();
+      this.nextCall = Game.time + this.ticks;
+    }
+  }
+
+}
+
+exports.Interval = Interval;
+
+exports.lowCPU = () => Game.cpu.bucket < 5000;
 },{}],"5vzf":[function(require,module,exports) {
 "use strict";
 
@@ -929,13 +953,13 @@ class ConstructionManager {
       chosen.pos.createConstructionSite(STRUCTURE_CONTAINER);
       roomData.containerConstructions.clear();
     } else {
-      console.log('WARN: no chosen buildable flag', coveredSources, buildableFlags, chosen);
+      console.log("WARN: no chosen buildable flag", coveredSources, buildableFlags, chosen);
     }
   }
 
 }
 
-__decorate([profiler_1.Profile('Construction')], ConstructionManager.prototype, "loop", null);
+__decorate([profiler_1.Profile("Construction")], ConstructionManager.prototype, "loop", null);
 
 exports.constructionManager = new ConstructionManager();
 },{"./data/data":"LiCI","./telemetry/profiler":"m431"}],"k11/":[function(require,module,exports) {
@@ -1598,33 +1622,60 @@ Object.defineProperty(exports, "__esModule", {
 
 const statistics_1 = require("./statistics");
 
+const util_1 = require("../util");
+
 class Reporter {
-  printStat() {
-    const separator = '\t\t| ';
+  constructor() {
+    this.f2 = n => (n || 0).toFixed(2);
 
-    const f2 = n => (n || 0).toFixed(2);
+    this.pad = s => (s + "          ").substring(0, 10);
 
-    const pad = s => (s + '          ').substring(0, 10);
+    this.separator = "\t\t| ";
+    this.longSeparator = "----------------------------------------------";
+    this.headerString = ["Sum", "Count", "Min", "Max", "Avg", "50Avg", "Name"].map(this.pad).join(this.separator);
 
-    console.log('----------------------------------------------');
-    console.log(['Sum', 'Count', 'Min', 'Max', 'Avg', '50Avg', 'Name'].map(pad).join(separator));
-    Object.keys(statistics_1.stats.stats).sort((a, b) => a.localeCompare(b)).forEach(name => {
+    this.createMetricString = name => {
       const m = statistics_1.stats.stats[name];
-      const metricString = [m.sum, m.count, m.min, m.max, m.avg, m.last50Avg].map(n => f2(n)).map(pad).join(separator);
-      console.log(metricString + separator + name);
-    });
-    console.log('----------------------------------------------');
+      const metricString = [m.sum, m.count, m.min, m.max, m.avg, m.last50Avg].map(this.f2).map(this.pad).join(this.separator);
+      return metricString + this.separator + name;
+    };
+
+    this.createStatReportLines = () => [this.longSeparator, this.headerString, ...Object.keys(statistics_1.stats.stats).sort((a, b) => a.localeCompare(b)).map(this.createMetricString), this.longSeparator];
+
+    this.emailReport = () => {
+      const lines = this.createStatReportLines();
+      const chunks = [];
+      let currentChunk = [];
+      let currentChunkLength = 0;
+      lines.forEach(line => {
+        if (currentChunkLength + line.length > 900) {
+          chunks.push(currentChunk);
+          currentChunk = [line];
+          currentChunkLength = line.length;
+        } else {
+          currentChunk.push(line);
+          currentChunkLength += line.length;
+        }
+      });
+      chunks.map(c => c.join("\n")).forEach(c => Game.notify(c, 180));
+    };
+
+    this.notifyScheduler = new util_1.Interval(22000, this.emailReport);
   }
 
   print() {
-    this.printStat();
+    this.createStatReportLines().map(s => console.log(s));
+  }
+
+  loop() {
+    this.notifyScheduler.run();
   }
 
 }
 
 exports.reporter = new Reporter();
 global.Reporter = exports.reporter;
-},{"./statistics":"KIzw"}],"ZCfc":[function(require,module,exports) {
+},{"./statistics":"KIzw","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1658,14 +1709,14 @@ const statistics_1 = require("./telemetry/statistics");
 const reporter_1 = require("./telemetry/reporter");
 
 exports.loop = function () {
-  profiler_1.profiler.trackMethod('Game::Start', Game.cpu.getUsed());
+  profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
-  const trackId = profiler_1.profiler.track('Game loop');
+  const trackId = profiler_1.profiler.track("Game loop");
 
   for (var name in Memory.creeps) {
     if (!Game.creeps[name]) {
       delete Memory.creeps[name];
-      console.log('Clearing non-existing creep memory:', name);
+      console.log("Clearing non-existing creep memory:", name);
     }
   }
 
@@ -1680,8 +1731,7 @@ exports.loop = function () {
   creep_movement_1.creepMovement.loop();
   efficiency_1.efficiency.loop();
   statistics_1.stats.loop();
+  reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-
-reporter_1.reporter.print();
 },{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x"}]},{},["ZCfc"], null)

@@ -10,16 +10,16 @@ import { messaging } from "./messaging";
 import { creepMovement } from "./creep/creep.movement";
 import { efficiency } from "./telemetry/efficiency";
 import { stats } from "./telemetry/statistics";
-import { reporter } from './telemetry/reporter';
+import { reporter } from "./telemetry/reporter";
 
-export const loop = function () {
-  profiler.trackMethod('Game::Start', Game.cpu.getUsed());
+export const loop = function() {
+  profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler.tick();
-  const trackId = profiler.track('Game loop');
+  const trackId = profiler.track("Game loop");
   for (var name in Memory.creeps) {
     if (!Game.creeps[name]) {
       delete Memory.creeps[name];
-      console.log('Clearing non-existing creep memory:', name);
+      console.log("Clearing non-existing creep memory:", name);
     }
   }
 
@@ -35,8 +35,6 @@ export const loop = function () {
 
   efficiency.loop();
   stats.loop();
-
+  reporter.loop();
   profiler.finish(trackId);
-}
-
-reporter.print();
+};
