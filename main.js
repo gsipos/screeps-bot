@@ -457,7 +457,91 @@ class Temporal {
 __decorate([profiler_1.Profile("Temporal")], Temporal.prototype, "get", null);
 
 exports.Temporal = Temporal;
-},{"../../telemetry/profiler":"m431"}],"LiCI":[function(require,module,exports) {
+},{"../../telemetry/profiler":"m431"}],"BHXf":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function findStructures(room, types, where = FIND_MY_STRUCTURES) {
+  return room.find(where, {
+    filter: s => types.indexOf(s.structureType) > -1
+  });
+}
+
+exports.findStructures = findStructures;
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+exports.getRandomInt = getRandomInt;
+
+function forEachRoom(call) {
+  for (let roomName in Game.rooms) {
+    try {
+      call(Game.rooms[roomName]);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+exports.forEachRoom = forEachRoom;
+
+class Interval {
+  constructor(ticks, callBack, lowCPU = false) {
+    this.ticks = ticks;
+    this.callBack = callBack;
+    this.lowCPU = lowCPU;
+    this.nextCall = Game.time;
+    this.nextCall = Game.time + ticks;
+  }
+
+  run() {
+    if (!this.lowCPU && exports.lowCPU()) return;
+
+    if (Game.time > this.nextCall) {
+      this.callBack();
+      this.nextCall = Game.time + this.ticks;
+    }
+  }
+
+}
+
+exports.Interval = Interval;
+
+exports.lowCPU = () => Game.cpu.bucket < 5000;
+
+class RoomProvider {
+  constructor(supplier) {
+    this.supplier = supplier;
+    this.stuff = {};
+  }
+
+  of(room) {
+    if (!this.stuff[room.name]) {
+      this.stuff[room.name] = this.supplier(room);
+    }
+
+    return this.stuff[room.name];
+  }
+
+}
+
+exports.RoomProvider = RoomProvider;
+
+exports.sumReducer = (a, b) => a + b;
+
+exports.averageOf = items => items.reduce(exports.sumReducer, 0) / items.length;
+
+exports.boolToScore = b => b ? 1 : 0;
+
+exports.fails = b => !b;
+
+exports.succeeds = b => b;
+},{}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -469,6 +553,8 @@ const statistics_1 = require("../telemetry/statistics");
 const query_1 = require("./query");
 
 const temporal_1 = require("./cache/temporal");
+
+const util_1 = require("../util");
 
 class MemoryStore {
   constructor(store) {
@@ -523,7 +609,7 @@ class Data extends BaseData {
     this.minerCreeps = new temporal_1.Temporal(this.gameQueries.minerCreeps);
     this.carryCreeps = new temporal_1.Temporal(this.gameQueries.carryCreeps);
     this.generalCreeps = new temporal_1.Temporal(this.gameQueries.generalCreeps);
-    this.rooms = {};
+    this.roomDataProvider = new util_1.RoomProvider(r => new RoomData(r));
   }
 
   creepsByJobTarget(job, jobTarget) {
@@ -537,11 +623,7 @@ class Data extends BaseData {
   }
 
   of(room) {
-    if (!this.rooms[room.name]) {
-      this.rooms[room.name] = new RoomData(room);
-    }
-
-    return this.rooms[room.name];
+    return this.roomDataProvider.of(room);
   }
 
 }
@@ -610,63 +692,227 @@ class PathStore extends BaseData {
 
 exports.data = new Data();
 exports.pathStore = new PathStore();
-},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG"}],"BHXf":[function(require,module,exports) {
+},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf"}],"75xa":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-function findStructures(room, types, where = FIND_MY_STRUCTURES) {
-  return room.find(where, {
-    filter: s => types.indexOf(s.structureType) > -1
-  });
-}
+class TTL {
+  constructor(ttl, supplier) {
+    this.ttl = ttl;
+    this.supplier = supplier;
+    this.maxAge = Game.time - 1;
+  }
 
-exports.findStructures = findStructures;
+  get() {
+    if (this.emptyValue || this.old || this.arrayValueHasNullOrUndefinedItem) {
+      try {
+        this.value = this.supplier();
+      } catch (e) {
+        console.log("Caught in TTL", e);
+      }
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-exports.getRandomInt = getRandomInt;
-
-function forEachRoom(call) {
-  for (let roomName in Game.rooms) {
-    try {
-      call(Game.rooms[roomName]);
-    } catch (e) {
-      console.log(e);
+      this.maxAge = Game.time + this.ttl;
+      TTL.miss++;
+    } else {
+      TTL.hit++;
     }
-  }
-}
 
-exports.forEachRoom = forEachRoom;
-
-class Interval {
-  constructor(ticks, callBack, lowCPU = false) {
-    this.ticks = ticks;
-    this.callBack = callBack;
-    this.lowCPU = lowCPU;
-    this.nextCall = Game.time;
-    this.nextCall = Game.time + ticks;
+    return this.value;
   }
 
-  run() {
-    if (!this.lowCPU && exports.lowCPU()) return;
+  get emptyValue() {
+    return this.value === null || this.value === undefined;
+  }
 
-    if (Game.time > this.nextCall) {
-      this.callBack();
-      this.nextCall = Game.time + this.ticks;
+  get arrayValueHasNullOrUndefinedItem() {
+    if (this.value instanceof Array) {
+      return this.value.some(item => item === null || item === undefined);
+    } else {
+      return false;
     }
   }
 
+  get old() {
+    return Game.time > this.maxAge;
+  }
+
+  clear() {
+    this.value = undefined;
+  }
+
 }
 
-exports.Interval = Interval;
+TTL.hit = 0;
+TTL.miss = 0;
+exports.TTL = TTL;
+},{}],"QSuD":[function(require,module,exports) {
+"use strict";
 
-exports.lowCPU = () => Game.cpu.bucket < 5000;
-},{}],"5vzf":[function(require,module,exports) {
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const profiler_1 = require("../../telemetry/profiler");
+
+const util_1 = require("../../util");
+
+class RollingAverageComputed {
+  constructor(dataSupplier, rollingAverageWindow) {
+    this.dataSupplier = dataSupplier;
+    this.rollingAverageWindow = rollingAverageWindow;
+    this.items = [];
+    this.avg = 0;
+  }
+
+  addToWindow(newValue) {
+    this.items.push(newValue);
+
+    while (this.items.length > this.rollingAverageWindow) {
+      this.items.shift();
+    }
+
+    this.avg = this.items.reduce(util_1.sumReducer, 0) / this.items.length;
+  }
+
+  capture() {
+    if (!this.value || this.captureTime !== Game.time) {
+      this.value = profiler_1.profiler.wrap("RollingAverageComputed::supplier", this.dataSupplier);
+      this.captureTime = Game.time;
+      this.addToWindow(this.value);
+    }
+  }
+
+  get() {
+    this.capture();
+    return this.value;
+  }
+
+  average() {
+    this.capture();
+    return this.avg;
+  }
+
+}
+
+__decorate([profiler_1.Profile("RollingAverage")], RollingAverageComputed.prototype, "get", null);
+
+__decorate([profiler_1.Profile("RollingAverage")], RollingAverageComputed.prototype, "average", null);
+
+exports.RollingAverageComputed = RollingAverageComputed;
+},{"../../telemetry/profiler":"m431","../../util":"BHXf"}],"FSRJ":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const data_1 = require("../data/data");
+
+const statistics_1 = require("./statistics");
+
+const profiler_1 = require("./profiler");
+
+const util_1 = require("../util");
+
+const rolling_avg_computed_1 = require("../data/cache/rolling-avg-computed");
+
+class RoomEfficiency {
+  constructor(room) {
+    this.room = room;
+
+    this.containerToUsage = container => (container.store.energy || 0) / container.storeCapacity;
+
+    this.carryUsage = carry => (carry.carry.energy || 0) / carry.carryCapacity;
+
+    this.toEnergyCapacityRatio = s => s.energy / s.energyCapacity;
+
+    this.containerUsage = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).containers.get().map(this.containerToUsage)), 100);
+    this.carryUtilization = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).carryCreeps.get().map(this.carryUsage)), 100);
+    this.sourceMining = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).sources.get().map(this.toEnergyCapacityRatio)), 100);
+    this.towerEnergy = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).towers.get().map(this.toEnergyCapacityRatio)), 100);
+    this.spawnEnergy = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).extensionOrSpawns.get().map(this.toEnergyCapacityRatio)), 100);
+  }
+
+}
+
+exports.RoomEfficiency = RoomEfficiency;
+
+class Efficiency {
+  constructor() {
+    this.roomEfficiencyProvider = new util_1.RoomProvider(r => new RoomEfficiency(r));
+
+    this.effTestNoop = () => 1;
+
+    this.report = (v, stat, room) => statistics_1.stats.metric(`Efficiency::${room.name}::${stat}`, v);
+  }
+
+  loop() {
+    if (Game.cpu.bucket < 5000) return;
+    util_1.forEachRoom(room => {
+      const efficiency = this.roomEfficiencyProvider.of(room);
+      this.report(efficiency.containerUsage.get(), "container", room);
+      this.report(efficiency.carryUtilization.get(), "carry", room);
+      this.report(efficiency.sourceMining.get(), "source", room);
+      this.report(efficiency.spawnEnergy.get(), 'spawn', room);
+      this.energyAvailable(room);
+    });
+    profiler_1.profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
+  }
+
+  energyAvailable(room) {
+    this.report(room.energyAvailable / room.energyCapacityAvailable, "energy", room);
+  }
+
+}
+
+__decorate([profiler_1.Profile("Efficiency")], Efficiency.prototype, "loop", null);
+
+exports.Efficiency = Efficiency;
+exports.efficiency = new Efficiency();
+},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf","../data/cache/rolling-avg-computed":"QSuD"}],"On/S":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const ttl_1 = require("../data/cache/ttl");
+
+const util_1 = require("../util");
+
+const efficiency_1 = require("../telemetry/efficiency");
+
+const data_1 = require("../data/data");
+
+exports.needMoreCarryCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, () => {
+  const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
+  const carryCreepCount = data_1.data.of(room).carryCreeps.get().length;
+  const hardRequirements = [carryCreepCount > 1];
+  const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2];
+  const softRequirements = [telemetry.carryUtilization.average() < 0.5, telemetry.containerUsage.average() < 0.3, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
+  console.log('Spawn carry:', hardRequirements, hardLimits, softRequirements);
+  return hardRequirements.some(util_1.fails) || hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.fails).length > 1;
+}));
+},{"../data/cache/ttl":"75xa","../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"5vzf":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -686,6 +932,8 @@ const data_1 = require("./data/data");
 const profiler_1 = require("./telemetry/profiler");
 
 const util_1 = require("./util");
+
+const spawn_carry_creep_1 = require("./decisions/spawn-carry-creep");
 
 const mapToCost = p => BODYPART_COST[p];
 
@@ -777,7 +1025,7 @@ class SpawnManager {
         roomData.minerCreeps.clear();
       }
 
-      if (roomData.carryCreeps.get().length < this.carryCreepCount) {
+      if (spawn_carry_creep_1.needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
         roomData.carryCreeps.clear();
       }
@@ -822,7 +1070,7 @@ __decorate([profiler_1.Profile('Spawn')], SpawnManager.prototype, "loop", null);
 
 exports.SpawnManager = SpawnManager;
 exports.spawnManager = new SpawnManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf"}],"yJHy":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S"}],"yJHy":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1537,83 +1785,7 @@ class CarryCreepManager {
 __decorate([profiler_1.Profile('Carry')], CarryCreepManager.prototype, "loop", null);
 
 exports.carryCreepManager = new CarryCreepManager();
-},{"./creep":"o7HM","../data/data":"LiCI","../telemetry/profiler":"m431"}],"FSRJ":[function(require,module,exports) {
-"use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const data_1 = require("../data/data");
-
-const statistics_1 = require("./statistics");
-
-const profiler_1 = require("./profiler");
-
-const util_1 = require("../util");
-
-class Efficiency {
-  constructor() {
-    this.effTestNoop = () => 1;
-
-    this.containerToUsage = container => (container.store.energy || 0) / container.storeCapacity;
-
-    this.carryUsage = carry => (carry.carry.energy || 0) / carry.carryCapacity;
-
-    this.sourceFullness = s => s.energy / s.energyCapacity;
-
-    this.report = (v, stat) => statistics_1.stats.metric(`Efficiency::${this.currentRoom.name}::${stat}`, v);
-
-    this.reportContainerUsage = v => this.report(v, "container");
-
-    this.reportCarryUtilization = v => this.report(v, "carry");
-
-    this.reportSourceMining = v => this.report(v, "source");
-  }
-
-  loop() {
-    if (Game.cpu.bucket < 5000) return;
-    util_1.forEachRoom(room => {
-      this.currentRoom = room;
-      this.containerUsage(room);
-      this.carryCreepUtilization(room);
-      this.sourceMining(room);
-      this.energyAvailable(room);
-    });
-    profiler_1.profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
-  }
-
-  containerUsage(room) {
-    data_1.data.of(room).containers.get().map(this.containerToUsage).forEach(this.reportContainerUsage);
-  }
-
-  carryCreepUtilization(room) {
-    data_1.data.of(room).carryCreeps.get().map(this.carryUsage).forEach(this.reportCarryUtilization);
-  }
-
-  sourceMining(room) {
-    data_1.data.of(room).sources.get().map(this.sourceFullness).forEach(this.reportSourceMining);
-  }
-
-  energyAvailable(room) {
-    this.report(room.energyAvailable / room.energyCapacityAvailable, "energy");
-  }
-
-}
-
-__decorate([profiler_1.Profile("Efficiency")], Efficiency.prototype, "loop", null);
-
-exports.Efficiency = Efficiency;
-exports.efficiency = new Efficiency();
-},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf"}],"M39x":[function(require,module,exports) {
+},{"./creep":"o7HM","../data/data":"LiCI","../telemetry/profiler":"m431"}],"M39x":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

@@ -1,6 +1,7 @@
 import { stats } from "../telemetry/statistics";
 import { RoomQueries, GameQueries } from "./query";
 import { Temporal } from "./cache/temporal";
+import { RoomProvider } from "../util";
 
 type HashObject<T> = { [idx: string]: T };
 
@@ -72,12 +73,10 @@ class Data extends BaseData {
     );
   }
 
-  private rooms: { [roomName: string]: RoomData } = {};
+  private roomDataProvider = new RoomProvider(r => new RoomData(r));
+
   public of(room: Room) {
-    if (!this.rooms[room.name]) {
-      this.rooms[room.name] = new RoomData(room);
-    }
-    return this.rooms[room.name];
+    return this.roomDataProvider.of(room);
   }
 }
 

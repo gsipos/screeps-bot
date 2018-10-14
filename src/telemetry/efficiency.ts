@@ -1,23 +1,11 @@
 import { data } from "../data/data";
 import { stats } from "./statistics";
 import { Profile, profiler } from "./profiler";
-import { forEachRoom } from "../util";
+import { forEachRoom, RoomProvider, sumReducer, averageOf } from "../util";
+import { RollingAverageComputed } from "../data/cache/rolling-avg-computed";
 
-export class Efficiency {
-  @Profile("Efficiency")
-  public loop() {
-    if (Game.cpu.bucket < 5000) return;
-    forEachRoom(room => {
-      this.currentRoom = room;
-      this.containerUsage(room);
-      this.carryCreepUtilization(room);
-      this.sourceMining(room);
-      this.energyAvailable(room);
-    });
-    profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
-  }
-
-  private effTestNoop = () => 1;
+export class RoomEfficiency {
+  constructor(private room: Room) {}
 
   private containerToUsage = (container: StructureContainer) =>
     (container.store.energy || 0) / container.storeCapacity;
@@ -25,43 +13,95 @@ export class Efficiency {
   private carryUsage = (carry: Creep) =>
     (carry.carry.energy || 0) / carry.carryCapacity;
 
-  private sourceFullness = (s: Source) => s.energy / s.energyCapacity;
+  private toEnergyCapacityRatio = (
+    s: Pick<Source, "energy" | "energyCapacity">
+  ) => s.energy / s.energyCapacity;
 
-  private currentRoom: Room | undefined;
+  containerUsage = new RollingAverageComputed(
+    () =>
+      averageOf(
+        data
+          .of(this.room)
+          .containers.get()
+          .map(this.containerToUsage)
+      ),
+    100
+  );
 
-  private report = (v: number, stat: string) =>
-    stats.metric(`Efficiency::${this.currentRoom!.name}::${stat}`, v);
+  carryUtilization = new RollingAverageComputed(
+    () =>
+      averageOf(
+        data
+          .of(this.room)
+          .carryCreeps.get()
+          .map(this.carryUsage)
+      ),
+    100
+  );
 
-  private reportContainerUsage = (v: number) => this.report(v, "container");
-  private reportCarryUtilization = (v: number) => this.report(v, "carry");
-  private reportSourceMining = (v: number) => this.report(v, "source");
+  sourceMining = new RollingAverageComputed(
+    () =>
+      averageOf(
+        data
+          .of(this.room)
+          .sources.get()
+          .map(this.toEnergyCapacityRatio)
+      ),
+    100
+  );
 
-  private containerUsage(room: Room) {
-    data
-      .of(room)
-      .containers.get()
-      .map(this.containerToUsage)
-      .forEach(this.reportContainerUsage);
+  towerEnergy = new RollingAverageComputed(
+    () =>
+      averageOf(
+        data
+          .of(this.room)
+          .towers.get()
+          .map(this.toEnergyCapacityRatio)
+      ),
+    100
+  );
+
+  spawnEnergy = new RollingAverageComputed(
+    () =>
+      averageOf(
+        data
+          .of(this.room)
+          .extensionOrSpawns.get()
+          .map(this.toEnergyCapacityRatio)
+      ),
+    100
+  );
+}
+
+export class Efficiency {
+  public roomEfficiencyProvider = new RoomProvider(r => new RoomEfficiency(r));
+
+  @Profile("Efficiency")
+  public loop() {
+    if (Game.cpu.bucket < 5000) return;
+    forEachRoom(room => {
+      const efficiency = this.roomEfficiencyProvider.of(room);
+      this.report(efficiency.containerUsage.get(), "container", room);
+      this.report(efficiency.carryUtilization.get(), "carry", room);
+      this.report(efficiency.sourceMining.get(), "source", room);
+      this.report(efficiency.spawnEnergy.get(), 'spawn', room);
+
+      this.energyAvailable(room);
+    });
+    profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
   }
 
-  private carryCreepUtilization(room: Room) {
-    data
-      .of(room)
-      .carryCreeps.get()
-      .map(this.carryUsage)
-      .forEach(this.reportCarryUtilization);
-  }
+  private effTestNoop = () => 1;
 
-  private sourceMining(room: Room) {
-    data
-      .of(room)
-      .sources.get()
-      .map(this.sourceFullness)
-      .forEach(this.reportSourceMining);
-  }
+  private report = (v: number, stat: string, room: Room) =>
+    stats.metric(`Efficiency::${room.name}::${stat}`, v);
 
   private energyAvailable(room: Room) {
-    this.report(room.energyAvailable / room.energyCapacityAvailable, "energy");
+    this.report(
+      room.energyAvailable / room.energyCapacityAvailable,
+      "energy",
+      room
+    );
   }
 }
 

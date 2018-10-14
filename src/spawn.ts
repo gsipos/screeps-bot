@@ -1,6 +1,7 @@
 import { data } from './data/data';
 import { Profile } from './telemetry/profiler';
 import { forEachRoom } from './util';
+import { needMoreCarryCreep } from './decisions/spawn-carry-creep';
 
 const mapToCost = (p: string) => BODYPART_COST[p];
 const sum = (a: number, b: number) => a + b;
@@ -73,7 +74,7 @@ export class SpawnManager {
         spawnables.push(this.minerCreepTypes);
         roomData.minerCreeps.clear();
       }
-      if (roomData.carryCreeps.get().length < this.carryCreepCount) {
+      if (needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
         roomData.carryCreeps.clear();
       }
