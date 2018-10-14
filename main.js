@@ -1655,7 +1655,7 @@ const efficiency_1 = require("./telemetry/efficiency");
 
 const statistics_1 = require("./telemetry/statistics");
 
-require("./telemetry/reporter");
+const reporter_1 = require("./telemetry/reporter");
 
 exports.loop = function () {
   profiler_1.profiler.trackMethod('Game::Start', Game.cpu.getUsed());
@@ -1682,4 +1682,6 @@ exports.loop = function () {
   statistics_1.stats.loop();
   profiler_1.profiler.finish(trackId);
 };
+
+reporter_1.reporter.print();
 },{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x"}]},{},["ZCfc"], null)
