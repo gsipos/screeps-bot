@@ -14,7 +14,7 @@ import { stats } from "./telemetry/statistics";
 export const loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
   profiler.tick();
-  const done = profiler.track('Game loop');
+  const trackId = profiler.track('Game loop');
   for (var name in Memory.creeps) {
     if (!Game.creeps[name]) {
       delete Memory.creeps[name];
@@ -34,5 +34,6 @@ export const loop = function () {
 
   efficiency.loop();
   stats.loop();
-  done();
+
+  profiler.finish(trackId);
 }

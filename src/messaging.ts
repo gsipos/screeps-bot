@@ -53,9 +53,12 @@ export class Messaging {
   @Profile('Messaging')
   public loop() {
     Memory.messages = this.messages
-      .filter(m => m.consumed.length < 4)
-      .filter(m => m.maxAge < Game.time);
+      .filter(this.lessThan4Consumers)
+      .filter(this.tooOld);
   }
+
+  private lessThan4Consumers = (m: InternalMessage) => m.consumed.length < 4;
+  private tooOld = (m: InternalMessage) => m.maxAge < Game.time;
 }
 
 export const messaging = new Messaging();

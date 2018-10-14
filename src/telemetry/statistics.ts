@@ -8,9 +8,7 @@ interface Metric {
   last50Avg: number;
 }
 
-interface MemoryStats {
-  [metric: string]: Metric;
-}
+type MemoryStats = Record<string, Metric>;
 
 class Statistics {
   public metricsToProcess: { name: string, value: number }[] = [];
@@ -61,9 +59,11 @@ class Statistics {
     return metric;
   }
 
-  public calculateMetric(metric: Metric) {
+  private sum = (a: number, b: number) => a + b;
+
+  public calculateMetric = (metric: Metric) => {
     metric.avg = metric.sum / metric.count;
-    metric.last50Avg = metric.last50.reduce((a, b) => a + b, 0) / metric.last50.length;
+    metric.last50Avg = metric.last50.reduce(this.sum, 0) / metric.last50.length;
   }
 
   private addToWindow<T>(items: T[] | undefined, newValue: T, windowSize: number) {
@@ -84,7 +84,7 @@ class Statistics {
     this.metricsToProcess
       .map(entry => this.storeMetric(entry.name, entry.value))
       .forEach(metric => this.metricsToCalculate.add(metric));
-    this.metricsToCalculate.forEach(metric => this.calculateMetric(metric));
+    this.metricsToCalculate.forEach(this.calculateMetric);
     this.metricsToProcess = [];
     this.metricsToCalculate.clear();
     this.storeMetric('Profile::Stat::loop', Game.cpu.getUsed() - cpu);

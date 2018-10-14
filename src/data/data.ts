@@ -1,6 +1,6 @@
-import { Temporal } from "../util";
 import { stats } from "../telemetry/statistics";
 import { RoomQueries, GameQueries } from "./query";
+import { Temporal } from "./cache/temporal";
 
 type HashObject<T> = { [idx: string]: T };
 

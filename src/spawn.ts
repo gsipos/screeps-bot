@@ -47,10 +47,6 @@ class GeneralCreep extends CreepType {
   }
 }
 
-class MinerCreepSpawner {
-
-}
-
 export class SpawnManager {
   private generalCreepCount = 1;
   private carryCreepCount = 6;
