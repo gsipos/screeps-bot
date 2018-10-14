@@ -1589,7 +1589,42 @@ __decorate([profiler_1.Profile("Efficiency")], Efficiency.prototype, "loop", nul
 
 exports.Efficiency = Efficiency;
 exports.efficiency = new Efficiency();
-},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
+},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf"}],"M39x":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const statistics_1 = require("./statistics");
+
+class Reporter {
+  printStat() {
+    const separator = '\t\t| ';
+
+    const f2 = n => (n || 0).toFixed(2);
+
+    const pad = s => (s + '          ').substring(0, 10);
+
+    console.log('----------------------------------------------');
+    console.log(['Sum', 'Count', 'Min', 'Max', 'Avg', '50Avg', 'Name'].map(pad).join(separator));
+    Object.keys(statistics_1.stats.stats).sort((a, b) => a.localeCompare(b)).forEach(name => {
+      const m = statistics_1.stats.stats[name];
+      const metricString = [m.sum, m.count, m.min, m.max, m.avg, m.last50Avg].map(n => f2(n)).map(pad).join(separator);
+      console.log(metricString + separator + name);
+    });
+    console.log('----------------------------------------------');
+  }
+
+  print() {
+    this.printStat();
+  }
+
+}
+
+exports.reporter = new Reporter();
+global.Reporter = exports.reporter;
+},{"./statistics":"KIzw"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1620,6 +1655,8 @@ const efficiency_1 = require("./telemetry/efficiency");
 
 const statistics_1 = require("./telemetry/statistics");
 
+require("./telemetry/reporter");
+
 exports.loop = function () {
   profiler_1.profiler.trackMethod('Game::Start', Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -1645,4 +1682,4 @@ exports.loop = function () {
   statistics_1.stats.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x"}]},{},["ZCfc"], null)

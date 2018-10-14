@@ -10,6 +10,7 @@ import { messaging } from "./messaging";
 import { creepMovement } from "./creep/creep.movement";
 import { efficiency } from "./telemetry/efficiency";
 import { stats } from "./telemetry/statistics";
+import './telemetry/reporter';
 
 export const loop = function () {
   profiler.trackMethod('Game::Start', Game.cpu.getUsed());
