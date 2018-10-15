@@ -17,8 +17,8 @@ export const needMoreCarryCreep = new RoomProvider(
       ];
 
       const softRequirements = [
-        telemetry.carryUtilization.average() < 0.5,
-        telemetry.containerUsage.average() < 0.3,
+        telemetry.carryUtilization.average() < 0.7,
+        telemetry.containerUsage.average() < 0.4,
         telemetry.spawnEnergy.average() > 0.75,
         telemetry.towerEnergy.average() > 0.75
       ];
