@@ -1192,6 +1192,12 @@ class ConstructionManager {
     const coveredSources = miningFlags.filter(this.memoryChosen).map(this.memorySource).concat(minerSources);
     const buildableFlags = miningFlags.filter(flag => !coveredSources.includes(flag.memory.source));
     const spawn = roomData.spawns.get()[0];
+
+    if (!spawn) {
+      console.log('WARN: No spawn in room', room.name);
+      return;
+    }
+
     const chosen = spawn.pos.findClosestByPath(FIND_FLAGS, {
       filter: f => buildableFlags.includes(f)
     });

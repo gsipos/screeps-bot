@@ -47,6 +47,10 @@ class ConstructionManager {
     );
 
     const spawn = roomData.spawns.get()[0];
+    if (!spawn) {
+      console.log('WARN: No spawn in room', room.name);
+      return;
+    }
 
     const chosen = spawn.pos.findClosestByPath<Flag>(FIND_FLAGS, {
       filter: (f: Flag) => buildableFlags.includes(f)
