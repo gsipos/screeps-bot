@@ -65,3 +65,7 @@ export const boolToScore = (b: boolean) => b ? 1 : 0;
 
 export const fails = (b: boolean) => !b;
 export const succeeds = (b: boolean) => b;
+
+export const role = (obj: { Memory: any }) => obj.Memory.role as string | undefined;
+
+export const toArray = <T>(obj: Record<string, T>) => (Object.keys(obj) || []).map(key => obj[key]);

@@ -2,10 +2,11 @@ import { stats } from "../telemetry/statistics";
 import { RoomQueries, GameQueries } from "./query";
 import { Temporal } from "./cache/temporal";
 import { RoomProvider } from "../util";
+import { geographer } from "../room/geographer";
 
 type HashObject<T> = { [idx: string]: T };
 
-class MemoryStore<T = string> {
+export class MemoryStore<T = string> {
   constructor(private store: string) {
     if (!Memory[store]) {
       Memory[store] = {};
@@ -49,11 +50,13 @@ class Data extends BaseData {
   private gameQueries = new GameQueries();
 
   private creepsByJob: HashObject<Temporal<Creep[]>> = {};
-
+  public rooms = new Temporal(this.gameQueries.rooms);
   public creeps = new Temporal(this.gameQueries.creeps);
   public minerCreeps = new Temporal(this.gameQueries.minerCreeps);
   public carryCreeps = new Temporal(this.gameQueries.carryCreeps);
   public generalCreeps = new Temporal(this.gameQueries.generalCreeps);
+  public harasserCreeps = new Temporal(this.gameQueries.harasserCreeps);
+  public remoteMinerCreeps = new Temporal(this.gameQueries.remoteMinerCreeps);
 
   public creepsByJobTarget(job: string, jobTarget: string) {
     const getCreeps = () =>
@@ -102,6 +105,8 @@ export class RoomData {
     this.queries.containerConstructions
   );
   public hostileCreeps = new Temporal(this.queries.hostileCreeps);
+  public hostileStructures = new Temporal(this.queries.hostileStructures);
+  public hostileTowers = new Temporal(this.queries.hostileTowers);
 
   public nonDefensiveStructures = new Temporal(
     this.queries.nonDefensiveStructures
@@ -112,6 +117,8 @@ export class RoomData {
   public carryCreeps = new Temporal(this.queries.carryCreeps);
   public generalCreeps = new Temporal(this.queries.generalCreeps);
   public fillableCreeps = new Temporal(this.queries.fillableCreeps);
+
+  public neighbourRooms = new Temporal(() => geographer.describeNeighbours(this.room));
 }
 
 class PathStore extends BaseData {

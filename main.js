@@ -214,6 +214,94 @@ class Statistics {
 
 exports.stats = new Statistics();
 global.Stats = exports.stats;
+},{}],"BHXf":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function findStructures(room, types, where = FIND_MY_STRUCTURES) {
+  return room.find(where, {
+    filter: s => types.indexOf(s.structureType) > -1
+  });
+}
+
+exports.findStructures = findStructures;
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+exports.getRandomInt = getRandomInt;
+
+function forEachRoom(call) {
+  for (let roomName in Game.rooms) {
+    try {
+      call(Game.rooms[roomName]);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+exports.forEachRoom = forEachRoom;
+
+class Interval {
+  constructor(ticks, callBack, lowCPU = false) {
+    this.ticks = ticks;
+    this.callBack = callBack;
+    this.lowCPU = lowCPU;
+    this.nextCall = Game.time;
+    this.nextCall = Game.time + ticks;
+  }
+
+  run() {
+    if (!this.lowCPU && exports.lowCPU()) return;
+
+    if (Game.time > this.nextCall) {
+      this.callBack();
+      this.nextCall = Game.time + this.ticks;
+    }
+  }
+
+}
+
+exports.Interval = Interval;
+
+exports.lowCPU = () => Game.cpu.bucket < 5000;
+
+class RoomProvider {
+  constructor(supplier) {
+    this.supplier = supplier;
+    this.stuff = {};
+  }
+
+  of(room) {
+    if (!this.stuff[room.name]) {
+      this.stuff[room.name] = this.supplier(room);
+    }
+
+    return this.stuff[room.name];
+  }
+
+}
+
+exports.RoomProvider = RoomProvider;
+
+exports.sumReducer = (a, b) => a + b;
+
+exports.averageOf = items => items.reduce(exports.sumReducer, 0) / items.length;
+
+exports.boolToScore = b => b ? 1 : 0;
+
+exports.fails = b => !b;
+
+exports.succeeds = b => b;
+
+exports.role = obj => obj.Memory.role;
+
+exports.toArray = obj => (Object.keys(obj) || []).map(key => obj[key]);
 },{}],"XRK8":[function(require,module,exports) {
 "use strict";
 
@@ -221,12 +309,16 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const util_1 = require("../util");
+
 const hasMemoryRole = role => item => item.memory.role === role;
 
 const notInMemoryRole = role => item => item.memory.role !== role;
 
 class GameQueries {
   constructor() {
+    this.rooms = () => util_1.toArray(Game.rooms);
+
     this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
 
     this.minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
@@ -234,6 +326,8 @@ class GameQueries {
     this.carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
 
     this.generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
+
+    this.harasserCreeps = () => this.creeps().filter(hasMemoryRole("harasser"));
   }
 
 }
@@ -272,6 +366,10 @@ class RoomQueries {
 
     this.hostileCreeps = () => this.room.find(FIND_HOSTILE_CREEPS);
 
+    this.hostileStructures = () => this.room.find(FIND_HOSTILE_STRUCTURES);
+
+    this.hostileTowers = () => this.find(FIND_HOSTILE_STRUCTURES, [STRUCTURE_TOWER]);
+
     this.nonDefensiveStructures = () => this.room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_WALL).filter(s => s.structureType !== STRUCTURE_RAMPART);
 
     this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name);
@@ -294,7 +392,7 @@ class RoomQueries {
 }
 
 exports.RoomQueries = RoomQueries;
-},{}],"m431":[function(require,module,exports) {
+},{"../util":"BHXf"}],"m431":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -457,91 +555,118 @@ class Temporal {
 __decorate([profiler_1.Profile("Temporal")], Temporal.prototype, "get", null);
 
 exports.Temporal = Temporal;
-},{"../../telemetry/profiler":"m431"}],"BHXf":[function(require,module,exports) {
+},{"../../telemetry/profiler":"m431"}],"gAKg":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-function findStructures(room, types, where = FIND_MY_STRUCTURES) {
-  return room.find(where, {
-    filter: s => types.indexOf(s.structureType) > -1
-  });
-}
+const data_1 = require("../data/data");
 
-exports.findStructures = findStructures;
+const CHARTINFO_VALIDITY = 5000;
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+class Geographer {
+  constructor() {
+    this.chartedRooms = new data_1.MemoryStore("geographerChartedRooms");
 
-exports.getRandomInt = getRandomInt;
-
-function forEachRoom(call) {
-  for (let roomName in Game.rooms) {
-    try {
-      call(Game.rooms[roomName]);
-    } catch (e) {
-      console.log(e);
-    }
-  }
-}
-
-exports.forEachRoom = forEachRoom;
-
-class Interval {
-  constructor(ticks, callBack, lowCPU = false) {
-    this.ticks = ticks;
-    this.callBack = callBack;
-    this.lowCPU = lowCPU;
-    this.nextCall = Game.time;
-    this.nextCall = Game.time + ticks;
+    this.processRoom = room => {
+      if (this.isUncharted(room.name)) {
+        this.chartRoom(room);
+      }
+    };
   }
 
-  run() {
-    if (!this.lowCPU && exports.lowCPU()) return;
-
-    if (Game.time > this.nextCall) {
-      this.callBack();
-      this.nextCall = Game.time + this.ticks;
-    }
+  loop() {
+    data_1.data.rooms.get().forEach(this.processRoom);
   }
 
-}
-
-exports.Interval = Interval;
-
-exports.lowCPU = () => Game.cpu.bucket < 5000;
-
-class RoomProvider {
-  constructor(supplier) {
-    this.supplier = supplier;
-    this.stuff = {};
+  chartRoom(room) {
+    const roomData = data_1.data.of(room);
+    const hasHostileCreeps = !!roomData.hostileCreeps.get().length;
+    const hasHostileStructures = !!roomData.hostileStructures.get().length;
+    const hasHostileTowers = !!roomData.hostileTowers.get().length;
+    const info = {
+      name: room.name,
+      enemyActivity: hasHostileCreeps || hasHostileStructures || hasHostileTowers,
+      enemyTowers: hasHostileTowers,
+      my: !!room.controller && room.controller.my,
+      sources: roomData.sources.get().length,
+      time: Game.time
+    };
+    this.chartedRooms.set(room.name, info);
   }
 
-  of(room) {
-    if (!this.stuff[room.name]) {
-      this.stuff[room.name] = this.supplier(room);
+  isUncharted(room) {
+    const info = this.chartedRooms.get(room);
+
+    if (!info) {
+      return false;
     }
 
-    return this.stuff[room.name];
+    if (Game.time - info.time > CHARTINFO_VALIDITY) {
+      this.chartedRooms.delete(room);
+      return false;
+    }
+
+    return true;
+  }
+
+  describeNeighbours(room) {
+    const exits = Game.map.describeExits(room.name);
+    const infos = [];
+    const top = exits[TOP];
+
+    if (top) {
+      infos.push(this.toNeighborInfo(top, TOP));
+    }
+
+    const right = exits[RIGHT];
+
+    if (right) {
+      infos.push(this.toNeighborInfo(right, RIGHT));
+    }
+
+    const bottom = exits[BOTTOM];
+
+    if (bottom) {
+      infos.push(this.toNeighborInfo(bottom, BOTTOM));
+    }
+
+    const left = exits[LEFT];
+
+    if (left) {
+      infos.push(this.toNeighborInfo(left, LEFT));
+    }
+
+    return infos;
+  }
+
+  toNeighborInfo(name, exit) {
+    if (this.isUncharted(name)) {
+      return {
+        type: "UNCHARTED",
+        exit,
+        name,
+        pos: new RoomPosition(25, 25, name)
+      };
+    } else {
+      const info = this.chartedRooms.get(name);
+      return {
+        type: "CHARTED",
+        exit,
+        name,
+        info,
+        pos: new RoomPosition(25, 25, name)
+      };
+    }
   }
 
 }
 
-exports.RoomProvider = RoomProvider;
-
-exports.sumReducer = (a, b) => a + b;
-
-exports.averageOf = items => items.reduce(exports.sumReducer, 0) / items.length;
-
-exports.boolToScore = b => b ? 1 : 0;
-
-exports.fails = b => !b;
-
-exports.succeeds = b => b;
-},{}],"LiCI":[function(require,module,exports) {
+exports.Geographer = Geographer;
+exports.geographer = new Geographer();
+},{"../data/data":"LiCI"}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -555,6 +680,8 @@ const query_1 = require("./query");
 const temporal_1 = require("./cache/temporal");
 
 const util_1 = require("../util");
+
+const geographer_1 = require("../room/geographer");
 
 class MemoryStore {
   constructor(store) {
@@ -585,6 +712,8 @@ class MemoryStore {
 
 }
 
+exports.MemoryStore = MemoryStore;
+
 class BaseData {
   storeTo(key, cache, func) {
     if (!cache[key]) {
@@ -605,10 +734,12 @@ class Data extends BaseData {
     super(...arguments);
     this.gameQueries = new query_1.GameQueries();
     this.creepsByJob = {};
+    this.rooms = new temporal_1.Temporal(this.gameQueries.rooms);
     this.creeps = new temporal_1.Temporal(this.gameQueries.creeps);
     this.minerCreeps = new temporal_1.Temporal(this.gameQueries.minerCreeps);
     this.carryCreeps = new temporal_1.Temporal(this.gameQueries.carryCreeps);
     this.generalCreeps = new temporal_1.Temporal(this.gameQueries.generalCreeps);
+    this.harasserCreeps = new temporal_1.Temporal(this.gameQueries.harasserCreeps);
     this.roomDataProvider = new util_1.RoomProvider(r => new RoomData(r));
   }
 
@@ -646,12 +777,15 @@ class RoomData {
     this.miningFlags = new temporal_1.Temporal(this.queries.miningFlags);
     this.containerConstructions = new temporal_1.Temporal(this.queries.containerConstructions);
     this.hostileCreeps = new temporal_1.Temporal(this.queries.hostileCreeps);
+    this.hostileStructures = new temporal_1.Temporal(this.queries.hostileStructures);
+    this.hostileTowers = new temporal_1.Temporal(this.queries.hostileTowers);
     this.nonDefensiveStructures = new temporal_1.Temporal(this.queries.nonDefensiveStructures);
     this.creeps = new temporal_1.Temporal(this.queries.creeps);
     this.minerCreeps = new temporal_1.Temporal(this.queries.minerCreeps);
     this.carryCreeps = new temporal_1.Temporal(this.queries.carryCreeps);
     this.generalCreeps = new temporal_1.Temporal(this.queries.generalCreeps);
     this.fillableCreeps = new temporal_1.Temporal(this.queries.fillableCreeps);
+    this.neighbourRooms = new temporal_1.Temporal(() => geographer_1.geographer.describeNeighbours(this.room));
   }
 
 }
@@ -692,7 +826,7 @@ class PathStore extends BaseData {
 
 exports.data = new Data();
 exports.pathStore = new PathStore();
-},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf"}],"75xa":[function(require,module,exports) {
+},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf","../room/geographer":"gAKg"}],"75xa":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1853,7 +1987,57 @@ class Reporter {
 
 exports.reporter = new Reporter();
 global.Reporter = exports.reporter;
-},{"./statistics":"KIzw","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
+},{"./statistics":"KIzw","../util":"BHXf"}],"cUlm":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const data_1 = require("../data/data");
+
+const creep_1 = require("./creep");
+
+const profiler_1 = require("../telemetry/profiler");
+
+const attack = targets => new creep_1.CreepJob("attack", "#ffffff", "Attack", (c, t) => c.attack(t), (c, t) => !!t, targets, creep_1.TargetSelectionPolicy.distance);
+
+const attackLocalEnemyCreeps = attack(c => data_1.data.of(c.room).hostileCreeps.get());
+const attackLocalEnemyTowers = attack(c => data_1.data.of(c.room).hostileTowers.get());
+const attackLocalEnemyStructures = attack(c => data_1.data.of(c.room).hostileStructures.get());
+
+const moveTo = targets => new creep_1.CreepJob("explore", "#ffffff", "Explore", (c, t) => ERR_NOT_IN_RANGE, (c, t) => c.room.name === t.name || !!data_1.data.of(c.room).hostileCreeps.get().length, targets, creep_1.TargetSelectionPolicy.random);
+
+const exploreUnchartedTerritories = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED"));
+const goToUndefendedKnownEnemy = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers));
+const goToDefendedKnownEnemy = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers));
+const wanderAround = moveTo(c => data_1.data.of(c.room).neighbourRooms.get());
+
+class HarasserCreepManager {
+  constructor() {
+    this.harasserJobs = [attackLocalEnemyCreeps, attackLocalEnemyTowers, attackLocalEnemyStructures, exploreUnchartedTerritories, goToUndefendedKnownEnemy, goToDefendedKnownEnemy, wanderAround];
+
+    this.processCreep = c => creep_1.creepManager.processCreep(c, this.harasserJobs);
+  }
+
+  loop() {
+    data_1.data.harasserCreeps.get().forEach(this.processCreep);
+  }
+
+}
+
+__decorate([profiler_1.Profile("Harasser")], HarasserCreepManager.prototype, "loop", null);
+
+exports.harasserCreepManager = new HarasserCreepManager();
+},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1886,6 +2070,10 @@ const statistics_1 = require("./telemetry/statistics");
 
 const reporter_1 = require("./telemetry/reporter");
 
+const geographer_1 = require("./room/geographer");
+
+const creep_harasser_1 = require("./creep/creep.harasser");
+
 exports.loop = function () {
   profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -1899,11 +2087,13 @@ exports.loop = function () {
   }
 
   room_1.roomManager.initRooms();
+  geographer_1.geographer.loop();
   construction_1.constructionManager.loop();
   spawn_1.spawnManager.loop();
   tower_1.towerManager.loop();
   creep_miner_1.minerCreepManager.loop();
   creep_carry_1.carryCreepManager.loop();
+  creep_harasser_1.harasserCreepManager.loop();
   creep_1.creepManager.loop();
   messaging_1.messaging.loop();
   creep_movement_1.creepMovement.loop();
@@ -1912,4 +2102,4 @@ exports.loop = function () {
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm"}]},{},["ZCfc"], null)
