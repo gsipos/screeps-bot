@@ -61,7 +61,7 @@ class HarasserCreep extends CreepType {
 export class SpawnManager {
   private generalCreepCount = 1;
 
-  private generalCreepTypes = [...Array(15).keys()]
+  private generalCreepTypes = [...Array(6).keys()]
     .reverse()
     .map(lvl => new GeneralCreep(lvl));
 

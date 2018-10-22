@@ -1192,7 +1192,7 @@ class HarasserCreep extends CreepType {
 class SpawnManager {
   constructor() {
     this.generalCreepCount = 1;
-    this.generalCreepTypes = [...Array(15).keys()].reverse().map(lvl => new GeneralCreep(lvl));
+    this.generalCreepTypes = [...Array(6).keys()].reverse().map(lvl => new GeneralCreep(lvl));
     this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
     this.carryCreepTypes = [...Array(20).keys()].reverse().map(lvl => new CarryCreep(lvl));
     this.harrasserCreepTypes = [...Array(25).keys()].reverse().map(lvl => new HarasserCreep(lvl));
