@@ -328,6 +328,8 @@ class GameQueries {
     this.generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
 
     this.harasserCreeps = () => this.creeps().filter(hasMemoryRole("harasser"));
+
+    this.remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole("remoteMiner"));
   }
 
 }
@@ -555,7 +557,44 @@ class Temporal {
 __decorate([profiler_1.Profile("Temporal")], Temporal.prototype, "get", null);
 
 exports.Temporal = Temporal;
-},{"../../telemetry/profiler":"m431"}],"gAKg":[function(require,module,exports) {
+},{"../../telemetry/profiler":"m431"}],"ug9a":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+class MemoryStore {
+  constructor(store) {
+    this.store = store;
+
+    if (!Memory[store]) {
+      Memory[store] = {};
+    }
+  }
+
+  has(key) {
+    return !!Memory[this.store][key];
+  }
+
+  get(key) {
+    return Memory[this.store][key];
+  }
+
+  set(key, value) {
+    Memory[this.store][key] = value;
+  }
+
+  delete(key) {
+    if (Memory[this.store]) {
+      Memory[this.store][key] = undefined;
+    }
+  }
+
+}
+
+exports.MemoryStore = MemoryStore;
+},{}],"gAKg":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -564,11 +603,13 @@ Object.defineProperty(exports, "__esModule", {
 
 const data_1 = require("../data/data");
 
+const memory_store_1 = require("../data/memory/memory-store");
+
 const CHARTINFO_VALIDITY = 5000;
 
 class Geographer {
   constructor() {
-    this.chartedRooms = new data_1.MemoryStore("geographerChartedRooms");
+    this.chartedRooms = new memory_store_1.MemoryStore("geographerChartedRooms");
 
     this.processRoom = room => {
       if (this.isUncharted(room.name)) {
@@ -578,7 +619,11 @@ class Geographer {
   }
 
   loop() {
-    data_1.data.rooms.get().forEach(this.processRoom);
+    try {
+      data_1.data.rooms.get().forEach(this.processRoom);
+    } catch (error) {
+      console.log("Geographer error:", error);
+    }
   }
 
   chartRoom(room) {
@@ -615,6 +660,11 @@ class Geographer {
   describeNeighbours(room) {
     const exits = Game.map.describeExits(room.name);
     const infos = [];
+
+    if (!exits) {
+      return [];
+    }
+
     const top = exits[TOP];
 
     if (top) {
@@ -666,7 +716,7 @@ class Geographer {
 
 exports.Geographer = Geographer;
 exports.geographer = new Geographer();
-},{"../data/data":"LiCI"}],"LiCI":[function(require,module,exports) {
+},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a"}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -683,36 +733,7 @@ const util_1 = require("../util");
 
 const geographer_1 = require("../room/geographer");
 
-class MemoryStore {
-  constructor(store) {
-    this.store = store;
-
-    if (!Memory[store]) {
-      Memory[store] = {};
-    }
-  }
-
-  has(key) {
-    return !!Memory[this.store][key];
-  }
-
-  get(key) {
-    return Memory[this.store][key];
-  }
-
-  set(key, value) {
-    Memory[this.store][key] = value;
-  }
-
-  delete(key) {
-    if (Memory[this.store]) {
-      Memory[this.store][key] = undefined;
-    }
-  }
-
-}
-
-exports.MemoryStore = MemoryStore;
+const memory_store_1 = require("./memory/memory-store");
 
 class BaseData {
   storeTo(key, cache, func) {
@@ -740,6 +761,7 @@ class Data extends BaseData {
     this.carryCreeps = new temporal_1.Temporal(this.gameQueries.carryCreeps);
     this.generalCreeps = new temporal_1.Temporal(this.gameQueries.generalCreeps);
     this.harasserCreeps = new temporal_1.Temporal(this.gameQueries.harasserCreeps);
+    this.remoteMinerCreeps = new temporal_1.Temporal(this.gameQueries.remoteMinerCreeps);
     this.roomDataProvider = new util_1.RoomProvider(r => new RoomData(r));
   }
 
@@ -795,7 +817,7 @@ exports.RoomData = RoomData;
 class PathStore extends BaseData {
   constructor() {
     super(...arguments);
-    this.store = new MemoryStore("pathStore");
+    this.store = new memory_store_1.MemoryStore("pathStore");
   }
 
   getPath(room, from, to) {
@@ -826,7 +848,7 @@ class PathStore extends BaseData {
 
 exports.data = new Data();
 exports.pathStore = new PathStore();
-},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf","../room/geographer":"gAKg"}],"75xa":[function(require,module,exports) {
+},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf","../room/geographer":"gAKg","./memory/memory-store":"ug9a"}],"75xa":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -984,6 +1006,7 @@ class RoomEfficiency {
     this.sourceMining = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).sources.get().map(this.toEnergyCapacityRatio)), 100);
     this.towerEnergy = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).towers.get().map(this.toEnergyCapacityRatio)), 100);
     this.spawnEnergy = new rolling_avg_computed_1.RollingAverageComputed(() => util_1.averageOf(data_1.data.of(this.room).extensionOrSpawns.get().map(this.toEnergyCapacityRatio)), 100);
+    this.storageEnergy = new rolling_avg_computed_1.RollingAverageComputed(() => !!this.room.storage ? (this.room.storage.store.energy || 0) / this.room.storage.storeCapacity : 0, 100);
   }
 
 }
@@ -1006,7 +1029,7 @@ class Efficiency {
       this.report(efficiency.containerUsage.get(), "container", room);
       this.report(efficiency.carryUtilization.get(), "carry", room);
       this.report(efficiency.sourceMining.get(), "source", room);
-      this.report(efficiency.spawnEnergy.get(), 'spawn', room);
+      this.report(efficiency.spawnEnergy.get(), "spawn", room);
       this.energyAvailable(room);
     });
     profiler_1.profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
@@ -1041,12 +1064,33 @@ exports.needMoreCarryCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, (
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
   const carryCreepCount = data_1.data.of(room).carryCreeps.get().length;
   const hardRequirements = [carryCreepCount > 1];
-  const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2];
+  const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2, telemetry.spawnEnergy.get() > 0.75];
   const softRequirements = [telemetry.carryUtilization.average() < 0.7, telemetry.containerUsage.average() < 0.4, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
   console.log('Spawn carry:', hardRequirements, hardLimits, softRequirements);
   return hardRequirements.some(util_1.fails) || hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.fails).length > 1;
 }));
-},{"../data/cache/ttl":"75xa","../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"5vzf":[function(require,module,exports) {
+},{"../data/cache/ttl":"75xa","../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"jBn9":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const util_1 = require("../util");
+
+const ttl_1 = require("../data/cache/ttl");
+
+const efficiency_1 = require("../telemetry/efficiency");
+
+const data_1 = require("../data/data");
+
+exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, () => {
+  const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
+  const hardLimits = [data_1.data.harasserCreeps.get().length < 5, telemetry.spawnEnergy.get() > 0.75, telemetry.storageEnergy.get() > 0.3];
+  const softRequirements = [data_1.data.of(room).hostileCreeps.get().length > 0, telemetry.towerEnergy.average() > 0.75, telemetry.spawnEnergy.average() > 0.75];
+  return hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.succeeds).length > 1;
+}));
+},{"../util":"BHXf","../data/cache/ttl":"75xa","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"5vzf":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1069,15 +1113,15 @@ const util_1 = require("./util");
 
 const spawn_carry_creep_1 = require("./decisions/spawn-carry-creep");
 
-const mapToCost = p => BODYPART_COST[p];
+const spawn_harasser_creep_1 = require("./decisions/spawn-harasser-creep");
 
-const sum = (a, b) => a + b;
+const mapToCost = p => BODYPART_COST[p];
 
 class CreepType {
   constructor(name, body) {
     this.name = name;
     this.body = body;
-    this.cost = this.body.map(mapToCost).reduce(sum, 0);
+    this.cost = this.body.map(mapToCost).reduce(util_1.sumReducer, 0);
   }
 
 }
@@ -1094,7 +1138,7 @@ class MinerCreep extends CreepType {
 
     body.push(CARRY);
     body.push(MOVE);
-    super('miner', body);
+    super("miner", body);
   }
 
 }
@@ -1108,7 +1152,7 @@ class CarryCreep extends CreepType {
       body.push(MOVE);
     }
 
-    super('carry', body);
+    super("carry", body);
   }
 
 }
@@ -1123,7 +1167,20 @@ class GeneralCreep extends CreepType {
       body.push(MOVE);
     }
 
-    super('general', body);
+    super("general", body);
+  }
+
+}
+
+class HarasserCreep extends CreepType {
+  constructor(lvl) {
+    const body = [];
+
+    for (let i = 0; i < lvl; i++) {
+      body.push(i % 2 ? ATTACK : TOUGH, MOVE);
+    }
+
+    super("harasser", body);
   }
 
 }
@@ -1131,10 +1188,10 @@ class GeneralCreep extends CreepType {
 class SpawnManager {
   constructor() {
     this.generalCreepCount = 1;
-    this.carryCreepCount = 6;
-    this.generalCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((v, idx) => new GeneralCreep(15 - idx));
-    this.minerCreepTypes = [1, 2, 3, 4, 5, 6].map((v, idx) => new MinerCreep(6 - idx));
-    this.carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
+    this.generalCreepTypes = [...Array(15).keys()].reverse().map(lvl => new GeneralCreep(lvl));
+    this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
+    this.carryCreepTypes = [...Array(20).keys()].reverse().map(lvl => new CarryCreep(lvl));
+    this.harrasserCreepTypes = [...Array(25).keys()].reverse().map(lvl => new HarasserCreep(lvl));
 
     this.notSpawning = s => !s.spawning;
   }
@@ -1154,7 +1211,7 @@ class SpawnManager {
       const spawnMiner = roomData.minerCreeps.get().length < roomData.sources.get().length;
 
       if (spawnMiner) {
-        console.log('Spawn: miner', roomData.minerCreeps.get().length, roomData.sources.get().length);
+        console.log("Spawn: miner", roomData.minerCreeps.get().length, roomData.sources.get().length);
         spawnables.push(this.minerCreepTypes);
         roomData.minerCreeps.clear();
       }
@@ -1169,6 +1226,10 @@ class SpawnManager {
         roomData.generalCreeps.clear();
       }
 
+      if (spawn_harasser_creep_1.needMoreHarasserCreep.of(room).get()) {
+        spawnables.push(this.harrasserCreepTypes);
+      }
+
       availableSpawns.forEach(spawn => {
         const types = spawnables.shift();
 
@@ -1179,7 +1240,7 @@ class SpawnManager {
             const newName = spawn.createCreep(creep.body, undefined, {
               role: creep.name
             });
-            console.log('Spawning new ' + creep.name + ' ' + newName);
+            console.log("Spawning new " + creep.name + " " + newName);
             this.showSpawningLabel(spawn);
             return;
           }
@@ -1191,8 +1252,8 @@ class SpawnManager {
   showSpawningLabel(spawn) {
     if (spawn.spawning) {
       var spawningCreep = Game.creeps[spawn.spawning.name];
-      spawn.room.visual.text('🛠️' + spawningCreep.memory.role, spawn.pos.x + 1, spawn.pos.y, {
-        align: 'left',
+      spawn.room.visual.text("🛠️" + spawningCreep.memory.role, spawn.pos.x + 1, spawn.pos.y, {
+        align: "left",
         opacity: 0.8
       });
     }
@@ -1200,11 +1261,11 @@ class SpawnManager {
 
 }
 
-__decorate([profiler_1.Profile('Spawn')], SpawnManager.prototype, "loop", null);
+__decorate([profiler_1.Profile("Spawn")], SpawnManager.prototype, "loop", null);
 
 exports.SpawnManager = SpawnManager;
 exports.spawnManager = new SpawnManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S"}],"yJHy":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9"}],"yJHy":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -2014,12 +2075,12 @@ const attackLocalEnemyCreeps = attack(c => data_1.data.of(c.room).hostileCreeps.
 const attackLocalEnemyTowers = attack(c => data_1.data.of(c.room).hostileTowers.get());
 const attackLocalEnemyStructures = attack(c => data_1.data.of(c.room).hostileStructures.get());
 
-const moveTo = targets => new creep_1.CreepJob("explore", "#ffffff", "Explore", (c, t) => ERR_NOT_IN_RANGE, (c, t) => c.room.name === t.name || !!data_1.data.of(c.room).hostileCreeps.get().length, targets, creep_1.TargetSelectionPolicy.random);
+exports.moveTo = targets => new creep_1.CreepJob("explore", "#ffffff", "Explore", (c, t) => ERR_NOT_IN_RANGE, (c, t) => c.room.name === t.name || !!data_1.data.of(c.room).hostileCreeps.get().length, targets, creep_1.TargetSelectionPolicy.random);
 
-const exploreUnchartedTerritories = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED"));
-const goToUndefendedKnownEnemy = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers));
-const goToDefendedKnownEnemy = moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers));
-const wanderAround = moveTo(c => data_1.data.of(c.room).neighbourRooms.get());
+const exploreUnchartedTerritories = exports.moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED"));
+const goToUndefendedKnownEnemy = exports.moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers));
+const goToDefendedKnownEnemy = exports.moveTo(c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers));
+const wanderAround = exports.moveTo(c => data_1.data.of(c.room).neighbourRooms.get());
 
 class HarasserCreepManager {
   constructor() {
@@ -2029,7 +2090,11 @@ class HarasserCreepManager {
   }
 
   loop() {
-    data_1.data.harasserCreeps.get().forEach(this.processCreep);
+    try {
+      data_1.data.harasserCreeps.get().forEach(this.processCreep);
+    } catch (error) {
+      console.log('Error with harassercreep', error);
+    }
   }
 
 }

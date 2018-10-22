@@ -13,7 +13,8 @@ export const needMoreCarryCreep = new RoomProvider(
 
       const hardLimits = [
         carryCreepCount < 7,
-        telemetry.carryUtilization.average() > 0.2
+        telemetry.carryUtilization.average() > 0.2,
+        telemetry.spawnEnergy.get() > 0.75
       ];
 
       const softRequirements = [

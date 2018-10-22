@@ -1,4 +1,5 @@
-import { MemoryStore, data } from "../data/data";
+import { data } from "../data/data";
+import { MemoryStore } from "../data/memory/memory-store";
 
 interface ChartedRoomInfo {
   name: string;
@@ -36,7 +37,11 @@ export class Geographer {
   );
 
   public loop() {
-    data.rooms.get().forEach(this.processRoom);
+    try {
+      data.rooms.get().forEach(this.processRoom);
+    } catch (error) {
+      console.log("Geographer error:", error);
+    }
   }
 
   private processRoom = (room: Room) => {
@@ -77,6 +82,10 @@ export class Geographer {
   public describeNeighbours(room: Room) {
     const exits = Game.map.describeExits(room.name);
     const infos: NeighbourInfo[] = [];
+
+    if (!exits) {
+      return [];
+    }
 
     const top = exits[TOP];
     if (top) {

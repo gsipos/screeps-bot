@@ -72,7 +72,11 @@ class HarasserCreepManager {
 
   @Profile("Harasser")
   public loop() {
-    data.harasserCreeps.get().forEach(this.processCreep);
+    try {
+      data.harasserCreeps.get().forEach(this.processCreep);
+    } catch (error) {
+      console.log('Error with harassercreep', error);
+    }
   }
 
   private processCreep = (c: Creep) =>

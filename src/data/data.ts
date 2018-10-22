@@ -3,34 +3,9 @@ import { RoomQueries, GameQueries } from "./query";
 import { Temporal } from "./cache/temporal";
 import { RoomProvider } from "../util";
 import { geographer } from "../room/geographer";
+import { MemoryStore } from "./memory/memory-store";
 
-type HashObject<T> = { [idx: string]: T };
-
-export class MemoryStore<T = string> {
-  constructor(private store: string) {
-    if (!Memory[store]) {
-      Memory[store] = {};
-    }
-  }
-
-  public has(key: string): boolean {
-    return !!Memory[this.store][key];
-  }
-
-  public get(key: string): T {
-    return Memory[this.store][key];
-  }
-
-  public set(key: string, value: T) {
-    Memory[this.store][key] = value;
-  }
-
-  public delete(key: string) {
-    if (Memory[this.store]) {
-      Memory[this.store][key] = undefined;
-    }
-  }
-}
+type HashObject<T> = Record<string, T>;
 
 class BaseData {
   protected storeTo<T>(key: string, cache: HashObject<T>, func: () => T): T {
@@ -118,7 +93,9 @@ export class RoomData {
   public generalCreeps = new Temporal(this.queries.generalCreeps);
   public fillableCreeps = new Temporal(this.queries.fillableCreeps);
 
-  public neighbourRooms = new Temporal(() => geographer.describeNeighbours(this.room));
+  public neighbourRooms = new Temporal(() =>
+    geographer.describeNeighbours(this.room)
+  );
 }
 
 class PathStore extends BaseData {

@@ -71,6 +71,15 @@ export class RoomEfficiency {
       ),
     100
   );
+
+  storageEnergy = new RollingAverageComputed(
+    () =>
+      !!this.room.storage
+        ? (this.room.storage.store.energy || 0) /
+          this.room.storage.storeCapacity
+        : 0,
+    100
+  );
 }
 
 export class Efficiency {
@@ -84,7 +93,7 @@ export class Efficiency {
       this.report(efficiency.containerUsage.get(), "container", room);
       this.report(efficiency.carryUtilization.get(), "carry", room);
       this.report(efficiency.sourceMining.get(), "source", room);
-      this.report(efficiency.spawnEnergy.get(), 'spawn', room);
+      this.report(efficiency.spawnEnergy.get(), "spawn", room);
 
       this.energyAvailable(room);
     });
