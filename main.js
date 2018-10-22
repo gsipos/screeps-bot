@@ -657,15 +657,15 @@ class Geographer {
     const info = this.chartedRooms.get(room);
 
     if (!info) {
-      return false;
+      return true;
     }
 
     if (Game.time - info.time > CHARTINFO_VALIDITY) {
       this.chartedRooms.delete(room);
-      return false;
+      return true;
     }
 
-    return true;
+    return false;
   }
 
   describeNeighbours(room) {
