@@ -1279,9 +1279,8 @@ class SpawnManager {
         spawn_harasser_creep_1.needMoreHarasserCreep.of(room).clear();
       }
 
-      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {
-        spawnables.push(this.remoteMinerCreepTypes);
-        spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).clear();
+      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {//spawnables.push(this.remoteMinerCreepTypes);
+        //needMoreRemoteMinerCreep.of(room).clear();
       }
 
       availableSpawns.forEach(spawn => {
@@ -2254,67 +2253,7 @@ class HarasserCreepManager {
 __decorate([profiler_1.Profile("Harasser")], HarasserCreepManager.prototype, "loop", null);
 
 exports.harasserCreepManager = new HarasserCreepManager();
-},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"UET0":[function(require,module,exports) {
-"use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const creep_1 = require("./creep");
-
-const data_1 = require("../data/data");
-
-const creep_job_1 = require("./job/creep-job");
-
-const creep_harasser_1 = require("./creep.harasser");
-
-const target_selection_policy_1 = require("./job/target-selection-policy");
-
-const util_1 = require("../util");
-
-const profiler_1 = require("../telemetry/profiler"); // moveToAnother room
-// find source
-// harvest
-// flee from enemy
-// go back
-// fill source
-
-
-const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", "#ffffff", "remote", creep_harasser_1.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(r => r.type === "CHARTED" && !r.info.enemyActivity && r.info.sources).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const harvest = new creep_job_1.CreepJob("remoteHarvest", '#ffffff', 'Harvest', (c, t) => c.harvest(t), (c, t) => c.carry.energy === c.carryCapacity || t.energy === 0 || creep_harasser_1.hostileCreepsInRoom(c), c => data_1.data.of(c.room).sources.get(), target_selection_policy_1.TargetSelectionPolicy.distance);
-const goHome = new creep_job_1.MoveToRoomCreepJob('moveHome', '#ffffff', 'Home', () => false, c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const fillStorage = new creep_job_1.CreepJob('fillStorage', '#ffffff', 'Fill', (c, t) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity), c => c.carry.energy === 0, c => [c.room.storage], target_selection_policy_1.TargetSelectionPolicy.inOrder);
-
-class RemoteMinerCreepManager {
-  constructor() {
-    this.remoteMinerJobs = [fillStorage, findRemoteSource, harvest, goHome];
-
-    this.processCreep = c => creep_1.creepManager.processCreep(c, this.remoteMinerJobs);
-  }
-
-  loop() {
-    try {
-      data_1.data.remoteMinerCreeps.get().forEach(this.processCreep);
-    } catch (error) {
-      console.log('Error in RemoteMiners', error);
-    }
-  }
-
-}
-
-__decorate([profiler_1.Profile("RemoteMiner")], RemoteMinerCreepManager.prototype, "loop", null);
-
-exports.remoteMinerCreepManager = new RemoteMinerCreepManager();
-},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./creep.harasser":"cUlm","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
+},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2351,8 +2290,6 @@ const geographer_1 = require("./room/geographer");
 
 const creep_harasser_1 = require("./creep/creep.harasser");
 
-const creep_remoteminer_1 = require("./creep/creep.remoteminer");
-
 exports.loop = function () {
   profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -2372,8 +2309,8 @@ exports.loop = function () {
   tower_1.towerManager.loop();
   creep_miner_1.minerCreepManager.loop();
   creep_carry_1.carryCreepManager.loop();
-  creep_harasser_1.harasserCreepManager.loop();
-  creep_remoteminer_1.remoteMinerCreepManager.loop();
+  creep_harasser_1.harasserCreepManager.loop(); // remoteMinerCreepManager.loop();
+
   creep_1.creepManager.loop();
   messaging_1.messaging.loop();
   creep_movement_1.creepMovement.loop();
@@ -2382,4 +2319,4 @@ exports.loop = function () {
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm"}]},{},["ZCfc"], null)

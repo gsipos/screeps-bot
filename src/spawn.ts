@@ -128,8 +128,8 @@ export class SpawnManager {
         needMoreHarasserCreep.of(room).clear();
       }
       if (needMoreRemoteMinerCreep.of(room).get()) {
-        spawnables.push(this.remoteMinerCreepTypes);
-        needMoreRemoteMinerCreep.of(room).clear();
+        //spawnables.push(this.remoteMinerCreepTypes);
+        //needMoreRemoteMinerCreep.of(room).clear();
       }
       availableSpawns.forEach(spawn => {
         const types = spawnables.shift();
