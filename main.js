@@ -2172,7 +2172,7 @@ const creep_job_1 = require("./job/creep-job");
 
 const util_1 = require("../util");
 
-const attack = (name, targets) => new creep_1.CreepJob(name, "#ffffff", "Attack", (c, t) => c.attack(t), (c, t) => !!t, targets, target_selection_policy_1.TargetSelectionPolicy.distance);
+const attack = (name, targets) => new creep_1.CreepJob(name, "#ffffff", "Attack", (c, t) => c.attack(t), (c, t) => !t, targets, target_selection_policy_1.TargetSelectionPolicy.distance);
 
 const hostileCreepsInRoom = c => !!data_1.data.of(c.room).hostileCreeps.get().length;
 

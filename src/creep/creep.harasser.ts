@@ -11,7 +11,7 @@ const attack = (name: string, targets: (c: Creep) => any[]) =>
     "#ffffff",
     "Attack",
     (c, t) => c.attack(t),
-    (c, t) => !!t,
+    (c, t) => !t,
     targets,
     TargetSelectionPolicy.distance
   );
