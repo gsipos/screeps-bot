@@ -1,38 +1,38 @@
-import { data } from './data/data';
-import { Profile } from './telemetry/profiler';
-import { forEachRoom } from './util';
-import { needMoreCarryCreep } from './decisions/spawn-carry-creep';
+import { data } from "./data/data";
+import { Profile } from "./telemetry/profiler";
+import { forEachRoom, sumReducer } from "./util";
+import { needMoreCarryCreep } from "./decisions/spawn-carry-creep";
+import { needMoreHarasserCreep } from "./decisions/spawn-harasser-creep";
 
 const mapToCost = (p: string) => BODYPART_COST[p];
-const sum = (a: number, b: number) => a + b;
 
 export class CreepType {
   public readonly cost: number;
   constructor(public name: string, public body: string[]) {
-    this.cost = this.body.map(mapToCost).reduce(sum, 0);
+    this.cost = this.body.map(mapToCost).reduce(sumReducer, 0);
   }
 }
 
 class MinerCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
-    for (let i = 0; i < lvl; i++){
+    for (let i = 0; i < lvl; i++) {
       body.push(WORK);
     }
     body.push(CARRY);
     body.push(MOVE);
-    super('miner', body);
+    super("miner", body);
   }
 }
 
 class CarryCreep extends CreepType {
   constructor(lvl: number) {
-    const body = []
-    for (let i = 0; i < lvl; i++){
+    const body = [];
+    for (let i = 0; i < lvl; i++) {
       body.push(CARRY);
       body.push(MOVE);
     }
-    super('carry', body);
+    super("carry", body);
   }
 }
 
@@ -44,20 +44,40 @@ class GeneralCreep extends CreepType {
       body.push(CARRY);
       body.push(MOVE);
     }
-    super('general', body);
+    super("general", body);
+  }
+}
+
+class HarasserCreep extends CreepType {
+  constructor(lvl: number) {
+    const body = [];
+    for (let i = 0; i < lvl; i++) {
+      body.push(i % 2 ? ATTACK : TOUGH, MOVE);
+    }
+    super("harasser", body);
   }
 }
 
 export class SpawnManager {
   private generalCreepCount = 1;
-  private carryCreepCount = 6;
 
-  private generalCreepTypes = [1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13,14,15].map((v, idx) => new GeneralCreep(15 - idx));
-  private minerCreepTypes = [1,2,3,4,5,6].map((v, idx) => new MinerCreep(6 - idx));
-  private carryCreepTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((v, idx) => new CarryCreep(20 - idx));
+  private generalCreepTypes = [...Array(15).keys()]
+    .reverse()
+    .map(lvl => new GeneralCreep(lvl));
 
+  private minerCreepTypes = [...Array(6).keys()]
+    .reverse()
+    .map(lvl => new MinerCreep(lvl));
 
-  @Profile('Spawn')
+  private carryCreepTypes = [...Array(20).keys()]
+    .reverse()
+    .map(lvl => new CarryCreep(lvl));
+
+  private harrasserCreepTypes = [...Array(25).keys()]
+    .reverse()
+    .map(lvl => new HarasserCreep(lvl));
+
+  @Profile("Spawn")
   public loop() {
     forEachRoom(room => {
       const roomData = data.of(room);
@@ -68,9 +88,14 @@ export class SpawnManager {
       }
       const spawnables: CreepType[][] = [];
       roomData.minerCreeps.clear();
-      const spawnMiner = roomData.minerCreeps.get().length < roomData.sources.get().length;
+      const spawnMiner =
+        roomData.minerCreeps.get().length < roomData.sources.get().length;
       if (spawnMiner) {
-        console.log('Spawn: miner', roomData.minerCreeps.get().length, roomData.sources.get().length);
+        console.log(
+          "Spawn: miner",
+          roomData.minerCreeps.get().length,
+          roomData.sources.get().length
+        );
         spawnables.push(this.minerCreepTypes);
         roomData.minerCreeps.clear();
       }
@@ -82,19 +107,24 @@ export class SpawnManager {
         spawnables.push(this.generalCreepTypes);
         roomData.generalCreeps.clear();
       }
+      if (needMoreHarasserCreep.of(room).get()) {
+        spawnables.push(this.harrasserCreepTypes);
+      }
       availableSpawns.forEach(spawn => {
         const types = spawnables.shift();
         if (types) {
           const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
           if (creep) {
-            const newName = spawn.createCreep(creep.body, undefined, { role: creep.name });
-            console.log('Spawning new ' + creep.name + ' ' + newName);
+            const newName = spawn.createCreep(creep.body, undefined, {
+              role: creep.name,
+              home: spawn.room.name
+            });
+            console.log("Spawning new " + creep.name + " " + newName);
             this.showSpawningLabel(spawn);
             return;
           }
         }
       });
-
     });
   }
 
@@ -102,15 +132,15 @@ export class SpawnManager {
     if (spawn.spawning) {
       var spawningCreep = Game.creeps[spawn.spawning.name];
       spawn.room.visual.text(
-        '🛠️' + spawningCreep.memory.role,
+        "🛠️" + spawningCreep.memory.role,
         spawn.pos.x + 1,
         spawn.pos.y,
-        { align: 'left', opacity: 0.8 });
+        { align: "left", opacity: 0.8 }
+      );
     }
   }
 
-  private notSpawning = (s:StructureSpawn) => !s.spawning;
-
+  private notSpawning = (s: StructureSpawn) => !s.spawning;
 }
 
 export const spawnManager = new SpawnManager();

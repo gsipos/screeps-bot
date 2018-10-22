@@ -1,8 +1,7 @@
-import { TargetSelectionPolicy, CreepJob, creepManager } from "./creep";
-import { roomManager } from "../room";
-import { findStructures } from "../util";
+import { CreepJob, creepManager } from "./creep";
 import { Profile } from "../telemetry/profiler";
 import { data } from "../data/data";
+import { TargetSelectionPolicy } from "./job/target-selection-policy";
 
 const moveToContainer = new CreepJob(
   "moveToContainer",
@@ -144,12 +143,3 @@ class MinerCreepManager {
 }
 
 export const minerCreepManager = new MinerCreepManager();
-
-interface MinerCreepMemory {
-  job: string;
-  jobTarget: string;
-
-  flag: string;
-  source: string;
-  container: string;
-}

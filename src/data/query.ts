@@ -1,3 +1,5 @@
+import { toArray } from "../util";
+
 const hasMemoryRole = (role: string) => (item: { memory: any }) =>
   item.memory.role === role;
 
@@ -5,10 +7,13 @@ const notInMemoryRole = (role: string) => (item: { memory: any }) =>
   item.memory.role !== role;
 
 export class GameQueries {
+  rooms = () => toArray(Game.rooms);
   creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
   minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
   carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
   generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
+  harasserCreeps = () => this.creeps().filter(hasMemoryRole("harasser"));
+  remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole("remoteMiner"));
 }
 
 export class RoomQueries {
@@ -44,6 +49,8 @@ export class RoomQueries {
     ]);
 
   hostileCreeps = () => this.room.find<Creep>(FIND_HOSTILE_CREEPS);
+  hostileStructures = () => this.room.find<Structure>(FIND_HOSTILE_STRUCTURES);
+  hostileTowers = () => this.find(FIND_HOSTILE_STRUCTURES, [STRUCTURE_TOWER]);
 
   nonDefensiveStructures = () =>
     this.room
