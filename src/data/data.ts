@@ -92,6 +92,7 @@ export class RoomData {
   public carryCreeps = new Temporal(this.queries.carryCreeps);
   public generalCreeps = new Temporal(this.queries.generalCreeps);
   public fillableCreeps = new Temporal(this.queries.fillableCreeps);
+  public remoteMinerCreeps = new Temporal(this.queries.remoteMinerCreeps);
 
   public neighbourRooms = new Temporal(() =>
     geographer.describeNeighbours(this.room)

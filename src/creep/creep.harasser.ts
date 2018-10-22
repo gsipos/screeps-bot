@@ -16,7 +16,7 @@ const attack = (name: string, targets: (c: Creep) => any[]) =>
     TargetSelectionPolicy.distance
   );
 
-const hostileCreepsInRoom = (c: Creep) =>
+export const hostileCreepsInRoom = (c: Creep) =>
   !!data.of(c.room).hostileCreeps.get().length;
 
 const attackLocalEnemyCreeps = attack("attackLocalEnemyCreeps", c =>

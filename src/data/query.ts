@@ -58,10 +58,11 @@ export class RoomQueries {
       .filter(s => s.structureType !== STRUCTURE_WALL)
       .filter(s => s.structureType !== STRUCTURE_RAMPART);
 
+  globalCreeps = () =>
+    (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
+
   creeps = () =>
-    (Object.keys(Game.creeps) || [])
-      .map(n => Game.creeps[n])
-      .filter(c => c.room.name === this.room.name);
+    this.globalCreeps().filter(c => c.room.name === this.room.name);
 
   minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
   carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
@@ -70,6 +71,10 @@ export class RoomQueries {
     this.creeps()
       .filter(notInMemoryRole("miner"))
       .filter(notInMemoryRole("carry"));
+  remoteMinerCreeps = () =>
+    this.globalCreeps()
+      .filter(hasMemoryRole("remoteMiner"))
+      .filter(c => (c.memory.home = this.room.name));
 
   private find = <T>(where: number, types: string[]) =>
     this.room.find<T>(where, {

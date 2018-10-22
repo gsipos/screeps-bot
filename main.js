@@ -378,7 +378,9 @@ class RoomQueries {
 
     this.nonDefensiveStructures = () => this.room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_WALL).filter(s => s.structureType !== STRUCTURE_RAMPART);
 
-    this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]).filter(c => c.room.name === this.room.name);
+    this.globalCreeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
+
+    this.creeps = () => this.globalCreeps().filter(c => c.room.name === this.room.name);
 
     this.minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
 
@@ -387,6 +389,8 @@ class RoomQueries {
     this.generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
 
     this.fillableCreeps = () => this.creeps().filter(notInMemoryRole("miner")).filter(notInMemoryRole("carry"));
+
+    this.remoteMinerCreeps = () => this.globalCreeps().filter(hasMemoryRole("remoteMiner")).filter(c => c.memory.home = this.room.name);
 
     this.find = (where, types) => this.room.find(where, {
       filter: s => types.includes(s.structureType)
@@ -811,6 +815,7 @@ class RoomData {
     this.carryCreeps = new temporal_1.Temporal(this.queries.carryCreeps);
     this.generalCreeps = new temporal_1.Temporal(this.queries.generalCreeps);
     this.fillableCreeps = new temporal_1.Temporal(this.queries.fillableCreeps);
+    this.remoteMinerCreeps = new temporal_1.Temporal(this.queries.remoteMinerCreeps);
     this.neighbourRooms = new temporal_1.Temporal(() => geographer_1.geographer.describeNeighbours(this.room));
   }
 
@@ -1094,6 +1099,26 @@ exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50
   const softRequirements = [data_1.data.of(room).hostileCreeps.get().length > 0, telemetry.towerEnergy.average() > 0.75, telemetry.spawnEnergy.average() > 0.75];
   return hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.succeeds).length > 1;
 }));
+},{"../util":"BHXf","../data/cache/ttl":"75xa","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"HdgM":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const util_1 = require("../util");
+
+const ttl_1 = require("../data/cache/ttl");
+
+const efficiency_1 = require("../telemetry/efficiency");
+
+const data_1 = require("../data/data");
+
+exports.needMoreRemoteMinerCreep = new util_1.RoomProvider(room => new ttl_1.TTL(51, () => {
+  const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
+  const hardLimits = [telemetry.spawnEnergy.get() > 0.75, telemetry.spawnEnergy.average() > 0.75, !!room.controller && room.controller.level > 3, data_1.data.of(room).remoteMinerCreeps.get().length < 3];
+  return hardLimits.every(util_1.succeeds);
+}));
 },{"../util":"BHXf","../data/cache/ttl":"75xa","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"5vzf":[function(require,module,exports) {
 "use strict";
 
@@ -1118,6 +1143,8 @@ const util_1 = require("./util");
 const spawn_carry_creep_1 = require("./decisions/spawn-carry-creep");
 
 const spawn_harasser_creep_1 = require("./decisions/spawn-harasser-creep");
+
+const spawn_remote_miner_creep_1 = require("./decisions/spawn-remote-miner-creep");
 
 const mapToCost = p => BODYPART_COST[p];
 
@@ -1189,6 +1216,19 @@ class HarasserCreep extends CreepType {
 
 }
 
+class RemoteMiner extends CreepType {
+  constructor(lvl) {
+    const body = [];
+
+    for (let i = 0; i < lvl; i++) {
+      body.push(i % 2 ? TOUGH : WORK, MOVE);
+    }
+
+    super("remoteMiner", body);
+  }
+
+}
+
 class SpawnManager {
   constructor() {
     this.generalCreepCount = 1;
@@ -1196,6 +1236,7 @@ class SpawnManager {
     this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
     this.carryCreepTypes = [...Array(14).keys()].reverse().map(lvl => new CarryCreep(lvl));
     this.harrasserCreepTypes = [...Array(25).keys()].reverse().map(lvl => new HarasserCreep(lvl));
+    this.remoteMinerCreepTypes = [...Array(25).keys()].reverse().map(lvl => new RemoteMiner(lvl));
 
     this.notSpawning = s => !s.spawning;
   }
@@ -1222,6 +1263,7 @@ class SpawnManager {
 
       if (spawn_carry_creep_1.needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
+        spawn_carry_creep_1.needMoreCarryCreep.of(room).clear();
         roomData.carryCreeps.clear();
       }
 
@@ -1232,6 +1274,12 @@ class SpawnManager {
 
       if (spawn_harasser_creep_1.needMoreHarasserCreep.of(room).get()) {
         spawnables.push(this.harrasserCreepTypes);
+        spawn_harasser_creep_1.needMoreHarasserCreep.of(room).clear();
+      }
+
+      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {
+        spawnables.push(this.remoteMinerCreepTypes);
+        spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).clear();
       }
 
       availableSpawns.forEach(spawn => {
@@ -1270,7 +1318,7 @@ __decorate([profiler_1.Profile("Spawn")], SpawnManager.prototype, "loop", null);
 
 exports.SpawnManager = SpawnManager;
 exports.spawnManager = new SpawnManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9"}],"yJHy":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9","./decisions/spawn-remote-miner-creep":"HdgM"}],"yJHy":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -2174,15 +2222,15 @@ const util_1 = require("../util");
 
 const attack = (name, targets) => new creep_1.CreepJob(name, "#ffffff", "Attack", (c, t) => c.attack(t), (c, t) => !t, targets, target_selection_policy_1.TargetSelectionPolicy.distance);
 
-const hostileCreepsInRoom = c => !!data_1.data.of(c.room).hostileCreeps.get().length;
+exports.hostileCreepsInRoom = c => !!data_1.data.of(c.room).hostileCreeps.get().length;
 
 const attackLocalEnemyCreeps = attack("attackLocalEnemyCreeps", c => data_1.data.of(c.room).hostileCreeps.get());
 const attackLocalEnemyTowers = attack("attackLocalEnemyTowers", c => data_1.data.of(c.room).hostileTowers.get());
 const attackLocalEnemyStructures = attack("attackLocalEnemyStructures", c => data_1.data.of(c.room).hostileStructures.get());
-const exploreUnchartedTerritories = new creep_job_1.MoveToRoomCreepJob("exploreUnchartedTerritories", "#ffffff", "Explore", hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED").map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
-const goToUndefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToUndefendedKnownEnemy", "#ffffff", "-> Attack", hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
-const goToDefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToDefendedKnownEnemy", "#ffffff", "-> Attack", hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const wanderAround = new creep_job_1.MoveToRoomCreepJob("wanderAround", "#ffffff", "wandering", hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const exploreUnchartedTerritories = new creep_job_1.MoveToRoomCreepJob("exploreUnchartedTerritories", "#ffffff", "Explore", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED").map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const goToUndefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToUndefendedKnownEnemy", "#ffffff", "-> Attack", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const goToDefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToDefendedKnownEnemy", "#ffffff", "-> Attack", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const wanderAround = new creep_job_1.MoveToRoomCreepJob("wanderAround", "#ffffff", "wandering", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
 
 class HarasserCreepManager {
   constructor() {
@@ -2204,7 +2252,67 @@ class HarasserCreepManager {
 __decorate([profiler_1.Profile("Harasser")], HarasserCreepManager.prototype, "loop", null);
 
 exports.harasserCreepManager = new HarasserCreepManager();
-},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
+},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"UET0":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const creep_1 = require("./creep");
+
+const data_1 = require("../data/data");
+
+const creep_job_1 = require("./job/creep-job");
+
+const creep_harasser_1 = require("./creep.harasser");
+
+const target_selection_policy_1 = require("./job/target-selection-policy");
+
+const util_1 = require("../util");
+
+const profiler_1 = require("../telemetry/profiler"); // moveToAnother room
+// find source
+// harvest
+// flee from enemy
+// go back
+// fill source
+
+
+const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", "#ffffff", "remote", creep_harasser_1.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(r => r.type === "CHARTED" && !r.info.enemyActivity && r.info.sources).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const harvest = new creep_job_1.CreepJob("remoteHarvest", '#ffffff', 'Harvest', (c, t) => c.harvest(t), (c, t) => c.carry.energy === c.carryCapacity || t.energy === 0 || creep_harasser_1.hostileCreepsInRoom(c), c => data_1.data.of(c.room).sources.get(), target_selection_policy_1.TargetSelectionPolicy.distance);
+const goHome = new creep_job_1.MoveToRoomCreepJob('moveHome', '#ffffff', 'Home', () => false, c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const fillStorage = new creep_job_1.CreepJob('fillStorage', '#ffffff', 'Fill', (c, t) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity), c => c.carry.energy === 0, c => [c.room.storage], target_selection_policy_1.TargetSelectionPolicy.inOrder);
+
+class RemoteMinerCreepManager {
+  constructor() {
+    this.remoteMinerJobs = [fillStorage, findRemoteSource, harvest, goHome];
+
+    this.processCreep = c => creep_1.creepManager.processCreep(c, this.remoteMinerJobs);
+  }
+
+  loop() {
+    try {
+      data_1.data.remoteMinerCreeps.get().forEach(this.processCreep);
+    } catch (error) {
+      console.log('Error in RemoteMiners', error);
+    }
+  }
+
+}
+
+__decorate([profiler_1.Profile("RemoteMiner")], RemoteMinerCreepManager.prototype, "loop", null);
+
+exports.remoteMinerCreepManager = new RemoteMinerCreepManager();
+},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./creep.harasser":"cUlm","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2241,6 +2349,8 @@ const geographer_1 = require("./room/geographer");
 
 const creep_harasser_1 = require("./creep/creep.harasser");
 
+const creep_remoteminer_1 = require("./creep/creep.remoteminer");
+
 exports.loop = function () {
   profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -2261,6 +2371,7 @@ exports.loop = function () {
   creep_miner_1.minerCreepManager.loop();
   creep_carry_1.carryCreepManager.loop();
   creep_harasser_1.harasserCreepManager.loop();
+  creep_remoteminer_1.remoteMinerCreepManager.loop();
   creep_1.creepManager.loop();
   messaging_1.messaging.loop();
   creep_movement_1.creepMovement.loop();
@@ -2269,4 +2380,4 @@ exports.loop = function () {
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0"}]},{},["ZCfc"], null)

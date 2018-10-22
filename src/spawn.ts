@@ -3,6 +3,7 @@ import { Profile } from "./telemetry/profiler";
 import { forEachRoom, sumReducer } from "./util";
 import { needMoreCarryCreep } from "./decisions/spawn-carry-creep";
 import { needMoreHarasserCreep } from "./decisions/spawn-harasser-creep";
+import { needMoreRemoteMinerCreep } from "./decisions/spawn-remote-miner-creep";
 
 const mapToCost = (p: string) => BODYPART_COST[p];
 
@@ -58,6 +59,16 @@ class HarasserCreep extends CreepType {
   }
 }
 
+class RemoteMiner extends CreepType {
+  constructor(lvl: number) {
+    const body = [];
+    for (let i = 0; i < lvl; i++) {
+      body.push(i % 2 ? TOUGH : WORK, MOVE);
+    }
+    super("remoteMiner", body);
+  }
+}
+
 export class SpawnManager {
   private generalCreepCount = 1;
 
@@ -76,6 +87,10 @@ export class SpawnManager {
   private harrasserCreepTypes = [...Array(25).keys()]
     .reverse()
     .map(lvl => new HarasserCreep(lvl));
+
+  private remoteMinerCreepTypes = [...Array(25).keys()]
+    .reverse()
+    .map(lvl => new RemoteMiner(lvl));
 
   @Profile("Spawn")
   public loop() {
@@ -101,6 +116,7 @@ export class SpawnManager {
       }
       if (needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
+        needMoreCarryCreep.of(room).clear();
         roomData.carryCreeps.clear();
       }
       if (roomData.generalCreeps.get().length < this.generalCreepCount) {
@@ -109,6 +125,11 @@ export class SpawnManager {
       }
       if (needMoreHarasserCreep.of(room).get()) {
         spawnables.push(this.harrasserCreepTypes);
+        needMoreHarasserCreep.of(room).clear();
+      }
+      if (needMoreRemoteMinerCreep.of(room).get()) {
+        spawnables.push(this.remoteMinerCreepTypes);
+        needMoreRemoteMinerCreep.of(room).clear();
       }
       availableSpawns.forEach(spawn => {
         const types = spawnables.shift();
