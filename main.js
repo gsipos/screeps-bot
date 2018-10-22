@@ -623,6 +623,7 @@ class Geographer {
 
     this.processRoom = room => {
       if (this.isUncharted(room.name)) {
+        console.log('Gathering info about uncharted room:', room.name);
         this.chartRoom(room);
       }
     };

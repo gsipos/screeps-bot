@@ -47,6 +47,7 @@ export class Geographer {
 
   private processRoom = (room: Room) => {
     if (this.isUncharted(room.name)) {
+      console.log('Gathering info about uncharted room:', room.name);
       this.chartRoom(room);
     }
   };
