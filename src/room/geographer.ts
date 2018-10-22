@@ -1,5 +1,6 @@
 import { data } from "../data/data";
 import { MemoryStore } from "../data/memory/memory-store";
+import { notNullOrUndefined } from "../util";
 
 interface ChartedRoomInfo {
   name: string;
@@ -107,7 +108,7 @@ export class Geographer {
       infos.push(this.toNeighborInfo(left, LEFT));
     }
 
-    return infos;
+    return infos.filter(notNullOrUndefined);
   }
 
   private toNeighborInfo(name: string, exit: Exit): NeighbourInfo {

@@ -613,6 +613,8 @@ const data_1 = require("../data/data");
 
 const memory_store_1 = require("../data/memory/memory-store");
 
+const util_1 = require("../util");
+
 const CHARTINFO_VALIDITY = 5000;
 
 class Geographer {
@@ -697,7 +699,7 @@ class Geographer {
       infos.push(this.toNeighborInfo(left, LEFT));
     }
 
-    return infos;
+    return infos.filter(util_1.notNullOrUndefined);
   }
 
   toNeighborInfo(name, exit) {
@@ -724,7 +726,7 @@ class Geographer {
 
 exports.Geographer = Geographer;
 exports.geographer = new Geographer();
-},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a"}],"LiCI":[function(require,module,exports) {
+},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a","../util":"BHXf"}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
