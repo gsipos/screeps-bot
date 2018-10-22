@@ -69,7 +69,7 @@ export class SpawnManager {
     .reverse()
     .map(lvl => new MinerCreep(lvl));
 
-  private carryCreepTypes = [...Array(20).keys()]
+  private carryCreepTypes = [...Array(14).keys()]
     .reverse()
     .map(lvl => new CarryCreep(lvl));
 
