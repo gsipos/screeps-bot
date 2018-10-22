@@ -1,97 +1,12 @@
 import { data } from "../data/data";
 import { Profile, profiler } from "../telemetry/profiler";
-import { creepMovement } from "./creep.movement";
+import { TargetSelectionPolicy } from "./job/target-selection-policy";
+import { CreepJob, ICreepJob } from "./job/creep-job";
 
-export class TargetSelectionPolicy {
-  public static random(targets: any[]) {
-    return targets.sort(() => Math.floor(Math.random() * 3) - 1);
-  }
-
-  public static inOrder(targets: any[]) {
-    return targets;
-  }
-
-  public static distance(targets: RoomObject[], creep: Creep) {
-    if (targets.length < 2) return targets;
-    const distances = new WeakMap();
-    targets.forEach(t =>
-      distances.set(
-        t,
-        profiler.wrap("Distances::getRangeTo", () =>
-          creep.pos.getRangeTo(t.pos)
-        )
-      )
-    );
-    return targets.sort((a, b) => distances.get(a) - distances.get(b));
-  }
-}
-
-export class CreepJob {
-  constructor(
-    public name: string,
-    public color: string,
-    public say: string,
-    public action: (creep: Creep, target: any) => number,
-    public jobDone: (creep: Creep, target?: any) => boolean,
-    public possibleTargets: (creep: Creep) => any[],
-    public targetSelectionPolicy: (targets: any[], creep: Creep) => any[],
-    public enoughCreepAssigned: (
-      assignedCreeps: Creep[],
-      target: any
-    ) => boolean = () => false
-  ) {}
-
-  public execute(creep: Creep, targetId: any) {
-    const target: any = Game.getObjectById(targetId);
-    if (!target) {
-      this.finishJob(creep, target);
-      return;
-    }
-    if (this.jobDone(creep, target)) {
-      this.finishJob(creep, target);
-      return;
-    }
-    const result = profiler.wrap("Creep::action::" + this.name, () =>
-      this.action(creep, target)
-    );
-    if (result == ERR_NOT_IN_RANGE) {
-      this.moveCreep(creep, target);
-    } else if (result !== OK) {
-      this.finishJob(creep, target);
-      return;
-    }
-    if (this.jobDone(creep, target)) {
-      this.finishJob(creep, target);
-    }
-  }
-
-  private moveCreep(creep: Creep, target: RoomObject) {
-    if (!target) return;
-    let moveResult = profiler.wrap("Creep::Move", () =>
-      creepMovement.moveCreep(creep, target.pos)
-    );
-    if (moveResult === ERR_NO_PATH) {
-      this.finishJob(creep, target);
-    }
-    return moveResult;
-  }
-
-  private finishJob(creep: Creep, target: any) {
-    delete creep.memory.job;
-    delete creep.memory.jobTarget;
-    delete creep.memory.path;
-  }
-
-  public needMoreCreeps(target: any) {
-    const assignedCreeps = data.creepsByJobTarget(this.name, target.id);
-    return !this.enoughCreepAssigned(assignedCreeps, target);
-  }
-}
-
-type JobsByName = { [name: string]: CreepJob };
+export * from "./job/creep-job";
 
 export class CreepManager {
-  public jobs: CreepJob[] = [
+  public jobs: ICreepJob[] = [
     new CreepJob(
       "idle",
       "#ffaa00",
@@ -145,10 +60,10 @@ export class CreepManager {
   }
 
   private currentCreep: Creep | undefined;
-  private currentJobs: CreepJob[] = this.jobs;
-  private currentJobsByname: Record<string, CreepJob> = {};
+  private currentJobs: ICreepJob[] = this.jobs;
+  private currentJobsByname: Record<string, ICreepJob> = {};
 
-  public processCreep(creep: Creep, jobs: CreepJob[]) {
+  public processCreep(creep: Creep, jobs: ICreepJob[]) {
     this.currentCreep = creep;
     this.currentJobs = jobs;
 
@@ -163,7 +78,7 @@ export class CreepManager {
     }
   }
 
-  private fillJobsByName = (j: CreepJob) =>
+  private fillJobsByName = (j: ICreepJob) =>
     (this.currentJobsByname[j.name] = j);
 
   private executeJob = () => {
@@ -171,40 +86,9 @@ export class CreepManager {
     job.execute(this.currentCreep!, this.currentCreep!.memory.jobTarget);
   };
 
-  private currentJob: CreepJob | undefined;
   private assignJob = () => this.currentJobs.some(this.findAndAssignJob);
 
-  private defined = (t: any) => !!t;
-
-  private findAndAssignJob = (j: CreepJob) => {
-    this.currentJob = j;
-    return j
-      .targetSelectionPolicy(
-        j
-          .possibleTargets(this.currentCreep!)
-          .filter(this.defined)
-          .filter(this.jobDoneOnTarget)
-          .filter(this.targetNeedsMoreCreep),
-        this.currentCreep!
-      )
-      .some(this.setUnfinishedJobTargetToCreep);
-  };
-
-  private jobDoneOnTarget = (t: any) =>
-    !this.currentJob!.jobDone(this.currentCreep!, t);
-  private targetNeedsMoreCreep = (t: any) => this.currentJob!.needMoreCreeps(t);
-
-  private setUnfinishedJobTargetToCreep = (target: any) => {
-    if (!this.currentJob!.jobDone(this.currentCreep!, target)) {
-      this.currentCreep!.memory.job = this.currentJob!.name;
-      this.currentCreep!.memory.jobTarget = target.id;
-      this.currentCreep!.say(this.currentJob!.say);
-      data.registerCreepJob(this.currentCreep!);
-      return true;
-    } else {
-      return false;
-    }
-  };
+  private findAndAssignJob = (job: ICreepJob) => job.assignJob(this.currentCreep!);
 }
 
 export const creepManager = new CreepManager();

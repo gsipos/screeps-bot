@@ -116,7 +116,8 @@ export class SpawnManager {
           const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
           if (creep) {
             const newName = spawn.createCreep(creep.body, undefined, {
-              role: creep.name
+              role: creep.name,
+              home: spawn.room.name
             });
             console.log("Spawning new " + creep.name + " " + newName);
             this.showSpawningLabel(spawn);

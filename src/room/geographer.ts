@@ -27,7 +27,7 @@ interface UnChartedNeighbour {
   pos: RoomPosition;
 }
 
-type NeighbourInfo = ChartedNeighbour | UnChartedNeighbour;
+export type NeighbourInfo = ChartedNeighbour | UnChartedNeighbour;
 
 const CHARTINFO_VALIDITY = 5_000;
 

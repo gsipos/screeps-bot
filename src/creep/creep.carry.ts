@@ -1,8 +1,10 @@
-import { TargetSelectionPolicy, CreepJob, creepManager } from './creep';
+import { CreepJob, creepManager } from './creep';
 import { data } from '../data/data';
 import { Profile } from '../telemetry/profiler';
+import { TargetSelectionPolicy } from './job/target-selection-policy';
+import { sumReducer } from '../util';
 
-const sumCreepEnergy = (creeps: Creep[]) => creeps.map(c => c.carry.energy || 0).reduce((a, b) => a + b, 0);
+const sumCreepEnergy = (creeps: Creep[]) => creeps.map(c => c.carry.energy || 0).reduce(sumReducer, 0);
 
 const energy = new CreepJob('energy', '#ffaa00', 'energy',
   (c, t) => c.withdraw(t, RESOURCE_ENERGY),
@@ -47,7 +49,7 @@ const idleFill = new CreepJob('idlefill', '#ffaa00', 'idle',
   (c, t) => c.withdraw(t, RESOURCE_ENERGY),
   (c, t) => (c.carry.energy || 0) > (c.carryCapacity*0.5) || t.store[RESOURCE_ENERGY] === 0,
   c => data.of(c.room).containers.get().filter(s => s.store[RESOURCE_ENERGY] > 0),
-  targets => targets.sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY])
+  (targets) => targets.sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY])
 );
 
 class CarryCreepManager {

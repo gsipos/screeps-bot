@@ -1,10 +1,13 @@
 import { data } from "../data/data";
-import { creepManager, CreepJob, TargetSelectionPolicy } from "./creep";
+import { creepManager, CreepJob } from "./creep";
 import { Profile } from "../telemetry/profiler";
+import { TargetSelectionPolicy } from "./job/target-selection-policy";
+import { MoveToRoomCreepJob } from "./job/creep-job";
+import { toName } from "../util";
 
-const attack = (targets: (c: Creep) => any[]) =>
+const attack = (name: string, targets: (c: Creep) => any[]) =>
   new CreepJob(
-    "attack",
+    name,
     "#ffffff",
     "Attack",
     (c, t) => c.attack(t),
@@ -13,51 +16,79 @@ const attack = (targets: (c: Creep) => any[]) =>
     TargetSelectionPolicy.distance
   );
 
-const attackLocalEnemyCreeps = attack(c => data.of(c.room).hostileCreeps.get());
+const hostileCreepsInRoom = (c: Creep) =>
+  !!data.of(c.room).hostileCreeps.get().length;
 
-const attackLocalEnemyTowers = attack(c => data.of(c.room).hostileTowers.get());
+const attackLocalEnemyCreeps = attack("attackLocalEnemyCreeps", c =>
+  data.of(c.room).hostileCreeps.get()
+);
 
-const attackLocalEnemyStructures = attack(c =>
+const attackLocalEnemyTowers = attack("attackLocalEnemyTowers", c =>
+  data.of(c.room).hostileTowers.get()
+);
+
+const attackLocalEnemyStructures = attack("attackLocalEnemyStructures", c =>
   data.of(c.room).hostileStructures.get()
 );
 
-export const moveTo = (targets: (c: Creep) => any[]) =>
-  new CreepJob(
-    "explore",
-    "#ffffff",
-    "Explore",
-    (c, t) => ERR_NOT_IN_RANGE,
-    (c, t) => c.room.name === t.name || !!data.of(c.room).hostileCreeps.get().length,
-    targets,
-    TargetSelectionPolicy.random
-  );
-
-const exploreUnchartedTerritories = moveTo(c =>
-  data
-    .of(c.room)
-    .neighbourRooms.get()
-    .filter(n => n.type === "UNCHARTED")
+const exploreUnchartedTerritories = new MoveToRoomCreepJob(
+  "exploreUnchartedTerritories",
+  "#ffffff",
+  "Explore",
+  hostileCreepsInRoom,
+  c =>
+    data
+      .of(c.room)
+      .neighbourRooms.get()
+      .filter(n => n.type === "UNCHARTED")
+      .map(toName),
+  TargetSelectionPolicy.random
 );
 
-const goToUndefendedKnownEnemy = moveTo(c =>
-  data
-    .of(c.room)
-    .neighbourRooms.get()
-    .filter(
-      n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers
-    )
+const goToUndefendedKnownEnemy = new MoveToRoomCreepJob(
+  "goToUndefendedKnownEnemy",
+  "#ffffff",
+  "-> Attack",
+  hostileCreepsInRoom,
+  c =>
+    data
+      .of(c.room)
+      .neighbourRooms.get()
+      .filter(
+        n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers
+      )
+      .map(toName),
+  TargetSelectionPolicy.random
 );
 
-const goToDefendedKnownEnemy = moveTo(c =>
-  data
-    .of(c.room)
-    .neighbourRooms.get()
-    .filter(
-      n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers
-    )
+const goToDefendedKnownEnemy = new MoveToRoomCreepJob(
+  "goToDefendedKnownEnemy",
+  "#ffffff",
+  "-> Attack",
+  hostileCreepsInRoom,
+  c =>
+    data
+      .of(c.room)
+      .neighbourRooms.get()
+      .filter(
+        n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers
+      )
+      .map(toName),
+  TargetSelectionPolicy.inOrder
 );
 
-const wanderAround = moveTo(c => data.of(c.room).neighbourRooms.get());
+const wanderAround = new MoveToRoomCreepJob(
+  "wanderAround",
+  "#ffffff",
+  "wandering",
+  hostileCreepsInRoom,
+  c =>
+    data
+      .of(c.room)
+      .neighbourRooms.get()
+      .map(toName),
+  TargetSelectionPolicy.random
+);
 
 class HarasserCreepManager {
   public harasserJobs = [
@@ -75,7 +106,7 @@ class HarasserCreepManager {
     try {
       data.harasserCreeps.get().forEach(this.processCreep);
     } catch (error) {
-      console.log('Error with harassercreep', error);
+      console.log("Error with harassercreep", error);
     }
   }
 

@@ -47,7 +47,7 @@ export const lowCPU = () => Game.cpu.bucket < 5000;
 export class RoomProvider<T> {
   private stuff: Record<string, T> = {};
 
-  constructor(private supplier: (r: Room) => T) { }
+  constructor(private supplier: (r: Room) => T) {}
 
   of(room: Room) {
     if (!this.stuff[room.name]) {
@@ -59,13 +59,20 @@ export class RoomProvider<T> {
 
 export const sumReducer = (a: number, b: number) => a + b;
 
-export const averageOf = (items: number[]) => items.reduce(sumReducer, 0) / items.length;
+export const averageOf = (items: number[]) =>
+  items.reduce(sumReducer, 0) / items.length;
 
-export const boolToScore = (b: boolean) => b ? 1 : 0;
+export const boolToScore = (b: boolean) => (b ? 1 : 0);
 
 export const fails = (b: boolean) => !b;
 export const succeeds = (b: boolean) => b;
 
-export const role = (obj: { Memory: any }) => obj.Memory.role as string | undefined;
+export const role = (obj: { Memory: any }) =>
+  obj.Memory.role as string | undefined;
 
-export const toArray = <T>(obj: Record<string, T>) => (Object.keys(obj) || []).map(key => obj[key]);
+export const toArray = <T>(obj: Record<string, T>) =>
+  (Object.keys(obj) || []).map(key => obj[key]);
+
+export const notNullOrUndefined = (a: any) => !!a;
+
+export const toName = (a: { name: string }) => a.name;
