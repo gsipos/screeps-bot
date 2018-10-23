@@ -1952,7 +1952,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   assignJob(creep) {
-    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep);
+    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep).filter(room => creep.room.name = room);
 
     if (rooms.length) {
       const room = rooms[0];
@@ -2358,7 +2358,7 @@ const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", 
 const harvest = new creep_job_1.CreepJob("remoteHarvest", "#ffffff", "Harvest", (c, t) => c.harvest(t), (c, t) => [atHome(c), fullOfEnergy(c)].some(util_1.succeeds), c => data_1.data.of(c.room).sources.get(), target_selection_policy_1.TargetSelectionPolicy.distance);
 const goHome = new creep_job_1.MoveToRoomCreepJob("moveHome", "#ffffff", "Home", c => !hasEnergy(c), c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
 const fillStorage = new creep_job_1.CreepJob("fillStorage", "#ffffff", "Fill", (c, t) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity), c => !atHome(c) || !hasEnergy(c), c => [c.room.storage], target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const explore = new creep_job_1.MoveToRoomCreepJob("miner_explore", "#ffffff", "explore", (c, t) => hasEnergy(c), c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const explore = new creep_job_1.MoveToRoomCreepJob("miner_explore", "#ffffff", "explore", (c, t) => !atHome(c), c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
 
 class RemoteMinerCreepManager {
   constructor() {

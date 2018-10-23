@@ -21,7 +21,6 @@ export interface ICreepJob {
 }
 
 class BaseCreepJob {
-
   protected finishJob(creep: Creep, target: any) {
     delete creep.memory.job;
     delete creep.memory.jobTarget;
@@ -38,7 +37,6 @@ class BaseCreepJob {
     }
     return moveResult;
   }
-
 }
 
 export class CreepJob extends BaseCreepJob implements ICreepJob {
@@ -63,7 +61,9 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       return;
     }
     if (this.jobDone(creep, target)) {
-      console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
+      console.log(
+        `Job ${this.name} done by ${creep.name} on ${creep.memory.job}`
+      );
       this.finishJob(creep, target);
       return;
     }
@@ -74,7 +74,9 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       console.log(`Target for job ${this.name} is not in range`);
       this.moveCreep(creep, target.pos);
     } else if (result !== OK) {
-      console.log(`Finishing job ${this.name} because unhandled error ${result}`);
+      console.log(
+        `Finishing job ${this.name} because unhandled error ${result}`
+      );
       this.finishJob(creep, target);
       return;
     }
@@ -103,7 +105,9 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       creep.memory.job = this.name;
       creep.memory.jobTarget = target.id;
       creep.say(this.say);
-      console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
+      console.log(
+        `Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `
+      );
       data.registerCreepJob(creep);
       return true;
     } else {
@@ -113,7 +117,6 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
 }
 
 export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
-
   private targetToPos = (target: string) => new RoomPosition(25, 25, target);
 
   constructor(
@@ -151,13 +154,16 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
       creep.pos.x === 0,
       creep.pos.x === 49,
       creep.pos.y === 0,
-      creep.pos.y === 49,
-    ]
+      creep.pos.y === 49
+    ];
     return onBorder.some(succeeds);
   }
 
   public assignJob(creep: Creep) {
-    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep);
+    const rooms = this.targetSelectionPolicy(
+      this.possibleTargets(creep),
+      creep
+    ).filter(room => (creep.room.name = room));
     if (rooms.length) {
       const room = rooms[0];
       creep.memory.job = this.name;
