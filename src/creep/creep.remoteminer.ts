@@ -46,7 +46,8 @@ const harvest = new CreepJob(
   "#ffffff",
   "Harvest",
   (c, t) => c.harvest(t),
-  (c, t: Source) => [atHome(c), fullOfEnergy(c), hostileCreepsInRoom(c)].some(succeeds),
+  (c, t: Source) =>
+    [atHome(c), fullOfEnergy(c), hostileCreepsInRoom(c)].some(succeeds),
   c => data.of(c.room).sources.get(),
   TargetSelectionPolicy.distance
 );
@@ -81,6 +82,7 @@ const explore = new MoveToRoomCreepJob(
     data
       .of(c.room)
       .neighbourRooms.get()
+      .filter(room => room.type === "UNCHARTED")
       .map(toName),
   TargetSelectionPolicy.inOrder
 );
