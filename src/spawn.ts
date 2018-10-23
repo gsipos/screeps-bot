@@ -88,7 +88,7 @@ export class SpawnManager {
     .reverse()
     .map(lvl => new HarasserCreep(lvl));
 
-  private remoteMinerCreepTypes = [...Array(25).keys()]
+  private remoteMinerCreepTypes = [...Array(10).keys()]
     .reverse()
     .map(lvl => new RemoteMiner(lvl));
 

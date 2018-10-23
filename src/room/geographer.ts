@@ -1,6 +1,7 @@
 import { data } from "../data/data";
 import { MemoryStore } from "../data/memory/memory-store";
 import { notNullOrUndefined } from "../util";
+import { Profile } from "../telemetry/profiler";
 
 interface ChartedRoomInfo {
   name: string;
@@ -37,6 +38,7 @@ export class Geographer {
     "geographerChartedRooms"
   );
 
+  @Profile('Geographer')
   public loop() {
     try {
       data.rooms.get().forEach(this.processRoom);
