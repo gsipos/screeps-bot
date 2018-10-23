@@ -1952,7 +1952,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   assignJob(creep) {
-    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep).filter(room => creep.room.name = room);
+    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep).filter(room => creep.room.name === room);
 
     if (rooms.length) {
       const room = rooms[0];

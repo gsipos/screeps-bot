@@ -163,7 +163,7 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
     const rooms = this.targetSelectionPolicy(
       this.possibleTargets(creep),
       creep
-    ).filter(room => (creep.room.name = room));
+    ).filter(room => (creep.room.name === room));
     if (rooms.length) {
       const room = rooms[0];
       creep.memory.job = this.name;
