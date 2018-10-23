@@ -10,6 +10,7 @@ const energy = new CreepJob('energy', '#ffaa00', 'energy',
   (c, t) => c.withdraw(t, RESOURCE_ENERGY),
   (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0,
   c => data.of(c.room).containerOrStorage.get()
+    .filter(s => (s.store[RESOURCE_ENERGY] || 0) === 0)
     .filter(s => (s.store[RESOURCE_ENERGY] || 0) > c.carryCapacity),
   TargetSelectionPolicy.distance
 );
