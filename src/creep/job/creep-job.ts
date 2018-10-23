@@ -2,7 +2,7 @@ import { profiler } from "../../telemetry/profiler";
 import { creepMovement } from "../creep.movement";
 import { data } from "../../data/data";
 import { TargetSelectionPolicyFunction } from "./target-selection-policy";
-import { notNullOrUndefined } from "../../util";
+import { notNullOrUndefined, fails } from "../../util";
 import { NeighbourInfo } from "../../room/geographer";
 
 type CreepAction<T = any> = (creep: Creep, target: T) => number;
@@ -58,10 +58,12 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
   public execute(creep: Creep, targetId: any) {
     const target: any = Game.getObjectById(targetId);
     if (!target) {
+      console.log(`Cannot find job ${this.name} target ${targetId}`);
       this.finishJob(creep, target);
       return;
     }
     if (this.jobDone(creep, target)) {
+      console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
       this.finishJob(creep, target);
       return;
     }
@@ -69,8 +71,10 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       this.action(creep, target)
     );
     if (result == ERR_NOT_IN_RANGE) {
+      console.log(`Target for job ${this.name} is not in range`);
       this.moveCreep(creep, target.pos);
     } else if (result !== OK) {
+      console.log(`Finishing job ${this.name} because unhandled error ${result}`);
       this.finishJob(creep, target);
       return;
     }
@@ -99,6 +103,7 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       creep.memory.job = this.name;
       creep.memory.jobTarget = target.id;
       creep.say(this.say);
+      console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
       data.registerCreepJob(creep);
       return true;
     } else {
@@ -138,7 +143,13 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
   }
 
   private isInRoom(creep: Creep, room: string) {
-    return creep.room.name === room;
+    const onBorder = [
+      creep.pos.x === 0,
+      creep.pos.x === 49,
+      creep.pos.y === 0,
+      creep.pos.y === 49,
+    ]
+    return creep.room.name === room && onBorder.every(fails);
   }
 
   public assignJob(creep: Creep) {

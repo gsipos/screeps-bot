@@ -7,7 +7,7 @@
 // orig method which is the require for previous bundles
 
 // eslint-disable-next-line no-global-assign
-parcelRequire = (function (modules, cache, entry, globalName) {
+var parcelRequire = (function (modules, cache, entry, globalName) {
   // Save the require from previous bundle to this closure if any
   var previousRequire = typeof parcelRequire === 'function' && parcelRequire;
   var nodeRequire = typeof require === 'function' && require;
@@ -306,6 +306,21 @@ exports.toArray = obj => (Object.keys(obj) || []).map(key => obj[key]);
 exports.notNullOrUndefined = a => !!a;
 
 exports.toName = a => a.name;
+},{}],"VhlO":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var CreepRole;
+
+(function (CreepRole) {
+  CreepRole["GENERAL"] = "general";
+  CreepRole["CARRY"] = "carry";
+  CreepRole["MINER"] = "miner";
+  CreepRole["REMOTEMINER"] = "remoteHarvester";
+  CreepRole["HARASSER"] = "harasser";
+})(CreepRole = exports.CreepRole || (exports.CreepRole = {}));
 },{}],"XRK8":[function(require,module,exports) {
 "use strict";
 
@@ -314,6 +329,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 const util_1 = require("../util");
+
+const roles_1 = require("../creep/roles");
 
 const hasMemoryRole = role => item => item.memory.role === role;
 
@@ -325,15 +342,15 @@ class GameQueries {
 
     this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
 
-    this.minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
+    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
 
-    this.carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
+    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
 
-    this.generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
+    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
 
-    this.harasserCreeps = () => this.creeps().filter(hasMemoryRole("harasser"));
+    this.harasserCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.HARASSER));
 
-    this.remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole("remoteMiner"));
+    this.remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER));
   }
 
 }
@@ -382,15 +399,15 @@ class RoomQueries {
 
     this.creeps = () => this.globalCreeps().filter(c => c.room.name === this.room.name);
 
-    this.minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
+    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
 
-    this.carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
+    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
 
-    this.generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
+    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
 
-    this.fillableCreeps = () => this.creeps().filter(notInMemoryRole("miner")).filter(notInMemoryRole("carry"));
+    this.fillableCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
 
-    this.remoteMinerCreeps = () => this.globalCreeps().filter(hasMemoryRole("remoteMiner")).filter(c => c.memory.home = this.room.name);
+    this.remoteMinerCreeps = () => this.globalCreeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER)).filter(c => c.memory.home = this.room.name);
 
     this.find = (where, types) => this.room.find(where, {
       filter: s => types.includes(s.structureType)
@@ -402,7 +419,7 @@ class RoomQueries {
 }
 
 exports.RoomQueries = RoomQueries;
-},{"../util":"BHXf"}],"m431":[function(require,module,exports) {
+},{"../util":"BHXf","../creep/roles":"VhlO"}],"m431":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -605,6 +622,14 @@ exports.MemoryStore = MemoryStore;
 },{}],"gAKg":[function(require,module,exports) {
 "use strict";
 
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -614,6 +639,8 @@ const data_1 = require("../data/data");
 const memory_store_1 = require("../data/memory/memory-store");
 
 const util_1 = require("../util");
+
+const profiler_1 = require("../telemetry/profiler");
 
 const CHARTINFO_VALIDITY = 5000;
 
@@ -725,9 +752,11 @@ class Geographer {
 
 }
 
+__decorate([profiler_1.Profile('Geographer')], Geographer.prototype, "loop", null);
+
 exports.Geographer = Geographer;
 exports.geographer = new Geographer();
-},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a","../util":"BHXf"}],"LiCI":[function(require,module,exports) {
+},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a","../util":"BHXf","../telemetry/profiler":"m431"}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1003,6 +1032,8 @@ const util_1 = require("../util");
 
 const rolling_avg_computed_1 = require("../data/cache/rolling-avg-computed");
 
+const roles_1 = require("../creep/roles");
+
 class RoomEfficiency {
   constructor(room) {
     this.room = room;
@@ -1039,7 +1070,7 @@ class Efficiency {
     util_1.forEachRoom(room => {
       const efficiency = this.roomEfficiencyProvider.of(room);
       this.report(efficiency.containerUsage.get(), "container", room);
-      this.report(efficiency.carryUtilization.get(), "carry", room);
+      this.report(efficiency.carryUtilization.get(), roles_1.CreepRole.CARRY, room);
       this.report(efficiency.sourceMining.get(), "source", room);
       this.report(efficiency.spawnEnergy.get(), "spawn", room);
       this.energyAvailable(room);
@@ -1057,7 +1088,7 @@ __decorate([profiler_1.Profile("Efficiency")], Efficiency.prototype, "loop", nul
 
 exports.Efficiency = Efficiency;
 exports.efficiency = new Efficiency();
-},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf","../data/cache/rolling-avg-computed":"QSuD"}],"On/S":[function(require,module,exports) {
+},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf","../data/cache/rolling-avg-computed":"QSuD","../creep/roles":"VhlO"}],"On/S":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1149,6 +1180,8 @@ const spawn_harasser_creep_1 = require("./decisions/spawn-harasser-creep");
 
 const spawn_remote_miner_creep_1 = require("./decisions/spawn-remote-miner-creep");
 
+const roles_1 = require("./creep/roles");
+
 const mapToCost = p => BODYPART_COST[p];
 
 class CreepType {
@@ -1166,13 +1199,13 @@ class MinerCreep extends CreepType {
   constructor(lvl) {
     const body = [];
 
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(WORK);
     }
 
     body.push(CARRY);
     body.push(MOVE);
-    super("miner", body);
+    super(roles_1.CreepRole.MINER, body);
   }
 
 }
@@ -1181,12 +1214,12 @@ class CarryCreep extends CreepType {
   constructor(lvl) {
     const body = [];
 
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(CARRY);
       body.push(MOVE);
     }
 
-    super("carry", body);
+    super(roles_1.CreepRole.CARRY, body);
   }
 
 }
@@ -1195,13 +1228,13 @@ class GeneralCreep extends CreepType {
   constructor(lvl) {
     const body = [];
 
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(WORK);
       body.push(CARRY);
       body.push(MOVE);
     }
 
-    super("general", body);
+    super(roles_1.CreepRole.GENERAL, body);
   }
 
 }
@@ -1210,11 +1243,11 @@ class HarasserCreep extends CreepType {
   constructor(lvl) {
     const body = [];
 
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(i % 2 ? ATTACK : TOUGH, MOVE);
     }
 
-    super("harasser", body);
+    super(roles_1.CreepRole.HARASSER, body);
   }
 
 }
@@ -1227,7 +1260,7 @@ class RemoteMiner extends CreepType {
       body.push(i % 2 ? TOUGH : WORK, MOVE);
     }
 
-    super("remoteMiner", body);
+    super(roles_1.CreepRole.REMOTEMINER, body);
   }
 
 }
@@ -1237,9 +1270,9 @@ class SpawnManager {
     this.generalCreepCount = 1;
     this.generalCreepTypes = [...Array(6).keys()].reverse().map(lvl => new GeneralCreep(lvl));
     this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
-    this.carryCreepTypes = [...Array(14).keys()].reverse().map(lvl => new CarryCreep(lvl));
-    this.harrasserCreepTypes = [...Array(25).keys()].reverse().map(lvl => new HarasserCreep(lvl));
-    this.remoteMinerCreepTypes = [...Array(25).keys()].reverse().map(lvl => new RemoteMiner(lvl));
+    this.carryCreepTypes = [...Array(10).keys()].reverse().map(lvl => new CarryCreep(lvl));
+    this.harrasserCreepTypes = [...Array(14).keys()].reverse().map(lvl => new HarasserCreep(lvl));
+    this.remoteMinerCreepTypes = [...Array(10).keys()].reverse().map(lvl => new RemoteMiner(lvl));
 
     this.notSpawning = s => !s.spawning;
   }
@@ -1266,7 +1299,6 @@ class SpawnManager {
 
       if (spawn_carry_creep_1.needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
-        spawn_carry_creep_1.needMoreCarryCreep.of(room).clear();
         roomData.carryCreeps.clear();
       }
 
@@ -1277,7 +1309,6 @@ class SpawnManager {
 
       if (spawn_harasser_creep_1.needMoreHarasserCreep.of(room).get()) {
         spawnables.push(this.harrasserCreepTypes);
-        spawn_harasser_creep_1.needMoreHarasserCreep.of(room).clear();
       }
 
       if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {//spawnables.push(this.remoteMinerCreepTypes);
@@ -1320,7 +1351,7 @@ __decorate([profiler_1.Profile("Spawn")], SpawnManager.prototype, "loop", null);
 
 exports.SpawnManager = SpawnManager;
 exports.spawnManager = new SpawnManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9","./decisions/spawn-remote-miner-creep":"HdgM"}],"yJHy":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9","./decisions/spawn-remote-miner-creep":"HdgM","./creep/roles":"VhlO"}],"yJHy":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1657,8 +1688,8 @@ class CreepMovement {
 
   moveCreep(creep, target) {
     if (creep.fatigue > 0) return OK;
-    const fromKey = '' + creep.pos;
-    const toKey = '' + target;
+    const fromKey = "" + creep.pos;
+    const toKey = "" + target;
     this.initTo(toKey);
     let moveResult = OK; // if (this.isStuck(creep)) {
     //   creep.move(this.getRandomDirection());
@@ -1672,23 +1703,31 @@ class CreepMovement {
     if (false && this.hasPath(fromKey, toKey)) {
       //TODO: some bug
       path = this.getPath(fromKey, toKey);
-      statistics_1.stats.metric('Creep::Move::Reusepath', 1);
+      statistics_1.stats.metric("Creep::Move::Reusepath", 1);
     } else {
-      path = profiler_1.profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, {
+      path = profiler_1.profiler.wrap("Creep::Move::findPath", () => creep.room.findPath(creep.pos, target, {
         ignoreCreeps: true,
         serialize: true
       }));
-      messaging_1.messaging.send('path', fromKey + '|' + toKey + '|' + path);
+      messaging_1.messaging.send("path", fromKey + "|" + toKey + "|" + path);
       this.storePath(fromKey, toKey, path);
-      statistics_1.stats.metric('Creep::Move::FindPath', 1);
+      statistics_1.stats.metric("Creep::Move::FindPath", 1);
     } //moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
 
 
-    creep.moveTo(target);
-    statistics_1.stats.metric('Creep::Move::' + moveResult, 1);
+    creep.moveTo(target, {
+      visualizePathStyle: {
+        fill: "transparent",
+        stroke: "#fff",
+        lineStyle: "dashed",
+        strokeWidth: 0.15,
+        opacity: 0.1
+      }
+    });
+    statistics_1.stats.metric("Creep::Move::" + moveResult, 1);
 
     if (moveResult !== OK) {
-      console.log('Creep\tMove\t' + moveResult);
+      console.log("Creep\tMove\t" + moveResult);
 
       if (moveResult === ERR_NOT_FOUND) {
         creep.move(this.getRandomDirection());
@@ -1710,7 +1749,7 @@ class CreepMovement {
   }
 
   setPrevPos(creep) {
-    const creepPos = '' + creep.pos;
+    const creepPos = "" + creep.pos;
 
     if (creep.memory.prevPos !== creepPos) {
       creep.memory.prevPos = creepPos;
@@ -1741,16 +1780,16 @@ class CreepMovement {
   }
 
   loop() {
-    messaging_1.messaging.consumeMessages('path').forEach(m => {
-      console.log('consume message', m);
-      const splitMessage = m.value.split('|');
+    messaging_1.messaging.consumeMessages("path").forEach(m => {
+      console.log("consume message", m);
+      const splitMessage = m.value.split("|");
       this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
     });
   }
 
 }
 
-__decorate([profiler_1.Profile('Creep::Move')], CreepMovement.prototype, "loop", null);
+__decorate([profiler_1.Profile("Creep::Move")], CreepMovement.prototype, "loop", null);
 
 exports.CreepMovement = CreepMovement;
 exports.creepMovement = new CreepMovement();
@@ -1811,11 +1850,13 @@ class CreepJob extends BaseCreepJob {
     const target = Game.getObjectById(targetId);
 
     if (!target) {
+      console.log(`Cannot find job ${this.name} target ${targetId}`);
       this.finishJob(creep, target);
       return;
     }
 
     if (this.jobDone(creep, target)) {
+      console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
       this.finishJob(creep, target);
       return;
     }
@@ -1823,8 +1864,10 @@ class CreepJob extends BaseCreepJob {
     const result = profiler_1.profiler.wrap("Creep::action::" + this.name, () => this.action(creep, target));
 
     if (result == ERR_NOT_IN_RANGE) {
+      console.log(`Target for job ${this.name} is not in range`);
       this.moveCreep(creep, target.pos);
     } else if (result !== OK) {
+      console.log(`Finishing job ${this.name} because unhandled error ${result}`);
       this.finishJob(creep, target);
       return;
     }
@@ -1847,6 +1890,7 @@ class CreepJob extends BaseCreepJob {
       creep.memory.job = this.name;
       creep.memory.jobTarget = target.id;
       creep.say(this.say);
+      console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
       data_1.data.registerCreepJob(creep);
       return true;
     } else {
@@ -1889,7 +1933,8 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   isInRoom(creep, room) {
-    return creep.room.name === room;
+    const onBorder = [creep.pos.x === 0, creep.pos.x === 49, creep.pos.y === 0, creep.pos.y === 49];
+    return creep.room.name === room && onBorder.every(util_1.fails);
   }
 
   assignJob(creep) {

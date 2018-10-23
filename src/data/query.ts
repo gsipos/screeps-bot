@@ -1,4 +1,5 @@
 import { toArray } from "../util";
+import { CreepRole } from "../creep/roles";
 
 const hasMemoryRole = (role: string) => (item: { memory: any }) =>
   item.memory.role === role;
@@ -9,11 +10,11 @@ const notInMemoryRole = (role: string) => (item: { memory: any }) =>
 export class GameQueries {
   rooms = () => toArray(Game.rooms);
   creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
-  minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
-  carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
-  generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
-  harasserCreeps = () => this.creeps().filter(hasMemoryRole("harasser"));
-  remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole("remoteMiner"));
+  minerCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.MINER));
+  carryCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.CARRY));
+  generalCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.GENERAL));
+  harasserCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.HARASSER));
+  remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.REMOTEMINER));
 }
 
 export class RoomQueries {
@@ -64,16 +65,15 @@ export class RoomQueries {
   creeps = () =>
     this.globalCreeps().filter(c => c.room.name === this.room.name);
 
-  minerCreeps = () => this.creeps().filter(hasMemoryRole("miner"));
-  carryCreeps = () => this.creeps().filter(hasMemoryRole("carry"));
-  generalCreeps = () => this.creeps().filter(hasMemoryRole("general"));
+  minerCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.MINER));
+  carryCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.CARRY));
+  generalCreeps = () => this.creeps().filter(hasMemoryRole(CreepRole.GENERAL));
   fillableCreeps = () =>
     this.creeps()
-      .filter(notInMemoryRole("miner"))
-      .filter(notInMemoryRole("carry"));
+      .filter(hasMemoryRole(CreepRole.GENERAL));
   remoteMinerCreeps = () =>
     this.globalCreeps()
-      .filter(hasMemoryRole("remoteMiner"))
+      .filter(hasMemoryRole(CreepRole.REMOTEMINER))
       .filter(c => (c.memory.home = this.room.name));
 
   private find = <T>(where: number, types: string[]) =>

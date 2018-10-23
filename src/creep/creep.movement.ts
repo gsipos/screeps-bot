@@ -1,20 +1,20 @@
-import { data } from '../data/data';
-import { stats } from '../telemetry/statistics';
-import { getRandomInt } from '../util';
+import { data } from "../data/data";
+import { stats } from "../telemetry/statistics";
+import { getRandomInt } from "../util";
 import { profiler, Profile } from "../telemetry/profiler";
-import { messaging } from '../messaging';
+import { messaging } from "../messaging";
 
 export class CreepMovement {
   private pathsToTarget: {
     [to: string]: {
-      [from: string]: string
-    }
+      [from: string]: string;
+    };
   } = {};
 
   public moveCreep(creep: Creep, target: RoomPosition) {
     if (creep.fatigue > 0) return OK;
-    const fromKey = '' + creep.pos;
-    const toKey = '' + target;
+    const fromKey = "" + creep.pos;
+    const toKey = "" + target;
 
     this.initTo(toKey);
     let moveResult: number = OK;
@@ -26,23 +26,39 @@ export class CreepMovement {
     // }
 
     let path: string;
-    if (false && this.hasPath(fromKey, toKey)) { //TODO: some bug
+    if (false && this.hasPath(fromKey, toKey)) {
+      //TODO: some bug
       path = this.getPath(fromKey, toKey);
-      stats.metric('Creep::Move::Reusepath', 1);
+      stats.metric("Creep::Move::Reusepath", 1);
     } else {
-      path = profiler.wrap('Creep::Move::findPath', () => creep.room.findPath(creep.pos, target, { ignoreCreeps: true, serialize: true }) as any);
-      messaging.send('path',fromKey+'|'+toKey+'|'+path);
+      path = profiler.wrap(
+        "Creep::Move::findPath",
+        () =>
+          creep.room.findPath(creep.pos, target, {
+            ignoreCreeps: true,
+            serialize: true
+          }) as any
+      );
+      messaging.send("path", fromKey + "|" + toKey + "|" + path);
       this.storePath(fromKey, toKey, path);
-      stats.metric('Creep::Move::FindPath', 1);
+      stats.metric("Creep::Move::FindPath", 1);
     }
 
     //moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
-    creep.moveTo(target);
+    creep.moveTo(target, {
+      visualizePathStyle: {
+        fill: "transparent",
+        stroke: "#fff",
+        lineStyle: "dashed",
+        strokeWidth: 0.15,
+        opacity: 0.1
+      }
+    });
 
-    stats.metric('Creep::Move::' + moveResult, 1);
+    stats.metric("Creep::Move::" + moveResult, 1);
 
     if (moveResult !== OK) {
-      console.log('Creep\tMove\t' + moveResult);
+      console.log("Creep\tMove\t" + moveResult);
       if (moveResult === ERR_NOT_FOUND) {
         creep.move(this.getRandomDirection());
       }
@@ -60,7 +76,7 @@ export class CreepMovement {
     return false;
   }
   public setPrevPos(creep: Creep) {
-    const creepPos: string = '' + creep.pos;
+    const creepPos: string = "" + creep.pos;
     if (creep.memory.prevPos !== creepPos) {
       creep.memory.prevPos = creepPos;
       creep.memory.posSince = Game.time;
@@ -89,13 +105,13 @@ export class CreepMovement {
     this.pathsToTarget[toKey][fromKey] = path;
   }
 
-  @Profile('Creep::Move')
+  @Profile("Creep::Move")
   public loop() {
-    messaging.consumeMessages('path').forEach(m => {
-      console.log('consume message', m);
-      const splitMessage = m.value.split('|');
+    messaging.consumeMessages("path").forEach(m => {
+      console.log("consume message", m);
+      const splitMessage = m.value.split("|");
       this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
-    })
+    });
   }
 }
 
