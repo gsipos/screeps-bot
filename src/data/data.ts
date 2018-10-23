@@ -65,6 +65,7 @@ export class RoomData {
 
   public sources = new Temporal(this.queries.sources);
   public spawns = new Temporal(this.queries.spawns);
+  public constructions = new Temporal(this.queries.constructions);
   public containers = new Temporal(this.queries.containers);
   public storage = new Temporal(() => this.room.storage);
   public containerOrStorage = new Temporal(this.queries.containerOrStorage);

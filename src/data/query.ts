@@ -24,6 +24,8 @@ export class RoomQueries {
 
   spawns = () => this.findMy<Spawn>(STRUCTURE_SPAWN);
 
+  constructions = () => this.room.find<ConstructionSite>(FIND_MY_CONSTRUCTION_SITES);
+
   containers = () =>
     this.find<Container>(FIND_STRUCTURES, [STRUCTURE_CONTAINER]);
 
