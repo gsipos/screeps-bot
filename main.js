@@ -1110,7 +1110,7 @@ exports.needMoreCarryCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, (
   const carryCreepCount = data_1.data.of(room).carryCreeps.get().length;
   const hardRequirements = [carryCreepCount > 1];
   const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2, telemetry.spawnEnergy.get() > 0.75];
-  const softRequirements = [telemetry.carryUtilization.average() < 0.7, telemetry.containerUsage.average() < 0.4, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
+  const softRequirements = [telemetry.carryUtilization.average() < 0.7, telemetry.containerUsage.average() < 0.4, telemetry.containerUsage.average() < 0.9, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
   console.log('Spawn carry:', hardRequirements, hardLimits, softRequirements);
   return hardRequirements.some(util_1.fails) || hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.fails).length > 1;
 }));
