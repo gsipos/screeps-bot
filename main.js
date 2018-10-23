@@ -306,6 +306,8 @@ exports.toArray = obj => (Object.keys(obj) || []).map(key => obj[key]);
 exports.notNullOrUndefined = a => !!a;
 
 exports.toName = a => a.name;
+
+exports.myRoom = r => !!r.controller && r.controller.my;
 },{}],"VhlO":[function(require,module,exports) {
 "use strict";
 
@@ -1440,6 +1442,8 @@ const data_1 = require("./data/data");
 
 const profiler_1 = require("./telemetry/profiler");
 
+const util_1 = require("./util");
+
 class ConstructionManager {
   constructor() {
     this.memorySource = item => item.memory.source;
@@ -1455,6 +1459,10 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room) {
+    if (!util_1.myRoom(room)) {
+      return;
+    }
+
     const roomData = data_1.data.of(room);
     const containers = roomData.containers.get();
     const containersUnderConstruction = roomData.containerConstructions.get();
@@ -1499,7 +1507,7 @@ class ConstructionManager {
 __decorate([profiler_1.Profile("Construction")], ConstructionManager.prototype, "loop", null);
 
 exports.constructionManager = new ConstructionManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431"}],"k11/":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf"}],"k11/":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1923,7 +1931,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
       return;
     }
 
-    if (this.jobDone(creep, room)) {
+    if (!this.onBorder(creep) && this.jobDone(creep, room)) {
       this.finishJob(creep, room);
       return;
     }
@@ -1935,8 +1943,12 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   isInRoom(creep, room) {
+    return creep.room.name === room && !this.onBorder(creep);
+  }
+
+  onBorder(creep) {
     const onBorder = [creep.pos.x === 0, creep.pos.x === 49, creep.pos.y === 0, creep.pos.y === 49];
-    return creep.room.name === room && onBorder.every(util_1.fails);
+    return onBorder.some(util_1.succeeds);
   }
 
   assignJob(creep) {
@@ -2160,7 +2172,7 @@ const sumCreepEnergy = creeps => creeps.map(c => c.carry.energy || 0).reduce(uti
 const energy = new creep_1.CreepJob('energy', '#ffaa00', 'energy', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containerOrStorage.get().filter(s => (s.store[RESOURCE_ENERGY] || 0) > c.carryCapacity), target_selection_policy_1.TargetSelectionPolicy.distance);
 const fillSpawnOrExtension = new creep_1.CreepJob('fillSpawn', '#ffffff', 'fill:spawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => data_1.data.of(c.room).extensionOrSpawns.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
 const fillTower = new creep_1.CreepJob('fillTower', '#ffffff', 'fill:tower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy === 0 || t.energy === t.energyCapacity, c => data_1.data.of(c.room).towers.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
-const fillCreeps = new creep_1.CreepJob('fillCreep', '#ee00aa', 'fill:creep', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) === t.carryCapacity), c => data_1.data.of(c.room).fillableCreeps.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac));
+const fillCreeps = new creep_1.CreepJob('fillCreep', '#ee00aa', 'fill:creep', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) > t.carryCapacity * 0.75), c => data_1.data.of(c.room).fillableCreeps.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac));
 const fillStorage = new creep_1.CreepJob('fillStorage', 'af1277', 'fill:storage', (c, t) => c.transfer(t, RESOURCE_ENERGY, (c.carry.energy || 0) - c.carryCapacity * 0.5), (c, t) => !!t && ((c.carry.energy || 0) <= c.carryCapacity * 0.5 || t.storeCapacity === t.store.energy), c => c.room.storage ? [c.room.storage] : [], target_selection_policy_1.TargetSelectionPolicy.inOrder);
 const idleFill = new creep_1.CreepJob('idlefill', '#ffaa00', 'idle', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > c.carryCapacity * 0.5 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containers.get().filter(s => s.store[RESOURCE_ENERGY] > 0), targets => targets.sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY]));
 

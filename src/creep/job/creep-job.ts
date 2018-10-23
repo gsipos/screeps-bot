@@ -2,7 +2,7 @@ import { profiler } from "../../telemetry/profiler";
 import { creepMovement } from "../creep.movement";
 import { data } from "../../data/data";
 import { TargetSelectionPolicyFunction } from "./target-selection-policy";
-import { notNullOrUndefined, fails } from "../../util";
+import { notNullOrUndefined, fails, succeeds } from "../../util";
 import { NeighbourInfo } from "../../room/geographer";
 
 type CreepAction<T = any> = (creep: Creep, target: T) => number;
@@ -132,7 +132,7 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
       this.finishJob(creep, room);
       return;
     }
-    if (this.jobDone(creep, room)) {
+    if (!this.onBorder(creep) && this.jobDone(creep, room)) {
       this.finishJob(creep, room);
       return;
     }
@@ -143,13 +143,17 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
   }
 
   private isInRoom(creep: Creep, room: string) {
+    return creep.room.name === room && !this.onBorder(creep);
+  }
+
+  private onBorder(creep: Creep) {
     const onBorder = [
       creep.pos.x === 0,
       creep.pos.x === 49,
       creep.pos.y === 0,
       creep.pos.y === 49,
     ]
-    return creep.room.name === room && onBorder.every(fails);
+    return onBorder.some(succeeds);
   }
 
   public assignJob(creep: Creep) {
