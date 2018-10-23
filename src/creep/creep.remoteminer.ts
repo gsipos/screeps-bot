@@ -73,7 +73,7 @@ const explore = new MoveToRoomCreepJob(
   "miner_explore",
   "#ffffff",
   "explore",
-  (c, t) => hasEnergy(c),
+  (c, t) => !atHome(c),
   c =>
     data
       .of(c.room)
