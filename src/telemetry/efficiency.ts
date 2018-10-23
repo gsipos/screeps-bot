@@ -3,6 +3,7 @@ import { stats } from "./statistics";
 import { Profile, profiler } from "./profiler";
 import { forEachRoom, RoomProvider, sumReducer, averageOf } from "../util";
 import { RollingAverageComputed } from "../data/cache/rolling-avg-computed";
+import { CreepRole } from "../creep/roles";
 
 export class RoomEfficiency {
   constructor(private room: Room) {}
@@ -91,7 +92,7 @@ export class Efficiency {
     forEachRoom(room => {
       const efficiency = this.roomEfficiencyProvider.of(room);
       this.report(efficiency.containerUsage.get(), "container", room);
-      this.report(efficiency.carryUtilization.get(), "carry", room);
+      this.report(efficiency.carryUtilization.get(), CreepRole.CARRY, room);
       this.report(efficiency.sourceMining.get(), "source", room);
       this.report(efficiency.spawnEnergy.get(), "spawn", room);
 

@@ -4,6 +4,7 @@ import { forEachRoom, sumReducer } from "./util";
 import { needMoreCarryCreep } from "./decisions/spawn-carry-creep";
 import { needMoreHarasserCreep } from "./decisions/spawn-harasser-creep";
 import { needMoreRemoteMinerCreep } from "./decisions/spawn-remote-miner-creep";
+import { CreepRole } from "./creep/roles";
 
 const mapToCost = (p: string) => BODYPART_COST[p];
 
@@ -17,45 +18,45 @@ export class CreepType {
 class MinerCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(WORK);
     }
     body.push(CARRY);
     body.push(MOVE);
-    super("miner", body);
+    super(CreepRole.MINER, body);
   }
 }
 
 class CarryCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(CARRY);
       body.push(MOVE);
     }
-    super("carry", body);
+    super(CreepRole.CARRY, body);
   }
 }
 
 class GeneralCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(WORK);
       body.push(CARRY);
       body.push(MOVE);
     }
-    super("general", body);
+    super(CreepRole.GENERAL, body);
   }
 }
 
 class HarasserCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
-    for (let i = 0; i < lvl; i++) {
+    for (let i = 0; i <= lvl; i++) {
       body.push(i % 2 ? ATTACK : TOUGH, MOVE);
     }
-    super("harasser", body);
+    super(CreepRole.HARASSER, body);
   }
 }
 
@@ -65,7 +66,7 @@ class RemoteMiner extends CreepType {
     for (let i = 0; i < lvl; i++) {
       body.push(i % 2 ? TOUGH : WORK, MOVE);
     }
-    super("remoteMiner", body);
+    super(CreepRole.REMOTEMINER, body);
   }
 }
 
@@ -80,15 +81,15 @@ export class SpawnManager {
     .reverse()
     .map(lvl => new MinerCreep(lvl));
 
-  private carryCreepTypes = [...Array(14).keys()]
+  private carryCreepTypes = [...Array(10).keys()]
     .reverse()
     .map(lvl => new CarryCreep(lvl));
 
-  private harrasserCreepTypes = [...Array(25).keys()]
+  private harrasserCreepTypes = [...Array(14).keys()]
     .reverse()
     .map(lvl => new HarasserCreep(lvl));
 
-  private remoteMinerCreepTypes = [...Array(25).keys()]
+  private remoteMinerCreepTypes = [...Array(10).keys()]
     .reverse()
     .map(lvl => new RemoteMiner(lvl));
 
@@ -116,7 +117,6 @@ export class SpawnManager {
       }
       if (needMoreCarryCreep.of(room).get()) {
         spawnables.push(this.carryCreepTypes);
-        needMoreCarryCreep.of(room).clear();
         roomData.carryCreeps.clear();
       }
       if (roomData.generalCreeps.get().length < this.generalCreepCount) {
@@ -125,7 +125,6 @@ export class SpawnManager {
       }
       if (needMoreHarasserCreep.of(room).get()) {
         spawnables.push(this.harrasserCreepTypes);
-        needMoreHarasserCreep.of(room).clear();
       }
       if (needMoreRemoteMinerCreep.of(room).get()) {
         //spawnables.push(this.remoteMinerCreepTypes);
