@@ -1275,7 +1275,7 @@ class SpawnManager {
     this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
     this.carryCreepTypes = [...Array(10).keys()].reverse().map(lvl => new CarryCreep(lvl));
     this.harrasserCreepTypes = [...Array(14).keys()].reverse().map(lvl => new HarasserCreep(lvl));
-    this.remoteMinerCreepTypes = [...Array(10).keys()].reverse().map(lvl => new RemoteMiner(lvl));
+    this.remoteMinerCreepTypes = [...Array(5).keys()].reverse().map(lvl => new RemoteMiner(lvl));
 
     this.notSpawning = s => !s.spawning;
   }
