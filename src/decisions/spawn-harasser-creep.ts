@@ -10,7 +10,7 @@ export const needMoreHarasserCreep = new RoomProvider(
     const hardLimits = [
       data.harasserCreeps.get().length < 5,
       telemetry.spawnEnergy.get() > 0.75,
-      telemetry.storageEnergy.get() > 0.3
+      telemetry.storageEnergy.get() > 0.1
     ];
 
     const softRequirements = [

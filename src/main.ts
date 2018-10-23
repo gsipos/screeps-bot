@@ -35,7 +35,7 @@ export const loop = function() {
   minerCreepManager.loop();
   carryCreepManager.loop();
   harasserCreepManager.loop();
-  // remoteMinerCreepManager.loop();
+  remoteMinerCreepManager.loop();
   creepManager.loop();
 
   messaging.loop();

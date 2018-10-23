@@ -65,6 +65,7 @@ class RemoteMiner extends CreepType {
     const body = [];
     for (let i = 0; i < lvl; i++) {
       body.push(i % 2 ? TOUGH : WORK, MOVE);
+      body.push(CARRY, MOVE);
     }
     super(CreepRole.REMOTEMINER, body);
   }
@@ -127,8 +128,8 @@ export class SpawnManager {
         spawnables.push(this.harrasserCreepTypes);
       }
       if (needMoreRemoteMinerCreep.of(room).get()) {
-        //spawnables.push(this.remoteMinerCreepTypes);
-        //needMoreRemoteMinerCreep.of(room).clear();
+        spawnables.push(this.remoteMinerCreepTypes);
+        needMoreRemoteMinerCreep.of(room).clear();
       }
       availableSpawns.forEach(spawn => {
         const types = spawnables.shift();
