@@ -123,6 +123,7 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
     public name: string,
     public color: string,
     private say: string,
+    private jobPredicate: CreepJobDone<string>,
     private jobDone: CreepJobDone<string>,
     private possibleTargets: CreepJobPossibleTargets<string>,
     private targetSelectionPolicy: TargetSelectionPolicyFunction<string>
@@ -160,10 +161,9 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
   }
 
   public assignJob(creep: Creep) {
-    const rooms = this.targetSelectionPolicy(
-      this.possibleTargets(creep),
-      creep
-    ).filter(room => (creep.room.name === room));
+    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep)
+      .filter(room => creep.room.name !== room)
+      .filter(room => this.jobPredicate(creep, room));
     if (rooms.length) {
       const room = rooms[0];
       creep.memory.job = this.name;
@@ -172,6 +172,7 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
       data.registerCreepJob(creep);
       return true;
     } else {
+      console.log(`No ${this.name} for ${creep.memory.role} among ${this.possibleTargets(creep)} targets`);
       return false;
     }
   }

@@ -1,11 +1,11 @@
 import { creepManager } from "./creep";
 import { data } from "../data/data";
 import { MoveToRoomCreepJob, CreepJob } from "./job/creep-job";
-import { hostileCreepsInRoom } from "./creep.harasser";
 import { TargetSelectionPolicy } from "./job/target-selection-policy";
 import { toName, succeeds } from "../util";
 import { Profile } from "../telemetry/profiler";
 import { geographer } from "../room/geographer";
+import { hostileCreepsInRoom } from "./creep.harasser";
 
 // moveToAnother room
 // find source
@@ -14,7 +14,7 @@ import { geographer } from "../room/geographer";
 // go back
 // fill source
 
-const hasEnergy = (c: Creep) => (c.carry.energy || 0) > 0;
+const hasEnergy = (c: Creep) => (c.carry.energy || 0) !== 0;
 const fullOfEnergy = (c: Creep) =>
   (c.carry.energy || 0) === (c.carryCapacity || 0);
 const atHome = (c: Creep) => c.room.name === c.memory.home;
@@ -24,7 +24,8 @@ const findRemoteSource = new MoveToRoomCreepJob(
   "findRemoteSource",
   "#ffffff",
   "remote",
-  c => hasEnergy(c),
+  c => atHome(c),
+  hostileCreepsInRoom,
   c =>
     data
       .of(c.room)
@@ -54,7 +55,8 @@ const goHome = new MoveToRoomCreepJob(
   "moveHome",
   "#ffffff",
   "Home",
-  c => !hasEnergy(c),
+  c => !atHome(c),
+  c => false,
   c => [c.memory.home],
   TargetSelectionPolicy.inOrder
 );
@@ -73,7 +75,8 @@ const explore = new MoveToRoomCreepJob(
   "miner_explore",
   "#ffffff",
   "explore",
-  (c, t) => !atHome(c),
+  c => atHome(c),
+  c => false,
   c =>
     data
       .of(c.room)
@@ -85,10 +88,10 @@ const explore = new MoveToRoomCreepJob(
 class RemoteMinerCreepManager {
   public remoteMinerJobs = [
     fillStorage,
-    findRemoteSource,
     harvest,
-    goHome,
-    explore
+    findRemoteSource,
+    explore,
+    goHome
   ];
 
   @Profile("RemoteMiner")

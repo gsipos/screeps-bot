@@ -1913,11 +1913,12 @@ class CreepJob extends BaseCreepJob {
 exports.CreepJob = CreepJob;
 
 class MoveToRoomCreepJob extends BaseCreepJob {
-  constructor(name, color, say, jobDone, possibleTargets, targetSelectionPolicy) {
+  constructor(name, color, say, jobPredicate, jobDone, possibleTargets, targetSelectionPolicy) {
     super();
     this.name = name;
     this.color = color;
     this.say = say;
+    this.jobPredicate = jobPredicate;
     this.jobDone = jobDone;
     this.possibleTargets = possibleTargets;
     this.targetSelectionPolicy = targetSelectionPolicy;
@@ -1952,7 +1953,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   assignJob(creep) {
-    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep).filter(room => creep.room.name === room);
+    const rooms = this.targetSelectionPolicy(this.possibleTargets(creep), creep).filter(room => creep.room.name !== room).filter(room => this.jobPredicate(creep, room));
 
     if (rooms.length) {
       const room = rooms[0];
@@ -1962,6 +1963,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
       data_1.data.registerCreepJob(creep);
       return true;
     } else {
+      console.log(`No ${this.name} for ${creep.memory.role} among ${this.possibleTargets(creep)} targets`);
       return false;
     }
   }
@@ -2288,10 +2290,10 @@ exports.hostileCreepsInRoom = c => !!data_1.data.of(c.room).hostileCreeps.get().
 const attackLocalEnemyCreeps = attack("attackLocalEnemyCreeps", c => data_1.data.of(c.room).hostileCreeps.get());
 const attackLocalEnemyTowers = attack("attackLocalEnemyTowers", c => data_1.data.of(c.room).hostileTowers.get());
 const attackLocalEnemyStructures = attack("attackLocalEnemyStructures", c => data_1.data.of(c.room).hostileStructures.get());
-const exploreUnchartedTerritories = new creep_job_1.MoveToRoomCreepJob("exploreUnchartedTerritories", "#ffffff", "Explore", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED").map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
-const goToUndefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToUndefendedKnownEnemy", "#ffffff", "-> Attack", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
-const goToDefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToDefendedKnownEnemy", "#ffffff", "-> Attack", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const wanderAround = new creep_job_1.MoveToRoomCreepJob("wanderAround", "#ffffff", "wandering", exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const exploreUnchartedTerritories = new creep_job_1.MoveToRoomCreepJob("exploreUnchartedTerritories", "#ffffff", "Explore", c => true, exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "UNCHARTED").map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const goToUndefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToUndefendedKnownEnemy", "#ffffff", "-> Attack", c => true, exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && !n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const goToDefendedKnownEnemy = new creep_job_1.MoveToRoomCreepJob("goToDefendedKnownEnemy", "#ffffff", "-> Attack", c => true, exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(n => n.type === "CHARTED" && n.info.enemyActivity && n.info.enemyTowers).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const wanderAround = new creep_job_1.MoveToRoomCreepJob("wanderAround", "#ffffff", "wandering", c => true, exports.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
 
 class HarasserCreepManager {
   constructor() {
@@ -2338,7 +2340,9 @@ const target_selection_policy_1 = require("./job/target-selection-policy");
 
 const util_1 = require("../util");
 
-const profiler_1 = require("../telemetry/profiler"); // moveToAnother room
+const profiler_1 = require("../telemetry/profiler");
+
+const creep_harasser_1 = require("./creep.harasser"); // moveToAnother room
 // find source
 // harvest
 // flee from enemy
@@ -2346,7 +2350,7 @@ const profiler_1 = require("../telemetry/profiler"); // moveToAnother room
 // fill source
 
 
-const hasEnergy = c => (c.carry.energy || 0) > 0;
+const hasEnergy = c => (c.carry.energy || 0) !== 0;
 
 const fullOfEnergy = c => (c.carry.energy || 0) === (c.carryCapacity || 0);
 
@@ -2354,15 +2358,15 @@ const atHome = c => c.room.name === c.memory.home;
 
 const inOwnedRoom = c => !!c.room.controller && c.room.controller.my;
 
-const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", "#ffffff", "remote", c => hasEnergy(c), c => data_1.data.of(c.room).neighbourRooms.get().filter(r => r.type === "CHARTED" && !r.info.enemyActivity && !!r.info.sources && !r.info.my).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", "#ffffff", "remote", c => atHome(c), creep_harasser_1.hostileCreepsInRoom, c => data_1.data.of(c.room).neighbourRooms.get().filter(r => r.type === "CHARTED" && !r.info.enemyActivity && !!r.info.sources && !r.info.my).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
 const harvest = new creep_job_1.CreepJob("remoteHarvest", "#ffffff", "Harvest", (c, t) => c.harvest(t), (c, t) => [atHome(c), fullOfEnergy(c)].some(util_1.succeeds), c => data_1.data.of(c.room).sources.get(), target_selection_policy_1.TargetSelectionPolicy.distance);
-const goHome = new creep_job_1.MoveToRoomCreepJob("moveHome", "#ffffff", "Home", c => !hasEnergy(c), c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const goHome = new creep_job_1.MoveToRoomCreepJob("moveHome", "#ffffff", "Home", c => !atHome(c), c => false, c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
 const fillStorage = new creep_job_1.CreepJob("fillStorage", "#ffffff", "Fill", (c, t) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity), c => !atHome(c) || !hasEnergy(c), c => [c.room.storage], target_selection_policy_1.TargetSelectionPolicy.inOrder);
-const explore = new creep_job_1.MoveToRoomCreepJob("miner_explore", "#ffffff", "explore", (c, t) => !atHome(c), c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const explore = new creep_job_1.MoveToRoomCreepJob("miner_explore", "#ffffff", "explore", c => atHome(c), c => false, c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
 
 class RemoteMinerCreepManager {
   constructor() {
-    this.remoteMinerJobs = [fillStorage, findRemoteSource, harvest, goHome, explore];
+    this.remoteMinerJobs = [fillStorage, harvest, findRemoteSource, explore, goHome];
 
     this.processCreep = c => creep_1.creepManager.processCreep(c, this.remoteMinerJobs);
   }
@@ -2380,7 +2384,7 @@ class RemoteMinerCreepManager {
 __decorate([profiler_1.Profile("RemoteMiner")], RemoteMinerCreepManager.prototype, "loop", null);
 
 exports.remoteMinerCreepManager = new RemoteMinerCreepManager();
-},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
+},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431","./creep.harasser":"cUlm"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

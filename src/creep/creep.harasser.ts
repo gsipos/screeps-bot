@@ -35,6 +35,7 @@ const exploreUnchartedTerritories = new MoveToRoomCreepJob(
   "exploreUnchartedTerritories",
   "#ffffff",
   "Explore",
+  c => true,
   hostileCreepsInRoom,
   c =>
     data
@@ -49,6 +50,7 @@ const goToUndefendedKnownEnemy = new MoveToRoomCreepJob(
   "goToUndefendedKnownEnemy",
   "#ffffff",
   "-> Attack",
+  c => true,
   hostileCreepsInRoom,
   c =>
     data
@@ -65,6 +67,7 @@ const goToDefendedKnownEnemy = new MoveToRoomCreepJob(
   "goToDefendedKnownEnemy",
   "#ffffff",
   "-> Attack",
+  c => true,
   hostileCreepsInRoom,
   c =>
     data
@@ -81,6 +84,7 @@ const wanderAround = new MoveToRoomCreepJob(
   "wanderAround",
   "#ffffff",
   "wandering",
+  c => true,
   hostileCreepsInRoom,
   c =>
     data
