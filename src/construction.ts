@@ -1,6 +1,7 @@
 import { roomManager } from "./room";
 import { data } from "./data/data";
 import { Profile } from "./telemetry/profiler";
+import { myRoom } from "./util";
 
 interface HasMemory {
   memory: any;
@@ -16,6 +17,9 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room: Room) {
+    if (!myRoom(room)) {
+      return;
+    }
     const roomData = data.of(room);
     const containers = roomData.containers.get();
     const containersUnderConstruction = roomData.containerConstructions.get();

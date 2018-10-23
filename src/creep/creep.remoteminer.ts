@@ -3,8 +3,9 @@ import { data } from "../data/data";
 import { MoveToRoomCreepJob, CreepJob } from "./job/creep-job";
 import { hostileCreepsInRoom } from "./creep.harasser";
 import { TargetSelectionPolicy } from "./job/target-selection-policy";
-import { toName } from "../util";
+import { toName, succeeds } from "../util";
 import { Profile } from "../telemetry/profiler";
+import { geographer } from "../room/geographer";
 
 // moveToAnother room
 // find source
@@ -13,58 +14,81 @@ import { Profile } from "../telemetry/profiler";
 // go back
 // fill source
 
+const hasEnergy = (c: Creep) => (c.carry.energy || 0) > 0;
+const fullOfEnergy = (c: Creep) =>
+  (c.carry.energy || 0) === (c.carryCapacity || 0);
+const atHome = (c: Creep) => c.room.name === c.memory.home;
+const inOwnedRoom = (c: Creep) => !!c.room.controller && c.room.controller.my;
+
 const findRemoteSource = new MoveToRoomCreepJob(
   "findRemoteSource",
   "#ffffff",
   "remote",
-  hostileCreepsInRoom,
+  c => hasEnergy(c),
   c =>
     data
       .of(c.room)
       .neighbourRooms.get()
       .filter(
-        r => r.type === "CHARTED" && !r.info.enemyActivity && r.info.sources
+        r =>
+          r.type === "CHARTED" &&
+          !r.info.enemyActivity &&
+          !!r.info.sources &&
+          !r.info.my
       )
       .map(toName),
-  TargetSelectionPolicy.inOrder
+  TargetSelectionPolicy.random
 );
 
 const harvest = new CreepJob(
   "remoteHarvest",
-  '#ffffff',
-  'Harvest',
+  "#ffffff",
+  "Harvest",
   (c, t) => c.harvest(t),
-  (c, t: Source) => c.carry.energy === c.carryCapacity || t.energy === 0 || hostileCreepsInRoom(c),
+  (c, t: Source) => [atHome(c), fullOfEnergy(c)].some(succeeds),
   c => data.of(c.room).sources.get(),
   TargetSelectionPolicy.distance
 );
 
 const goHome = new MoveToRoomCreepJob(
-  'moveHome',
-  '#ffffff',
-  'Home',
-  () => false,
+  "moveHome",
+  "#ffffff",
+  "Home",
+  c => !hasEnergy(c),
   c => [c.memory.home],
   TargetSelectionPolicy.inOrder
-)
+);
 
 const fillStorage = new CreepJob(
-  'fillStorage',
-  '#ffffff',
-  'Fill',
-  (c,t: StructureStorage) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity),
-  (c) => c.carry.energy === 0,
+  "fillStorage",
+  "#ffffff",
+  "Fill",
+  (c, t: StructureStorage) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity),
+  c => !atHome(c) || !hasEnergy(c),
   c => [c.room.storage],
   TargetSelectionPolicy.inOrder
-)
+);
 
+const explore = new MoveToRoomCreepJob(
+  "miner_explore",
+  "#ffffff",
+  "explore",
+  (c, t) => hasEnergy(c),
+  c =>
+    data
+      .of(c.room)
+      .neighbourRooms.get()
+      .map(toName),
+  TargetSelectionPolicy.inOrder
+);
 
 class RemoteMinerCreepManager {
   public remoteMinerJobs = [
     fillStorage,
     findRemoteSource,
     harvest,
-    goHome
+    goHome,
+    explore
   ];
 
   @Profile("RemoteMiner")
@@ -72,7 +96,7 @@ class RemoteMinerCreepManager {
     try {
       data.remoteMinerCreeps.get().forEach(this.processCreep);
     } catch (error) {
-      console.log('Error in RemoteMiners', error);
+      console.log("Error in RemoteMiners", error);
     }
   }
 

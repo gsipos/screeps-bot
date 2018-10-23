@@ -306,6 +306,8 @@ exports.toArray = obj => (Object.keys(obj) || []).map(key => obj[key]);
 exports.notNullOrUndefined = a => !!a;
 
 exports.toName = a => a.name;
+
+exports.myRoom = r => !!r.controller && r.controller.my;
 },{}],"VhlO":[function(require,module,exports) {
 "use strict";
 
@@ -1129,7 +1131,7 @@ const data_1 = require("../data/data");
 
 exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, () => {
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
-  const hardLimits = [data_1.data.harasserCreeps.get().length < 5, telemetry.spawnEnergy.get() > 0.75, telemetry.storageEnergy.get() > 0.3];
+  const hardLimits = [data_1.data.harasserCreeps.get().length < 5, telemetry.spawnEnergy.get() > 0.75, telemetry.storageEnergy.get() > 0.1];
   const softRequirements = [data_1.data.of(room).hostileCreeps.get().length > 0, telemetry.towerEnergy.average() > 0.75, telemetry.spawnEnergy.average() > 0.75];
   return hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.succeeds).length > 1;
 }));
@@ -1258,6 +1260,7 @@ class RemoteMiner extends CreepType {
 
     for (let i = 0; i < lvl; i++) {
       body.push(i % 2 ? TOUGH : WORK, MOVE);
+      body.push(CARRY, MOVE);
     }
 
     super(roles_1.CreepRole.REMOTEMINER, body);
@@ -1311,8 +1314,9 @@ class SpawnManager {
         spawnables.push(this.harrasserCreepTypes);
       }
 
-      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {//spawnables.push(this.remoteMinerCreepTypes);
-        //needMoreRemoteMinerCreep.of(room).clear();
+      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {
+        spawnables.push(this.remoteMinerCreepTypes);
+        spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).clear();
       }
 
       availableSpawns.forEach(spawn => {
@@ -1438,6 +1442,8 @@ const data_1 = require("./data/data");
 
 const profiler_1 = require("./telemetry/profiler");
 
+const util_1 = require("./util");
+
 class ConstructionManager {
   constructor() {
     this.memorySource = item => item.memory.source;
@@ -1453,6 +1459,10 @@ class ConstructionManager {
   }
 
   buildMiningContainers(room) {
+    if (!util_1.myRoom(room)) {
+      return;
+    }
+
     const roomData = data_1.data.of(room);
     const containers = roomData.containers.get();
     const containersUnderConstruction = roomData.containerConstructions.get();
@@ -1497,7 +1507,7 @@ class ConstructionManager {
 __decorate([profiler_1.Profile("Construction")], ConstructionManager.prototype, "loop", null);
 
 exports.constructionManager = new ConstructionManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431"}],"k11/":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf"}],"k11/":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1921,7 +1931,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
       return;
     }
 
-    if (this.jobDone(creep, room)) {
+    if (!this.onBorder(creep) && this.jobDone(creep, room)) {
       this.finishJob(creep, room);
       return;
     }
@@ -1933,8 +1943,12 @@ class MoveToRoomCreepJob extends BaseCreepJob {
   }
 
   isInRoom(creep, room) {
+    return creep.room.name === room && !this.onBorder(creep);
+  }
+
+  onBorder(creep) {
     const onBorder = [creep.pos.x === 0, creep.pos.x === 49, creep.pos.y === 0, creep.pos.y === 49];
-    return creep.room.name === room && onBorder.every(util_1.fails);
+    return onBorder.some(util_1.succeeds);
   }
 
   assignJob(creep) {
@@ -2158,7 +2172,7 @@ const sumCreepEnergy = creeps => creeps.map(c => c.carry.energy || 0).reduce(uti
 const energy = new creep_1.CreepJob('energy', '#ffaa00', 'energy', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containerOrStorage.get().filter(s => (s.store[RESOURCE_ENERGY] || 0) > c.carryCapacity), target_selection_policy_1.TargetSelectionPolicy.distance);
 const fillSpawnOrExtension = new creep_1.CreepJob('fillSpawn', '#ffffff', 'fill:spawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => data_1.data.of(c.room).extensionOrSpawns.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
 const fillTower = new creep_1.CreepJob('fillTower', '#ffffff', 'fill:tower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy === 0 || t.energy === t.energyCapacity, c => data_1.data.of(c.room).towers.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
-const fillCreeps = new creep_1.CreepJob('fillCreep', '#ee00aa', 'fill:creep', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) === t.carryCapacity), c => data_1.data.of(c.room).fillableCreeps.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac));
+const fillCreeps = new creep_1.CreepJob('fillCreep', '#ee00aa', 'fill:creep', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) > t.carryCapacity * 0.75), c => data_1.data.of(c.room).fillableCreeps.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac));
 const fillStorage = new creep_1.CreepJob('fillStorage', 'af1277', 'fill:storage', (c, t) => c.transfer(t, RESOURCE_ENERGY, (c.carry.energy || 0) - c.carryCapacity * 0.5), (c, t) => !!t && ((c.carry.energy || 0) <= c.carryCapacity * 0.5 || t.storeCapacity === t.store.energy), c => c.room.storage ? [c.room.storage] : [], target_selection_policy_1.TargetSelectionPolicy.inOrder);
 const idleFill = new creep_1.CreepJob('idlefill', '#ffaa00', 'idle', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > c.carryCapacity * 0.5 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containers.get().filter(s => s.store[RESOURCE_ENERGY] > 0), targets => targets.sort((a, b) => b.store[RESOURCE_ENERGY] - a.store[RESOURCE_ENERGY]));
 
@@ -2299,7 +2313,74 @@ class HarasserCreepManager {
 __decorate([profiler_1.Profile("Harasser")], HarasserCreepManager.prototype, "loop", null);
 
 exports.harasserCreepManager = new HarasserCreepManager();
-},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"ZCfc":[function(require,module,exports) {
+},{"../data/data":"LiCI","./creep":"o7HM","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","./job/creep-job":"fh7I","../util":"BHXf"}],"UET0":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const creep_1 = require("./creep");
+
+const data_1 = require("../data/data");
+
+const creep_job_1 = require("./job/creep-job");
+
+const target_selection_policy_1 = require("./job/target-selection-policy");
+
+const util_1 = require("../util");
+
+const profiler_1 = require("../telemetry/profiler"); // moveToAnother room
+// find source
+// harvest
+// flee from enemy
+// go back
+// fill source
+
+
+const hasEnergy = c => (c.carry.energy || 0) > 0;
+
+const fullOfEnergy = c => (c.carry.energy || 0) === (c.carryCapacity || 0);
+
+const atHome = c => c.room.name === c.memory.home;
+
+const inOwnedRoom = c => !!c.room.controller && c.room.controller.my;
+
+const findRemoteSource = new creep_job_1.MoveToRoomCreepJob("findRemoteSource", "#ffffff", "remote", c => hasEnergy(c), c => data_1.data.of(c.room).neighbourRooms.get().filter(r => r.type === "CHARTED" && !r.info.enemyActivity && !!r.info.sources && !r.info.my).map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.random);
+const harvest = new creep_job_1.CreepJob("remoteHarvest", "#ffffff", "Harvest", (c, t) => c.harvest(t), (c, t) => [atHome(c), fullOfEnergy(c)].some(util_1.succeeds), c => data_1.data.of(c.room).sources.get(), target_selection_policy_1.TargetSelectionPolicy.distance);
+const goHome = new creep_job_1.MoveToRoomCreepJob("moveHome", "#ffffff", "Home", c => !hasEnergy(c), c => [c.memory.home], target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const fillStorage = new creep_job_1.CreepJob("fillStorage", "#ffffff", "Fill", (c, t) => c.transfer(t, RESOURCE_ENERGY, c.carryCapacity), c => !atHome(c) || !hasEnergy(c), c => [c.room.storage], target_selection_policy_1.TargetSelectionPolicy.inOrder);
+const explore = new creep_job_1.MoveToRoomCreepJob("miner_explore", "#ffffff", "explore", (c, t) => hasEnergy(c), c => data_1.data.of(c.room).neighbourRooms.get().map(util_1.toName), target_selection_policy_1.TargetSelectionPolicy.inOrder);
+
+class RemoteMinerCreepManager {
+  constructor() {
+    this.remoteMinerJobs = [fillStorage, findRemoteSource, harvest, goHome, explore];
+
+    this.processCreep = c => creep_1.creepManager.processCreep(c, this.remoteMinerJobs);
+  }
+
+  loop() {
+    try {
+      data_1.data.remoteMinerCreeps.get().forEach(this.processCreep);
+    } catch (error) {
+      console.log("Error in RemoteMiners", error);
+    }
+  }
+
+}
+
+__decorate([profiler_1.Profile("RemoteMiner")], RemoteMinerCreepManager.prototype, "loop", null);
+
+exports.remoteMinerCreepManager = new RemoteMinerCreepManager();
+},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2336,6 +2417,8 @@ const geographer_1 = require("./room/geographer");
 
 const creep_harasser_1 = require("./creep/creep.harasser");
 
+const creep_remoteminer_1 = require("./creep/creep.remoteminer");
+
 exports.loop = function () {
   profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -2355,8 +2438,8 @@ exports.loop = function () {
   tower_1.towerManager.loop();
   creep_miner_1.minerCreepManager.loop();
   creep_carry_1.carryCreepManager.loop();
-  creep_harasser_1.harasserCreepManager.loop(); // remoteMinerCreepManager.loop();
-
+  creep_harasser_1.harasserCreepManager.loop();
+  creep_remoteminer_1.remoteMinerCreepManager.loop();
   creep_1.creepManager.loop();
   messaging_1.messaging.loop();
   creep_movement_1.creepMovement.loop();
@@ -2365,4 +2448,4 @@ exports.loop = function () {
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0"}]},{},["ZCfc"], null)

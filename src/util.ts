@@ -76,3 +76,5 @@ export const toArray = <T>(obj: Record<string, T>) =>
 export const notNullOrUndefined = (a: any) => !!a;
 
 export const toName = (a: { name: string }) => a.name;
+
+export const myRoom = (r: Room) => !!r.controller && r.controller.my;
