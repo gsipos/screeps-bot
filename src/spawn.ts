@@ -54,7 +54,7 @@ class HarasserCreep extends CreepType {
   constructor(lvl: number) {
     const body = [];
     for (let i = 0; i <= lvl; i++) {
-      body.push(i % 2 ? ATTACK : TOUGH, MOVE);
+      body.push(ATTACK, MOVE);
     }
     super(CreepRole.HARASSER, body);
   }
@@ -64,7 +64,7 @@ class RemoteMiner extends CreepType {
   constructor(lvl: number) {
     const body = [];
     for (let i = 0; i < lvl; i++) {
-      body.push(i % 2 ? TOUGH : WORK, MOVE);
+      body.push(i % 2 ? CARRY : WORK, MOVE);
       body.push(CARRY, MOVE);
     }
     super(CreepRole.REMOTEMINER, body);
