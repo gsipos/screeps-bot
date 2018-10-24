@@ -14,6 +14,7 @@ import { reporter } from "./telemetry/reporter";
 import { geographer } from "./room/geographer";
 import { harasserCreepManager } from "./creep/creep.harasser";
 import { remoteMinerCreepManager } from "./creep/creep.remoteminer";
+import { roomPlanner } from "./construction/room-planner";
 
 export const loop = function() {
   profiler.trackMethod("Game::Start", Game.cpu.getUsed());
@@ -27,8 +28,10 @@ export const loop = function() {
   }
 
   roomManager.initRooms();
+  roomPlanner.loop();
   geographer.loop();
   constructionManager.loop();
+
   spawnManager.loop();
   towerManager.loop();
 

@@ -367,6 +367,8 @@ class RoomQueries {
 
     this.spawns = () => this.findMy(STRUCTURE_SPAWN);
 
+    this.constructions = () => this.room.find(FIND_MY_CONSTRUCTION_SITES);
+
     this.containers = () => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]);
 
     this.containerOrStorage = () => !!this.room.storage ? [...this.containers(), this.room.storage] : this.containers();
@@ -829,6 +831,7 @@ class RoomData {
     this.queries = new query_1.RoomQueries(this.room);
     this.sources = new temporal_1.Temporal(this.queries.sources);
     this.spawns = new temporal_1.Temporal(this.queries.spawns);
+    this.constructions = new temporal_1.Temporal(this.queries.constructions);
     this.containers = new temporal_1.Temporal(this.queries.containers);
     this.storage = new temporal_1.Temporal(() => this.room.storage);
     this.containerOrStorage = new temporal_1.Temporal(this.queries.containerOrStorage);
@@ -2384,7 +2387,113 @@ class RemoteMinerCreepManager {
 __decorate([profiler_1.Profile("RemoteMiner")], RemoteMinerCreepManager.prototype, "loop", null);
 
 exports.remoteMinerCreepManager = new RemoteMinerCreepManager();
-},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431","./creep.harasser":"cUlm"}],"ZCfc":[function(require,module,exports) {
+},{"./creep":"o7HM","../data/data":"LiCI","./job/creep-job":"fh7I","./job/target-selection-policy":"Ph2c","../util":"BHXf","../telemetry/profiler":"m431","./creep.harasser":"cUlm"}],"qN3n":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const data_1 = require("../data/data");
+
+const profiler_1 = require("../telemetry/profiler");
+
+const up = (p, d = 1) => new RoomPosition(p.x, p.y - d, p.roomName);
+
+const down = (p, d = 1) => new RoomPosition(p.x, p.y + d, p.roomName);
+
+const left = (p, d = 1) => new RoomPosition(p.x - d, p.y, p.roomName);
+
+const right = (p, d = 1) => new RoomPosition(p.x + d, p.y, p.roomName);
+
+class RoomPlanner {
+  constructor() {
+    this.positionFreeForBuild = pos => pos.look().every(look => look.type !== LOOK_STRUCTURES && look.type === "terrain" && look.terrain !== "wall");
+
+    this.noAdjacentStructures = (p, room) => {
+      const result = room.lookForAtArea(LOOK_STRUCTURES, p.y - 1, p.x - 1, p.y + 1, p.x + 1, true);
+      return !result.length;
+    };
+
+    this.max = (name, lvl) => CONTROLLER_STRUCTURES[name][lvl];
+  }
+
+  loop() {
+    try {
+      data_1.data.rooms.get().forEach(room => this.build(room));
+    } catch (error) {
+      console.log("Roomplanner", error);
+    }
+  }
+
+  build(room) {
+    if (!room.controller || !room.controller.my) {
+      return;
+    }
+
+    const lvl = room.controller.level;
+    const spawn = data_1.data.of(room).spawns.get()[0];
+
+    if (!spawn) {
+      return;
+    }
+
+    this.buildStorage(room, lvl);
+    this.buildTower(room, lvl);
+  }
+
+  buildStorage(room, lvl) {
+    if (!this.max(STRUCTURE_STORAGE, lvl) || room.storage) {
+      return;
+    }
+
+    const hasStrorageConstruction = data_1.data.of(room).constructions.get().filter(site => site.structureType === STRUCTURE_STORAGE).length;
+
+    if (hasStrorageConstruction) {
+      return;
+    }
+
+    const spawn = data_1.data.of(room).spawns.get()[0];
+    this.buildAroundPos(STRUCTURE_STORAGE, spawn.pos, room);
+  }
+
+  buildTower(room, lvl) {
+    const towerCount = data_1.data.of(room).towers.get().length + data_1.data.of(room).constructions.get().filter(site => site.structureType === STRUCTURE_TOWER).length;
+
+    if (towerCount >= this.max(STRUCTURE_TOWER, lvl)) {
+      return;
+    }
+
+    const spawn = data_1.data.of(room).spawns.get()[0];
+    this.buildAroundPos(STRUCTURE_TOWER, spawn.pos, room);
+  }
+
+  buildAroundPos(type, pos, room) {
+    [up(pos, 2), left(pos, 2), down(pos, 2), right(pos, 2), up(left(pos, 2), 2), down(left(pos, 2), 2), down(right(pos, 2), 2), up(right(pos, 2), 2)].some(candidate => {
+      const free = this.positionFreeForBuild(candidate) && this.noAdjacentStructures(candidate, room);
+
+      if (free) {
+        candidate.createConstructionSite(type);
+      }
+
+      return free;
+    });
+  }
+
+}
+
+__decorate([profiler_1.Profile("RoomPlanner")], RoomPlanner.prototype, "loop", null);
+
+exports.roomPlanner = new RoomPlanner();
+},{"../data/data":"LiCI","../telemetry/profiler":"m431"}],"ZCfc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2423,6 +2532,8 @@ const creep_harasser_1 = require("./creep/creep.harasser");
 
 const creep_remoteminer_1 = require("./creep/creep.remoteminer");
 
+const room_planner_1 = require("./construction/room-planner");
+
 exports.loop = function () {
   profiler_1.profiler.trackMethod("Game::Start", Game.cpu.getUsed());
   profiler_1.profiler.tick();
@@ -2436,6 +2547,7 @@ exports.loop = function () {
   }
 
   room_1.roomManager.initRooms();
+  room_planner_1.roomPlanner.loop();
   geographer_1.geographer.loop();
   construction_1.constructionManager.loop();
   spawn_1.spawnManager.loop();
@@ -2452,4 +2564,4 @@ exports.loop = function () {
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0","./construction/room-planner":"qN3n"}]},{},["ZCfc"], null)
