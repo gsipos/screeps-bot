@@ -73,7 +73,7 @@ export const role = (obj: { Memory: any }) =>
 export const toArray = <T>(obj: Record<string, T>) =>
   (Object.keys(obj) || []).map(key => obj[key]);
 
-export const notNullOrUndefined = (a: any) => !!a;
+export const notNullOrUndefined = (a: any) => a !== null && a !== undefined;
 
 export const toName = (a: { name: string }) => a.name;
 

@@ -1,10 +1,10 @@
 import { RoomProvider, succeeds } from "../util";
-import { TTL } from "../data/cache/ttl";
 import { efficiency } from "../telemetry/efficiency";
 import { data } from "../data/data";
+import { Temporal } from "../data/cache/temporal";
 
 export const needMoreHarasserCreep = new RoomProvider(
-  room => new TTL(50, () => {
+  room => new Temporal(() => {
     const telemetry = efficiency.roomEfficiencyProvider.of(room);
 
     const hardLimits = [

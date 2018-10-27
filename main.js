@@ -303,7 +303,7 @@ exports.role = obj => obj.Memory.role;
 
 exports.toArray = obj => (Object.keys(obj) || []).map(key => obj[key]);
 
-exports.notNullOrUndefined = a => !!a;
+exports.notNullOrUndefined = a => a !== null && a !== undefined;
 
 exports.toName = a => a.name;
 
@@ -323,107 +323,44 @@ var CreepRole;
   CreepRole["REMOTEMINER"] = "remoteHarvester";
   CreepRole["HARASSER"] = "harasser";
 })(CreepRole = exports.CreepRole || (exports.CreepRole = {}));
-},{}],"XRK8":[function(require,module,exports) {
+},{}],"ug9a":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const util_1 = require("../util");
+class MemoryStore {
+  constructor(store) {
+    this.store = store;
 
-const roles_1 = require("../creep/roles");
+    if (!Memory[store]) {
+      Memory[store] = {};
+    }
+  }
 
-const hasMemoryRole = role => item => item.memory.role === role;
+  has(key) {
+    return !!Memory[this.store][key];
+  }
 
-const notInMemoryRole = role => item => item.memory.role !== role;
+  get(key) {
+    return Memory[this.store][key];
+  }
 
-class GameQueries {
-  constructor() {
-    this.rooms = () => util_1.toArray(Game.rooms);
+  set(key, value) {
+    Memory[this.store][key] = value;
+  }
 
-    this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
-
-    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
-
-    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
-
-    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
-
-    this.harasserCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.HARASSER));
-
-    this.remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER));
+  delete(key) {
+    if (Memory[this.store]) {
+      Memory[this.store][key] = undefined;
+    }
   }
 
 }
 
-exports.GameQueries = GameQueries;
-
-class RoomQueries {
-  constructor(room) {
-    this.room = room;
-
-    this.sources = () => this.room.find(FIND_SOURCES);
-
-    this.spawns = () => this.findMy(STRUCTURE_SPAWN);
-
-    this.constructions = () => this.room.find(FIND_MY_CONSTRUCTION_SITES);
-
-    this.containers = () => this.find(FIND_STRUCTURES, [STRUCTURE_CONTAINER]);
-
-    this.containerOrStorage = () => !!this.room.storage ? [...this.containers(), this.room.storage] : this.containers();
-
-    this.extensions = () => this.findMy(STRUCTURE_EXTENSION);
-
-    this.extensionOrSpawns = () => [...this.extensions(), ...this.spawns()];
-
-    this.towers = () => this.findMy(STRUCTURE_TOWER);
-
-    this.ramparts = () => this.findMy(STRUCTURE_RAMPART);
-
-    this.walls = () => this.find(FIND_STRUCTURES, [STRUCTURE_WALL]);
-
-    this.roads = () => this.find(FIND_STRUCTURES, [STRUCTURE_ROAD]);
-
-    this.miningFlags = () => this.room.find(FIND_FLAGS, {
-      filter: hasMemoryRole("mine")
-    } || []);
-
-    this.containerConstructions = () => this.find(FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]);
-
-    this.hostileCreeps = () => this.room.find(FIND_HOSTILE_CREEPS);
-
-    this.hostileStructures = () => this.room.find(FIND_HOSTILE_STRUCTURES);
-
-    this.hostileTowers = () => this.find(FIND_HOSTILE_STRUCTURES, [STRUCTURE_TOWER]);
-
-    this.nonDefensiveStructures = () => this.room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_WALL).filter(s => s.structureType !== STRUCTURE_RAMPART);
-
-    this.globalCreeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
-
-    this.creeps = () => this.globalCreeps().filter(c => c.room.name === this.room.name);
-
-    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
-
-    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
-
-    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
-
-    this.fillableCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
-
-    this.remoteMinerCreeps = () => this.globalCreeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER)).filter(c => c.memory.home = this.room.name);
-
-    this.find = (where, types) => this.room.find(where, {
-      filter: s => types.includes(s.structureType)
-    }) || [];
-
-    this.findMy = type => this.find(FIND_MY_STRUCTURES, [type]);
-  }
-
-}
-
-exports.RoomQueries = RoomQueries;
-},{"../util":"BHXf","../creep/roles":"VhlO"}],"m431":[function(require,module,exports) {
+exports.MemoryStore = MemoryStore;
+},{}],"m431":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -546,84 +483,7 @@ function Profile(name = "") {
 }
 
 exports.Profile = Profile;
-},{"./statistics":"KIzw"}],"zLvG":[function(require,module,exports) {
-"use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const profiler_1 = require("../../telemetry/profiler");
-
-class Temporal {
-  constructor(supplier) {
-    this.supplier = supplier;
-  }
-
-  get() {
-    if (!this.value || this.captureTime !== Game.time) {
-      this.value = profiler_1.profiler.wrap("Temporal::supplier", this.supplier);
-      this.captureTime = Game.time;
-    }
-
-    return this.value;
-  }
-
-  clear() {
-    this.value = undefined;
-  }
-
-}
-
-__decorate([profiler_1.Profile("Temporal")], Temporal.prototype, "get", null);
-
-exports.Temporal = Temporal;
-},{"../../telemetry/profiler":"m431"}],"ug9a":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-class MemoryStore {
-  constructor(store) {
-    this.store = store;
-
-    if (!Memory[store]) {
-      Memory[store] = {};
-    }
-  }
-
-  has(key) {
-    return !!Memory[this.store][key];
-  }
-
-  get(key) {
-    return Memory[this.store][key];
-  }
-
-  set(key, value) {
-    Memory[this.store][key] = value;
-  }
-
-  delete(key) {
-    if (Memory[this.store]) {
-      Memory[this.store][key] = undefined;
-    }
-  }
-
-}
-
-exports.MemoryStore = MemoryStore;
-},{}],"gAKg":[function(require,module,exports) {
+},{"./statistics":"KIzw"}],"gAKg":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -760,7 +620,163 @@ __decorate([profiler_1.Profile('Geographer')], Geographer.prototype, "loop", nul
 
 exports.Geographer = Geographer;
 exports.geographer = new Geographer();
-},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a","../util":"BHXf","../telemetry/profiler":"m431"}],"LiCI":[function(require,module,exports) {
+},{"../data/data":"LiCI","../data/memory/memory-store":"ug9a","../util":"BHXf","../telemetry/profiler":"m431"}],"XRK8":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const util_1 = require("../util");
+
+const roles_1 = require("../creep/roles");
+
+const geographer_1 = require("../room/geographer");
+
+const hasMemoryRole = role => item => item.memory.role === role;
+
+const find = (room, where, types) => room.find(where, {
+  filter: s => types.includes(s.structureType)
+}) || [];
+
+const findMy = (room, type) => find(room, FIND_MY_STRUCTURES, [type]);
+
+class GameQueries {
+  constructor() {
+    this.rooms = () => util_1.toArray(Game.rooms);
+
+    this.creeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
+
+    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
+
+    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
+
+    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
+
+    this.harasserCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.HARASSER));
+
+    this.remoteMinerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER));
+  }
+
+}
+
+exports.GameQueries = GameQueries;
+
+class RoomQueries {
+  constructor(room) {
+    this.room = room;
+
+    this.sources = () => this.room.find(FIND_SOURCES);
+
+    this.spawns = () => findMy(this.room, STRUCTURE_SPAWN);
+
+    this.constructions = () => this.room.find(FIND_MY_CONSTRUCTION_SITES);
+
+    this.containers = () => find(this.room, FIND_STRUCTURES, [STRUCTURE_CONTAINER]);
+
+    this.containerOrStorage = () => !!this.room.storage ? [...this.containers(), this.room.storage] : this.containers();
+
+    this.extensions = () => findMy(this.room, STRUCTURE_EXTENSION);
+
+    this.extensionOrSpawns = () => [...this.extensions(), ...this.spawns()];
+
+    this.towers = () => findMy(this.room, STRUCTURE_TOWER);
+
+    this.ramparts = () => findMy(this.room, STRUCTURE_RAMPART);
+
+    this.walls = () => find(this.room, FIND_STRUCTURES, [STRUCTURE_WALL]);
+
+    this.roads = () => find(this.room, FIND_STRUCTURES, [STRUCTURE_ROAD]);
+
+    this.miningFlags = () => this.room.find(FIND_FLAGS, {
+      filter: hasMemoryRole("mine")
+    } || []);
+
+    this.containerConstructions = () => find(this.room, FIND_MY_CONSTRUCTION_SITES, [STRUCTURE_CONTAINER]);
+
+    this.hostileCreeps = () => this.room.find(FIND_HOSTILE_CREEPS);
+
+    this.hostileStructures = () => this.room.find(FIND_HOSTILE_STRUCTURES);
+
+    this.hostileTowers = () => find(this.room, FIND_HOSTILE_STRUCTURES, [STRUCTURE_TOWER]);
+
+    this.nonDefensiveStructures = () => this.room.find(FIND_STRUCTURES).filter(s => s.structureType !== STRUCTURE_WALL).filter(s => s.structureType !== STRUCTURE_RAMPART);
+
+    this.globalCreeps = () => (Object.keys(Game.creeps) || []).map(n => Game.creeps[n]);
+
+    this.creeps = () => this.globalCreeps().filter(c => c.room.name === this.room.name);
+
+    this.minerCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.MINER));
+
+    this.carryCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.CARRY));
+
+    this.generalCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
+
+    this.fillableCreeps = () => this.creeps().filter(hasMemoryRole(roles_1.CreepRole.GENERAL));
+
+    this.remoteMinerCreeps = () => this.globalCreeps().filter(hasMemoryRole(roles_1.CreepRole.REMOTEMINER)).filter(c => c.memory.home = this.room.name);
+
+    this.neighbourRooms = () => geographer_1.geographer.describeNeighbours(this.room);
+  }
+
+}
+
+exports.RoomQueries = RoomQueries;
+},{"../util":"BHXf","../creep/roles":"VhlO","../room/geographer":"gAKg"}],"zLvG":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const profiler_1 = require("../../telemetry/profiler");
+
+class Temporal {
+  constructor(supplier) {
+    this.supplier = supplier;
+  }
+
+  get() {
+    if (!this.value || this.captureTime !== Game.time) {
+      this.value = profiler_1.profiler.wrap("Temporal::supplier", this.supplier);
+      this.captureTime = Game.time;
+    }
+
+    return this.value;
+  }
+
+  clear() {
+    this.value = undefined;
+  }
+
+  set(value) {
+    this.value = value;
+    this.captureTime = Game.time;
+  }
+
+}
+
+__decorate([profiler_1.Profile("Temporal")], Temporal.prototype, "get", null);
+
+exports.Temporal = Temporal;
+
+function temporalize(dataSupplier) {
+  return Object.keys(dataSupplier).reduce((supplier, key) => {
+    supplier[key] = new Temporal(dataSupplier[key]);
+    return supplier;
+  }, {});
+}
+
+exports.temporalize = temporalize;
+},{"../../telemetry/profiler":"m431"}],"LiCI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -774,8 +790,6 @@ const query_1 = require("./query");
 const temporal_1 = require("./cache/temporal");
 
 const util_1 = require("../util");
-
-const geographer_1 = require("../room/geographer");
 
 const memory_store_1 = require("./memory/memory-store");
 
@@ -806,7 +820,7 @@ class Data extends BaseData {
     this.generalCreeps = new temporal_1.Temporal(this.gameQueries.generalCreeps);
     this.harasserCreeps = new temporal_1.Temporal(this.gameQueries.harasserCreeps);
     this.remoteMinerCreeps = new temporal_1.Temporal(this.gameQueries.remoteMinerCreeps);
-    this.roomDataProvider = new util_1.RoomProvider(r => new RoomData(r));
+    this.roomDataProvider = new util_1.RoomProvider(r => temporal_1.temporalize(new query_1.RoomQueries(r)));
   }
 
   creepsByJobTarget(job, jobTarget) {
@@ -824,41 +838,6 @@ class Data extends BaseData {
   }
 
 }
-
-class RoomData {
-  constructor(room) {
-    this.room = room;
-    this.queries = new query_1.RoomQueries(this.room);
-    this.sources = new temporal_1.Temporal(this.queries.sources);
-    this.spawns = new temporal_1.Temporal(this.queries.spawns);
-    this.constructions = new temporal_1.Temporal(this.queries.constructions);
-    this.containers = new temporal_1.Temporal(this.queries.containers);
-    this.storage = new temporal_1.Temporal(() => this.room.storage);
-    this.containerOrStorage = new temporal_1.Temporal(this.queries.containerOrStorage);
-    this.extensions = new temporal_1.Temporal(this.queries.extensions);
-    this.extensionOrSpawns = new temporal_1.Temporal(this.queries.extensionOrSpawns);
-    this.towers = new temporal_1.Temporal(this.queries.towers);
-    this.ramparts = new temporal_1.Temporal(this.queries.ramparts);
-    this.walls = new temporal_1.Temporal(this.queries.walls);
-    this.roads = new temporal_1.Temporal(this.queries.roads);
-    this.miningFlags = new temporal_1.Temporal(this.queries.miningFlags);
-    this.containerConstructions = new temporal_1.Temporal(this.queries.containerConstructions);
-    this.hostileCreeps = new temporal_1.Temporal(this.queries.hostileCreeps);
-    this.hostileStructures = new temporal_1.Temporal(this.queries.hostileStructures);
-    this.hostileTowers = new temporal_1.Temporal(this.queries.hostileTowers);
-    this.nonDefensiveStructures = new temporal_1.Temporal(this.queries.nonDefensiveStructures);
-    this.creeps = new temporal_1.Temporal(this.queries.creeps);
-    this.minerCreeps = new temporal_1.Temporal(this.queries.minerCreeps);
-    this.carryCreeps = new temporal_1.Temporal(this.queries.carryCreeps);
-    this.generalCreeps = new temporal_1.Temporal(this.queries.generalCreeps);
-    this.fillableCreeps = new temporal_1.Temporal(this.queries.fillableCreeps);
-    this.remoteMinerCreeps = new temporal_1.Temporal(this.queries.remoteMinerCreeps);
-    this.neighbourRooms = new temporal_1.Temporal(() => geographer_1.geographer.describeNeighbours(this.room));
-  }
-
-}
-
-exports.RoomData = RoomData;
 
 class PathStore extends BaseData {
   constructor() {
@@ -894,63 +873,7 @@ class PathStore extends BaseData {
 
 exports.data = new Data();
 exports.pathStore = new PathStore();
-},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf","../room/geographer":"gAKg","./memory/memory-store":"ug9a"}],"75xa":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-class TTL {
-  constructor(ttl, supplier) {
-    this.ttl = ttl;
-    this.supplier = supplier;
-    this.maxAge = Game.time - 1;
-  }
-
-  get() {
-    if (this.emptyValue || this.old || this.arrayValueHasNullOrUndefinedItem) {
-      try {
-        this.value = this.supplier();
-      } catch (e) {
-        console.log("Caught in TTL", e);
-      }
-
-      this.maxAge = Game.time + this.ttl;
-      TTL.miss++;
-    } else {
-      TTL.hit++;
-    }
-
-    return this.value;
-  }
-
-  get emptyValue() {
-    return this.value === null || this.value === undefined;
-  }
-
-  get arrayValueHasNullOrUndefinedItem() {
-    if (this.value instanceof Array) {
-      return this.value.some(item => item === null || item === undefined);
-    } else {
-      return false;
-    }
-  }
-
-  get old() {
-    return Game.time > this.maxAge;
-  }
-
-  clear() {
-    this.value = undefined;
-  }
-
-}
-
-TTL.hit = 0;
-TTL.miss = 0;
-exports.TTL = TTL;
-},{}],"QSuD":[function(require,module,exports) {
+},{"../telemetry/statistics":"KIzw","./query":"XRK8","./cache/temporal":"zLvG","../util":"BHXf","./memory/memory-store":"ug9a"}],"QSuD":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1100,24 +1023,23 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const ttl_1 = require("../data/cache/ttl");
-
 const util_1 = require("../util");
 
 const efficiency_1 = require("../telemetry/efficiency");
 
 const data_1 = require("../data/data");
 
-exports.needMoreCarryCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, () => {
+const temporal_1 = require("../data/cache/temporal");
+
+exports.needMoreCarryCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
   const carryCreepCount = data_1.data.of(room).carryCreeps.get().length;
   const hardRequirements = [carryCreepCount > 1];
   const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2, telemetry.spawnEnergy.get() > 0.75];
   const softRequirements = [telemetry.carryUtilization.average() < 0.7, telemetry.containerUsage.average() < 0.4, telemetry.containerUsage.average() < 0.9, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
-  console.log('Spawn carry:', hardRequirements, hardLimits, softRequirements);
   return hardRequirements.some(util_1.fails) || hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.fails).length > 1;
 }));
-},{"../data/cache/ttl":"75xa","../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"jBn9":[function(require,module,exports) {
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"jBn9":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1126,19 +1048,19 @@ Object.defineProperty(exports, "__esModule", {
 
 const util_1 = require("../util");
 
-const ttl_1 = require("../data/cache/ttl");
-
 const efficiency_1 = require("../telemetry/efficiency");
 
 const data_1 = require("../data/data");
 
-exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new ttl_1.TTL(50, () => {
+const temporal_1 = require("../data/cache/temporal");
+
+exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
   const hardLimits = [data_1.data.harasserCreeps.get().length < 5, telemetry.spawnEnergy.get() > 0.75, telemetry.storageEnergy.get() > 0.1];
   const softRequirements = [data_1.data.of(room).hostileCreeps.get().length > 0, telemetry.towerEnergy.average() > 0.75, telemetry.spawnEnergy.average() > 0.75];
   return hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.succeeds).length > 1;
 }));
-},{"../util":"BHXf","../data/cache/ttl":"75xa","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"HdgM":[function(require,module,exports) {
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"HdgM":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1147,18 +1069,18 @@ Object.defineProperty(exports, "__esModule", {
 
 const util_1 = require("../util");
 
-const ttl_1 = require("../data/cache/ttl");
-
 const efficiency_1 = require("../telemetry/efficiency");
 
 const data_1 = require("../data/data");
 
-exports.needMoreRemoteMinerCreep = new util_1.RoomProvider(room => new ttl_1.TTL(51, () => {
+const temporal_1 = require("../data/cache/temporal");
+
+exports.needMoreRemoteMinerCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
   const hardLimits = [telemetry.spawnEnergy.get() > 0.75, telemetry.spawnEnergy.average() > 0.75, !!room.controller && room.controller.level > 3, data_1.data.of(room).remoteMinerCreeps.get().length < 3];
   return hardLimits.every(util_1.succeeds);
 }));
-},{"../util":"BHXf","../data/cache/ttl":"75xa","../telemetry/efficiency":"FSRJ","../data/data":"LiCI"}],"5vzf":[function(require,module,exports) {
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"5vzf":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -1605,208 +1527,719 @@ class TargetSelectionPolicy {
 }
 
 exports.TargetSelectionPolicy = TargetSelectionPolicy;
-},{"../../telemetry/profiler":"m431"}],"xncl":[function(require,module,exports) {
-"use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
+},{"../../telemetry/profiler":"m431"}],"YR8M":[function(require,module,exports) {
+"use strict"; // source: https://github.com/bonzaiferroni/Traveler
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+/**
+ * To start using Traveler, require it in main.js:
+ * Example: var Traveler = require('Traveler.js');
+ */
 
-const profiler_1 = require("./telemetry/profiler");
+class Traveler {
+  /**
+   * move creep to destination
+   * @param creep
+   * @param destination
+   * @param options
+   * @returns {number}
+   */
+  static travelTo(creep, destination, options = {}) {
+    // uncomment if you would like to register hostile rooms entered
+    // this.updateRoomStatus(creep.room);
+    if (!destination) {
+      return ERR_INVALID_ARGS;
+    }
 
-const statistics_1 = require("./telemetry/statistics");
+    if (creep.fatigue > 0) {
+      Traveler.circle(creep.pos, "aqua", 0.3);
+      return ERR_TIRED;
+    }
 
-class Messaging {
-  constructor() {
-    this.nodeId = this.generateId();
+    destination = this.normalizePos(destination); // manage case where creep is nearby destination
 
-    this.lessThan4Consumers = m => m.consumed.length < 4;
+    let rangeToDestination = creep.pos.getRangeTo(destination);
 
-    this.tooOld = m => m.maxAge < Game.time;
+    if (options.range && rangeToDestination <= options.range) {
+      return OK;
+    } else if (rangeToDestination <= 1) {
+      if (rangeToDestination === 1 && !options.range) {
+        let direction = creep.pos.getDirectionTo(destination);
 
-    if (!Memory.messages) Memory.messages = [];
-  }
+        if (options.returnData) {
+          options.returnData.nextPos = destination;
+          options.returnData.path = direction.toString();
+        }
 
-  get messages() {
-    return Memory.messages;
-  }
+        return creep.move(direction);
+      }
 
-  generateId() {
-    return [(Math.random() * 1000).toFixed(0), (Math.random() * 1000).toFixed(0), (Math.random() * 1000).toFixed(0)].join('-');
-  }
+      return OK;
+    } // initialize data object
 
-  consumeMessages(type) {
-    return this.messages.filter(m => m.source != this.nodeId).filter(m => !m.consumed.includes(this.nodeId)).map(m => {
-      m.consumed.push(this.nodeId);
-      return m;
-    });
-  }
 
-  send(type, value) {
-    statistics_1.stats.metric('Messaging:sent', 1);
-    this.messages.push({
-      type,
-      value,
-      maxAge: Game.time + 100,
-      source: this.nodeId,
-      consumed: []
-    });
-  }
+    if (!creep.memory._trav) {
+      delete creep.memory._travel;
+      creep.memory._trav = {};
+    }
 
-  loop() {
-    Memory.messages = this.messages.filter(this.lessThan4Consumers).filter(this.tooOld);
-  }
+    let travelData = creep.memory._trav;
+    let state = this.deserializeState(travelData, destination); // uncomment to visualize destination
+    // this.circle(destination.pos, "orange");
+    // check if creep is stuck
 
-}
-
-__decorate([profiler_1.Profile('Messaging')], Messaging.prototype, "loop", null);
-
-exports.Messaging = Messaging;
-exports.messaging = new Messaging();
-},{"./telemetry/profiler":"m431","./telemetry/statistics":"KIzw"}],"eM/m":[function(require,module,exports) {
-"use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const statistics_1 = require("../telemetry/statistics");
-
-const util_1 = require("../util");
-
-const profiler_1 = require("../telemetry/profiler");
-
-const messaging_1 = require("../messaging");
-
-class CreepMovement {
-  constructor() {
-    this.pathsToTarget = {};
-  }
-
-  moveCreep(creep, target) {
-    if (creep.fatigue > 0) return OK;
-    const fromKey = "" + creep.pos;
-    const toKey = "" + target;
-    this.initTo(toKey);
-    let moveResult = OK; // if (this.isStuck(creep)) {
-    //   creep.move(this.getRandomDirection());
-    //   this.setPrevPos(creep);
-    //   stats.metric('Creep::Move::Stuck', 1);
-    //   return OK;
-    // }
-
-    let path;
-
-    if (false && this.hasPath(fromKey, toKey)) {
-      //TODO: some bug
-      path = this.getPath(fromKey, toKey);
-      statistics_1.stats.metric("Creep::Move::Reusepath", 1);
+    if (this.isStuck(creep, state)) {
+      state.stuckCount++;
+      Traveler.circle(creep.pos, "magenta", state.stuckCount * 0.2);
     } else {
-      path = profiler_1.profiler.wrap("Creep::Move::findPath", () => creep.room.findPath(creep.pos, target, {
-        ignoreCreeps: true,
-        serialize: true
-      }));
-      messaging_1.messaging.send("path", fromKey + "|" + toKey + "|" + path);
-      this.storePath(fromKey, toKey, path);
-      statistics_1.stats.metric("Creep::Move::FindPath", 1);
-    } //moveResult = profiler.wrap('Creep::Move::moveByPath', () => creep.moveByPath(path));
+      state.stuckCount = 0;
+    } // handle case where creep is stuck
 
 
-    creep.moveTo(target, {
-      visualizePathStyle: {
-        fill: "transparent",
-        stroke: "#fff",
-        lineStyle: "dashed",
-        strokeWidth: 0.15,
-        opacity: 0.1
-      }
-    });
-    statistics_1.stats.metric("Creep::Move::" + moveResult, 1);
+    if (!options.stuckValue) {
+      options.stuckValue = DEFAULT_STUCK_VALUE;
+    }
 
-    if (moveResult !== OK) {
-      console.log("Creep\tMove\t" + moveResult);
+    if (state.stuckCount >= options.stuckValue && Math.random() > 0.5) {
+      options.ignoreCreeps = false;
+      options.freshMatrix = true;
+      delete travelData.path;
+    } // TODO:handle case where creep moved by some other function, but destination is still the same
+    // delete path cache if destination is different
 
-      if (moveResult === ERR_NOT_FOUND) {
-        creep.move(this.getRandomDirection());
+
+    if (!this.samePos(state.destination, destination)) {
+      if (options.movingTarget && state.destination.isNearTo(destination)) {
+        travelData.path += state.destination.getDirectionTo(destination);
+        state.destination = destination;
+      } else {
+        delete travelData.path;
       }
     }
 
-    this.setPrevPos(creep);
-    return moveResult;
-  }
+    if (options.repath && Math.random() < options.repath) {
+      // add some chance that you will find a new path randomly
+      delete travelData.path;
+    } // pathfinding
 
-  isStuck(creep) {
-    if (!creep.memory.posSince) return false;
 
-    if (Game.time - creep.memory.posSince > 3) {
-      return true;
+    let newPath = false;
+
+    if (!travelData.path) {
+      newPath = true;
+
+      if (creep.spawning) {
+        return ERR_BUSY;
+      }
+
+      state.destination = destination;
+      let cpu = Game.cpu.getUsed();
+      let ret = this.findTravelPath(creep.pos, destination, options);
+      let cpuUsed = Game.cpu.getUsed() - cpu;
+      state.cpu = Math.round(cpuUsed + state.cpu);
+
+      if (state.cpu > REPORT_CPU_THRESHOLD) {
+        // see note at end of file for more info on this
+        console.log(`TRAVELER: heavy cpu use: ${creep.name}, cpu: ${state.cpu} origin: ${creep.pos}, dest: ${destination}`);
+      }
+
+      let color = "orange";
+
+      if (ret.incomplete) {
+        // uncommenting this is a great way to diagnose creep behavior issues
+        // console.log(`TRAVELER: incomplete path for ${creep.name}`);
+        color = "red";
+      }
+
+      if (options.returnData) {
+        options.returnData.pathfinderReturn = ret;
+      }
+
+      travelData.path = Traveler.serializePath(creep.pos, ret.path, color);
+      state.stuckCount = 0;
     }
 
-    return false;
-  }
+    this.serializeState(creep, destination, state, travelData);
 
-  setPrevPos(creep) {
-    const creepPos = "" + creep.pos;
+    if (!travelData.path || travelData.path.length === 0) {
+      return ERR_NO_PATH;
+    } // consume path
 
-    if (creep.memory.prevPos !== creepPos) {
-      creep.memory.prevPos = creepPos;
-      creep.memory.posSince = Game.time;
+
+    if (state.stuckCount === 0 && !newPath) {
+      travelData.path = travelData.path.substr(1);
     }
-  }
 
-  initTo(toKey) {
-    if (!this.pathsToTarget[toKey]) {
-      this.pathsToTarget[toKey] = {};
+    let nextDirection = parseInt(travelData.path[0], 10);
+
+    if (options.returnData) {
+      if (nextDirection) {
+        let nextPos = Traveler.positionAtDirection(creep.pos, nextDirection);
+
+        if (nextPos) {
+          options.returnData.nextPos = nextPos;
+        }
+      }
+
+      options.returnData.state = state;
+      options.returnData.path = travelData.path;
     }
-  }
 
-  getRandomDirection() {
-    return util_1.getRandomInt(1, 8);
+    return creep.move(nextDirection);
   }
+  /**
+   * make position objects consistent so that either can be used as an argument
+   * @param destination
+   * @returns {any}
+   */
 
-  getPath(fromKey, toKey) {
-    return this.pathsToTarget[toKey][fromKey];
+
+  static normalizePos(destination) {
+    if (!(destination instanceof RoomPosition)) {
+      return destination.pos;
+    }
+
+    return destination;
   }
+  /**
+   * check if room should be avoided by findRoute algorithm
+   * @param roomName
+   * @returns {RoomMemory|number}
+   */
 
-  hasPath(fromKey, toKey) {
-    return !!this.getPath(fromKey, toKey);
+
+  static checkAvoid(roomName) {
+    return Memory.rooms && Memory.rooms[roomName] && Memory.rooms[roomName].avoid;
   }
+  /**
+   * check if a position is an exit
+   * @param pos
+   * @returns {boolean}
+   */
 
-  storePath(fromKey, toKey, path) {
-    this.pathsToTarget[toKey][fromKey] = path;
+
+  static isExit(pos) {
+    return pos.x === 0 || pos.y === 0 || pos.x === 49 || pos.y === 49;
   }
+  /**
+   * check two coordinates match
+   * @param pos1
+   * @param pos2
+   * @returns {boolean}
+   */
 
-  loop() {
-    messaging_1.messaging.consumeMessages("path").forEach(m => {
-      console.log("consume message", m);
-      const splitMessage = m.value.split("|");
-      this.storePath(splitMessage[0], splitMessage[1], splitMessage[2]);
+
+  static sameCoord(pos1, pos2) {
+    return pos1.x === pos2.x && pos1.y === pos2.y;
+  }
+  /**
+   * check if two positions match
+   * @param pos1
+   * @param pos2
+   * @returns {boolean}
+   */
+
+
+  static samePos(pos1, pos2) {
+    return this.sameCoord(pos1, pos2) && pos1.roomName === pos2.roomName;
+  }
+  /**
+   * draw a circle at position
+   * @param pos
+   * @param color
+   * @param opacity
+   */
+
+
+  static circle(pos, color, opacity) {
+    new RoomVisual(pos.roomName).circle(pos.x, pos.y, {
+      radius: 0.45,
+      fill: "transparent",
+      stroke: color,
+      strokeWidth: 0.15,
+      opacity: opacity
     });
+  }
+  /**
+   * update memory on whether a room should be avoided based on controller owner
+   * @param room
+   */
+
+
+  static updateRoomStatus(room) {
+    if (!room) {
+      return;
+    }
+
+    if (room.controller) {
+      if (room.controller.owner && !room.controller.my) {
+        room.memory.avoid = 1;
+      } else {
+        delete room.memory.avoid;
+      }
+    }
+  }
+  /**
+   * find a path from origin to destination
+   * @param origin
+   * @param destination
+   * @param options
+   * @returns {PathfinderReturn}
+   */
+
+
+  static findTravelPath(origin, destination, options = {}) {
+    options = Object.assign({
+      ignoreCreeps: true,
+      maxOps: DEFAULT_MAXOPS,
+      range: 1
+    }, options);
+
+    if (options.movingTarget) {
+      options.range = 0;
+    }
+
+    origin = this.normalizePos(origin);
+    destination = this.normalizePos(destination);
+    let originRoomName = origin.roomName;
+    let destRoomName = destination.roomName; // check to see whether findRoute should be used
+
+    let roomDistance = Game.map.getRoomLinearDistance(origin.roomName, destination.roomName);
+    let allowedRooms = options.route;
+
+    if (!allowedRooms && (options.useFindRoute || options.useFindRoute === undefined && roomDistance > 2)) {
+      let route = this.findRoute(origin.roomName, destination.roomName, options);
+
+      if (route) {
+        allowedRooms = route;
+      }
+    }
+
+    let roomsSearched = 0;
+
+    let callback = roomName => {
+      if (allowedRooms) {
+        if (!allowedRooms[roomName]) {
+          return false;
+        }
+      } else if (!options.allowHostile && Traveler.checkAvoid(roomName) && roomName !== destRoomName && roomName !== originRoomName) {
+        return false;
+      }
+
+      roomsSearched++;
+      let matrix;
+      let room = Game.rooms[roomName];
+
+      if (room) {
+        if (options.ignoreStructures) {
+          matrix = new PathFinder.CostMatrix();
+
+          if (!options.ignoreCreeps) {
+            Traveler.addCreepsToMatrix(room, matrix);
+          }
+        } else if (options.ignoreCreeps || roomName !== originRoomName) {
+          matrix = this.getStructureMatrix(room, options.freshMatrix);
+        } else {
+          matrix = this.getCreepMatrix(room);
+        }
+
+        if (options.obstacles) {
+          matrix = matrix.clone();
+
+          for (let obstacle of options.obstacles) {
+            if (obstacle.pos.roomName !== roomName) {
+              continue;
+            }
+
+            matrix.set(obstacle.pos.x, obstacle.pos.y, 0xff);
+          }
+        }
+      }
+
+      if (options.roomCallback) {
+        if (!matrix) {
+          matrix = new PathFinder.CostMatrix();
+        }
+
+        let outcome = options.roomCallback(roomName, matrix.clone());
+
+        if (outcome !== undefined) {
+          return outcome;
+        }
+      }
+
+      return matrix;
+    };
+
+    let ret = PathFinder.search(origin, {
+      pos: destination,
+      range: options.range
+    }, {
+      maxOps: options.maxOps,
+      maxRooms: options.maxRooms,
+      plainCost: options.offRoad ? 1 : options.ignoreRoads ? 1 : 2,
+      swampCost: options.offRoad ? 1 : options.ignoreRoads ? 5 : 10,
+      roomCallback: callback
+    });
+
+    if (ret.incomplete && options.ensurePath) {
+      if (options.useFindRoute === undefined) {
+        // handle case where pathfinder failed at a short distance due to not using findRoute
+        // can happen for situations where the creep would have to take an uncommonly indirect path
+        // options.allowedRooms and options.routeCallback can also be used to handle this situation
+        if (roomDistance <= 2) {
+          console.log(`TRAVELER: path failed without findroute, trying with options.useFindRoute = true`);
+          console.log(`from: ${origin}, destination: ${destination}`);
+          options.useFindRoute = true;
+          ret = this.findTravelPath(origin, destination, options);
+          console.log(`TRAVELER: second attempt was ${ret.incomplete ? "not " : ""}successful`);
+          return ret;
+        } // TODO: handle case where a wall or some other obstacle is blocking the exit assumed by findRoute
+
+      } else {}
+    }
+
+    return ret;
+  }
+  /**
+   * find a viable sequence of rooms that can be used to narrow down pathfinder's search algorithm
+   * @param origin
+   * @param destination
+   * @param options
+   * @returns {{}}
+   */
+
+
+  static findRoute(origin, destination, options = {}) {
+    let restrictDistance = options.restrictDistance || Game.map.getRoomLinearDistance(origin, destination) + 10;
+    let allowedRooms = {
+      [origin]: true,
+      [destination]: true
+    };
+    let highwayBias = 1;
+
+    if (options.preferHighway) {
+      highwayBias = 2.5;
+
+      if (options.highwayBias) {
+        highwayBias = options.highwayBias;
+      }
+    }
+
+    let ret = Game.map.findRoute(origin, destination, {
+      routeCallback: roomName => {
+        if (options.routeCallback) {
+          let outcome = options.routeCallback(roomName);
+
+          if (outcome !== undefined) {
+            return outcome;
+          }
+        }
+
+        let rangeToRoom = Game.map.getRoomLinearDistance(origin, roomName);
+
+        if (rangeToRoom > restrictDistance) {
+          // room is too far out of the way
+          return Number.POSITIVE_INFINITY;
+        }
+
+        if (!options.allowHostile && Traveler.checkAvoid(roomName) && roomName !== destination && roomName !== origin) {
+          // room is marked as "avoid" in room memory
+          return Number.POSITIVE_INFINITY;
+        }
+
+        let parsed;
+
+        if (options.preferHighway) {
+          parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+          let isHighway = parsed[1] % 10 === 0 || parsed[2] % 10 === 0;
+
+          if (isHighway) {
+            return 1;
+          }
+        } // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
+
+
+        if (!options.allowSK && !Game.rooms[roomName]) {
+          if (!parsed) {
+            parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
+          }
+
+          let fMod = parsed[1] % 10;
+          let sMod = parsed[2] % 10;
+          let isSK = !(fMod === 5 && sMod === 5) && fMod >= 4 && fMod <= 6 && sMod >= 4 && sMod <= 6;
+
+          if (isSK) {
+            return 10 * highwayBias;
+          }
+        }
+
+        return highwayBias;
+      }
+    });
+
+    if (!Array.isArray(ret)) {
+      console.log(`couldn't findRoute to ${destination}`);
+      return;
+    }
+
+    for (let value of ret) {
+      allowedRooms[value.room] = true;
+    }
+
+    return allowedRooms;
+  }
+  /**
+   * check how many rooms were included in a route returned by findRoute
+   * @param origin
+   * @param destination
+   * @returns {number}
+   */
+
+
+  static routeDistance(origin, destination) {
+    let linearDistance = Game.map.getRoomLinearDistance(origin, destination);
+
+    if (linearDistance >= 32) {
+      return linearDistance;
+    }
+
+    let allowedRooms = this.findRoute(origin, destination);
+
+    if (allowedRooms) {
+      return Object.keys(allowedRooms).length;
+    }
+  }
+  /**
+   * build a cost matrix based on structures in the room. Will be cached for more than one tick. Requires vision.
+   * @param room
+   * @param freshMatrix
+   * @returns {any}
+   */
+
+
+  static getStructureMatrix(room, freshMatrix) {
+    if (!this.structureMatrixCache[room.name] || freshMatrix && Game.time !== this.structureMatrixTick) {
+      this.structureMatrixTick = Game.time;
+      let matrix = new PathFinder.CostMatrix();
+      this.structureMatrixCache[room.name] = Traveler.addStructuresToMatrix(room, matrix, 1);
+    }
+
+    return this.structureMatrixCache[room.name];
+  }
+  /**
+   * build a cost matrix based on creeps and structures in the room. Will be cached for one tick. Requires vision.
+   * @param room
+   * @returns {any}
+   */
+
+
+  static getCreepMatrix(room) {
+    if (!this.creepMatrixCache[room.name] || Game.time !== this.creepMatrixTick) {
+      this.creepMatrixTick = Game.time;
+      this.creepMatrixCache[room.name] = Traveler.addCreepsToMatrix(room, this.getStructureMatrix(room, true).clone());
+    }
+
+    return this.creepMatrixCache[room.name];
+  }
+  /**
+   * add structures to matrix so that impassible structures can be avoided and roads given a lower cost
+   * @param room
+   * @param matrix
+   * @param roadCost
+   * @returns {CostMatrix}
+   */
+
+
+  static addStructuresToMatrix(room, matrix, roadCost) {
+    let impassibleStructures = [];
+
+    for (let structure of room.find(FIND_STRUCTURES)) {
+      if (structure instanceof StructureRampart) {
+        if (!structure.my && !structure.isPublic) {
+          impassibleStructures.push(structure);
+        }
+      } else if (structure instanceof StructureRoad) {
+        matrix.set(structure.pos.x, structure.pos.y, roadCost);
+      } else if (structure instanceof StructureContainer) {
+        matrix.set(structure.pos.x, structure.pos.y, 5);
+      } else {
+        impassibleStructures.push(structure);
+      }
+    }
+
+    for (let site of room.find(FIND_MY_CONSTRUCTION_SITES)) {
+      if (site.structureType === STRUCTURE_CONTAINER || site.structureType === STRUCTURE_ROAD || site.structureType === STRUCTURE_RAMPART) {
+        continue;
+      }
+
+      matrix.set(site.pos.x, site.pos.y, 0xff);
+    }
+
+    for (let structure of impassibleStructures) {
+      matrix.set(structure.pos.x, structure.pos.y, 0xff);
+    }
+
+    return matrix;
+  }
+  /**
+   * add creeps to matrix so that they will be avoided by other creeps
+   * @param room
+   * @param matrix
+   * @returns {CostMatrix}
+   */
+
+
+  static addCreepsToMatrix(room, matrix) {
+    room.find(FIND_CREEPS).forEach(creep => matrix.set(creep.pos.x, creep.pos.y, 0xff));
+    return matrix;
+  }
+  /**
+   * serialize a path, traveler style. Returns a string of directions.
+   * @param startPos
+   * @param path
+   * @param color
+   * @returns {string}
+   */
+
+
+  static serializePath(startPos, path, color = "orange") {
+    let serializedPath = "";
+    let lastPosition = startPos;
+    this.circle(startPos, color);
+
+    for (let position of path) {
+      if (position.roomName === lastPosition.roomName) {
+        new RoomVisual(position.roomName).line(position.x, position.y, lastPosition.x, lastPosition.y, {
+          color: color,
+          lineStyle: "dashed"
+        });
+        serializedPath += lastPosition.getDirectionTo(position);
+      }
+
+      lastPosition = position;
+    }
+
+    return serializedPath;
+  }
+  /**
+   * returns a position at a direction relative to origin
+   * @param origin
+   * @param direction
+   * @returns {RoomPosition}
+   */
+
+
+  static positionAtDirection(origin, direction) {
+    let offsetX = [0, 0, 1, 1, 1, 0, -1, -1, -1];
+    let offsetY = [0, -1, -1, 0, 1, 1, 1, 0, -1];
+    let x = origin.x + offsetX[direction];
+    let y = origin.y + offsetY[direction];
+
+    if (x > 49 || x < 0 || y > 49 || y < 0) {
+      return;
+    }
+
+    return new RoomPosition(x, y, origin.roomName);
+  }
+  /**
+   * convert room avoidance memory from the old pattern to the one currently used
+   * @param cleanup
+   */
+
+
+  static patchMemory(cleanup = false) {
+    if (!Memory.empire) {
+      return;
+    }
+
+    if (!Memory.empire.hostileRooms) {
+      return;
+    }
+
+    let count = 0;
+
+    for (let roomName in Memory.empire.hostileRooms) {
+      if (Memory.empire.hostileRooms[roomName]) {
+        if (!Memory.rooms[roomName]) {
+          Memory.rooms[roomName] = {};
+        }
+
+        Memory.rooms[roomName].avoid = 1;
+        count++;
+      }
+
+      if (cleanup) {
+        delete Memory.empire.hostileRooms[roomName];
+      }
+    }
+
+    if (cleanup) {
+      delete Memory.empire.hostileRooms;
+    }
+
+    console.log(`TRAVELER: room avoidance data patched for ${count} rooms`);
+  }
+
+  static deserializeState(travelData, destination) {
+    let state = {};
+
+    if (travelData.state) {
+      state.lastCoord = {
+        x: travelData.state[STATE_PREV_X],
+        y: travelData.state[STATE_PREV_Y]
+      };
+      state.cpu = travelData.state[STATE_CPU];
+      state.stuckCount = travelData.state[STATE_STUCK];
+      state.destination = new RoomPosition(travelData.state[STATE_DEST_X], travelData.state[STATE_DEST_Y], travelData.state[STATE_DEST_ROOMNAME]);
+    } else {
+      state.cpu = 0;
+      state.destination = destination;
+    }
+
+    return state;
+  }
+
+  static serializeState(creep, destination, state, travelData) {
+    travelData.state = [creep.pos.x, creep.pos.y, state.stuckCount, state.cpu, destination.x, destination.y, destination.roomName];
+  }
+
+  static isStuck(creep, state) {
+    let stuck = false;
+
+    if (state.lastCoord !== undefined) {
+      if (this.sameCoord(creep.pos, state.lastCoord)) {
+        // didn't move
+        stuck = true;
+      } else if (this.isExit(creep.pos) && this.isExit(state.lastCoord)) {
+        // moved against exit
+        stuck = true;
+      }
+    }
+
+    return stuck;
   }
 
 }
 
-__decorate([profiler_1.Profile("Creep::Move")], CreepMovement.prototype, "loop", null);
+Traveler.structureMatrixCache = {};
+Traveler.creepMatrixCache = {};
+exports.Traveler = Traveler; // this might be higher than you wish, setting it lower is a great way to diagnose creep behavior issues. When creeps
+// need to repath to often or they aren't finding valid paths, it can sometimes point to problems elsewhere in your code
 
-exports.CreepMovement = CreepMovement;
-exports.creepMovement = new CreepMovement();
-},{"../telemetry/statistics":"KIzw","../util":"BHXf","../telemetry/profiler":"m431","../messaging":"xncl"}],"fh7I":[function(require,module,exports) {
+const REPORT_CPU_THRESHOLD = 1000;
+const DEFAULT_MAXOPS = 20000;
+const DEFAULT_STUCK_VALUE = 2;
+const STATE_PREV_X = 0;
+const STATE_PREV_Y = 1;
+const STATE_STUCK = 2;
+const STATE_CPU = 3;
+const STATE_DEST_X = 4;
+const STATE_DEST_Y = 5;
+const STATE_DEST_ROOMNAME = 6;
+},{}],"fh7I":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1815,11 +2248,11 @@ Object.defineProperty(exports, "__esModule", {
 
 const profiler_1 = require("../../telemetry/profiler");
 
-const creep_movement_1 = require("../creep.movement");
-
 const data_1 = require("../../data/data");
 
 const util_1 = require("../../util");
+
+const Traveler_1 = require("../../lib/Traveler");
 
 class BaseCreepJob {
   finishJob(creep, target) {
@@ -1830,7 +2263,7 @@ class BaseCreepJob {
 
   moveCreep(creep, target) {
     if (!target) return;
-    let moveResult = profiler_1.profiler.wrap("Creep::Move", () => creep_movement_1.creepMovement.moveCreep(creep, target));
+    let moveResult = profiler_1.profiler.wrap("Traveler::travelTo", () => Traveler_1.Traveler.travelTo(creep, target, {}));
 
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
@@ -1974,7 +2407,7 @@ class MoveToRoomCreepJob extends BaseCreepJob {
 }
 
 exports.MoveToRoomCreepJob = MoveToRoomCreepJob;
-},{"../../telemetry/profiler":"m431","../creep.movement":"eM/m","../../data/data":"LiCI","../../util":"BHXf"}],"o7HM":[function(require,module,exports) {
+},{"../../telemetry/profiler":"m431","../../data/data":"LiCI","../../util":"BHXf","../../lib/Traveler":"YR8M"}],"o7HM":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -2197,7 +2630,73 @@ class CarryCreepManager {
 __decorate([profiler_1.Profile('Carry')], CarryCreepManager.prototype, "loop", null);
 
 exports.carryCreepManager = new CarryCreepManager();
-},{"./creep":"o7HM","../data/data":"LiCI","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","../util":"BHXf"}],"M39x":[function(require,module,exports) {
+},{"./creep":"o7HM","../data/data":"LiCI","../telemetry/profiler":"m431","./job/target-selection-policy":"Ph2c","../util":"BHXf"}],"xncl":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const profiler_1 = require("./telemetry/profiler");
+
+const statistics_1 = require("./telemetry/statistics");
+
+class Messaging {
+  constructor() {
+    this.nodeId = this.generateId();
+
+    this.lessThan4Consumers = m => m.consumed.length < 4;
+
+    this.tooOld = m => m.maxAge < Game.time;
+
+    if (!Memory.messages) Memory.messages = [];
+  }
+
+  get messages() {
+    return Memory.messages;
+  }
+
+  generateId() {
+    return [(Math.random() * 1000).toFixed(0), (Math.random() * 1000).toFixed(0), (Math.random() * 1000).toFixed(0)].join('-');
+  }
+
+  consumeMessages(type) {
+    return this.messages.filter(m => m.source != this.nodeId).filter(m => !m.consumed.includes(this.nodeId)).map(m => {
+      m.consumed.push(this.nodeId);
+      return m;
+    });
+  }
+
+  send(type, value) {
+    statistics_1.stats.metric('Messaging:sent', 1);
+    this.messages.push({
+      type,
+      value,
+      maxAge: Game.time + 100,
+      source: this.nodeId,
+      consumed: []
+    });
+  }
+
+  loop() {
+    Memory.messages = this.messages.filter(this.lessThan4Consumers).filter(this.tooOld);
+  }
+
+}
+
+__decorate([profiler_1.Profile('Messaging')], Messaging.prototype, "loop", null);
+
+exports.Messaging = Messaging;
+exports.messaging = new Messaging();
+},{"./telemetry/profiler":"m431","./telemetry/statistics":"KIzw"}],"M39x":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2518,8 +3017,6 @@ const creep_1 = require("./creep/creep");
 
 const messaging_1 = require("./messaging");
 
-const creep_movement_1 = require("./creep/creep.movement");
-
 const efficiency_1 = require("./telemetry/efficiency");
 
 const statistics_1 = require("./telemetry/statistics");
@@ -2558,10 +3055,9 @@ exports.loop = function () {
   creep_remoteminer_1.remoteMinerCreepManager.loop();
   creep_1.creepManager.loop();
   messaging_1.messaging.loop();
-  creep_movement_1.creepMovement.loop();
   efficiency_1.efficiency.loop();
   statistics_1.stats.loop();
   reporter_1.reporter.loop();
   profiler_1.profiler.finish(trackId);
 };
-},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./creep/creep.movement":"eM/m","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0","./construction/room-planner":"qN3n"}]},{},["ZCfc"], null)
+},{"./spawn":"5vzf","./telemetry/profiler":"m431","./room":"yJHy","./construction":"WjBd","./tower":"k11/","./creep/creep.miner":"kl90","./creep/creep.carry":"LqpF","./creep/creep":"o7HM","./messaging":"xncl","./telemetry/efficiency":"FSRJ","./telemetry/statistics":"KIzw","./telemetry/reporter":"M39x","./room/geographer":"gAKg","./creep/creep.harasser":"cUlm","./creep/creep.remoteminer":"UET0","./construction/room-planner":"qN3n"}]},{},["ZCfc"], null)

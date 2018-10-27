@@ -1,11 +1,11 @@
-import { TTL } from "../data/cache/ttl";
 import { RoomProvider, fails, succeeds } from "../util";
 import { efficiency } from "../telemetry/efficiency";
 import { data } from "../data/data";
+import { Temporal } from "../data/cache/temporal";
 
 export const needMoreCarryCreep = new RoomProvider(
   room =>
-    new TTL(50, () => {
+    new Temporal(() => {
       const telemetry = efficiency.roomEfficiencyProvider.of(room);
       const carryCreepCount = data.of(room).carryCreeps.get().length;
 
@@ -24,7 +24,6 @@ export const needMoreCarryCreep = new RoomProvider(
         telemetry.spawnEnergy.average() > 0.75,
         telemetry.towerEnergy.average() > 0.75
       ];
-      console.log('Spawn carry:', hardRequirements, hardLimits, softRequirements);
       return (
         hardRequirements.some(fails) ||
         (hardLimits.every(succeeds) &&

@@ -18,4 +18,21 @@ export class Temporal<T> {
   public clear() {
     this.value = undefined;
   }
+
+  public set(value: T) {
+    this.value = value;
+    this.captureTime = Game.time;
+  }
+}
+
+export type DataSupplier = Record<string, () => any>;
+export type TemporalizedSupplier<D extends DataSupplier> = {
+  [T in keyof D]: Temporal<ReturnType<D[T]>>;
+}
+
+export function temporalize<D extends DataSupplier>(dataSupplier: D): TemporalizedSupplier<D> {
+  return Object.keys(dataSupplier).reduce((supplier, key: keyof D) => {
+    supplier[key] = new Temporal(dataSupplier[key]);
+    return supplier;
+  }, {} as TemporalizedSupplier<D>);
 }

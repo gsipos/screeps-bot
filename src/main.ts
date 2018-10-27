@@ -7,7 +7,6 @@ import { minerCreepManager } from "./creep/creep.miner";
 import { carryCreepManager } from "./creep/creep.carry";
 import { creepManager } from "./creep/creep";
 import { messaging } from "./messaging";
-import { creepMovement } from "./creep/creep.movement";
 import { efficiency } from "./telemetry/efficiency";
 import { stats } from "./telemetry/statistics";
 import { reporter } from "./telemetry/reporter";
@@ -42,7 +41,6 @@ export const loop = function() {
   creepManager.loop();
 
   messaging.loop();
-  creepMovement.loop();
 
   efficiency.loop();
   stats.loop();

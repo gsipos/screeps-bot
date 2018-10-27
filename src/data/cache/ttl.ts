@@ -1,44 +1,62 @@
+import { MemoryStore } from "../memory/memory-store";
+import { Temporal } from "./temporal";
+import { notNullOrUndefined } from "../../util";
+
+interface TTLMemoryItem {
+  maxAge: number;
+  content: string;
+}
+
 export class TTL<T> {
-  public static hit = 0;
-  public static miss = 0;
+  private store = new MemoryStore<TTLMemoryItem>("ttlItems");
 
-  private value: T | undefined;
-  private maxAge: number = Game.time - 1;
+  private parsedValue = new Temporal<T>(() =>
+    this.parse(this.storedItem.content)
+  );
 
-  constructor(private ttl: number, private supplier: () => T) {}
+  constructor(
+    private name: string,
+    private ttl: number,
+    private supplier: () => T,
+    private serialize = JSON.stringify,
+    private parse = JSON.parse
+  ) {}
 
   public get(): T {
-    if (this.emptyValue || this.old || this.arrayValueHasNullOrUndefinedItem) {
-      try {
-        this.value = this.supplier();
-      } catch (e) {
-        console.log("Caught in TTL", e);
-      }
-      this.maxAge = Game.time + this.ttl;
-      TTL.miss++;
-    } else {
-      TTL.hit++;
+    if (this.old || this.emptyValue) {
+      return this.aquireNewValue() as T;
     }
-    return this.value as T;
+    return this.parsedValue.get();
+  }
+
+  private aquireNewValue() {
+    let value = this.supplier();
+    this.storeValue(value);
+    return value;
+  }
+
+  private storeValue(value: T | undefined) {
+    if (notNullOrUndefined(value)) {
+      const maxAge = Game.time + this.ttl;
+      this.store.set(this.name, { maxAge, content: this.serialize(value) });
+    } else {
+      this.store.delete(this.name);
+    }
   }
 
   private get emptyValue() {
-    return this.value === null || this.value === undefined;
+    return !this.storedItem || !this.storedItem.content;
   }
 
-  private get arrayValueHasNullOrUndefinedItem(): boolean {
-    if (this.value instanceof Array) {
-      return this.value.some(item => item === null || item === undefined);
-    } else {
-      return false;
-    }
+  private get storedItem() {
+    return this.store.get(this.name);
   }
 
   private get old() {
-    return Game.time > this.maxAge;
+    return this.storedItem ? Game.time > this.storedItem.maxAge : true;
   }
 
   public clear() {
-    this.value = undefined;
+    this.store.delete(this.name);
   }
 }

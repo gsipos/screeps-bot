@@ -1,9 +1,8 @@
 import { profiler } from "../../telemetry/profiler";
-import { creepMovement } from "../creep.movement";
 import { data } from "../../data/data";
 import { TargetSelectionPolicyFunction } from "./target-selection-policy";
-import { notNullOrUndefined, fails, succeeds } from "../../util";
-import { NeighbourInfo } from "../../room/geographer";
+import { notNullOrUndefined, succeeds } from "../../util";
+import { Traveler } from "../../lib/Traveler";
 
 type CreepAction<T = any> = (creep: Creep, target: T) => number;
 type CreepJobDone<T = any> = (creep: Creep, target: T) => boolean;
@@ -29,9 +28,10 @@ class BaseCreepJob {
 
   protected moveCreep(creep: Creep, target: RoomPosition) {
     if (!target) return;
-    let moveResult = profiler.wrap("Creep::Move", () =>
-      creepMovement.moveCreep(creep, target)
+    let moveResult = profiler.wrap("Traveler::travelTo", () =>
+      Traveler.travelTo(creep, target, {})
     );
+
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
     }
@@ -172,7 +172,11 @@ export class MoveToRoomCreepJob extends BaseCreepJob implements ICreepJob {
       data.registerCreepJob(creep);
       return true;
     } else {
-      console.log(`No ${this.name} for ${creep.memory.role} among ${this.possibleTargets(creep)} targets`);
+      console.log(
+        `No ${this.name} for ${creep.memory.role} among ${this.possibleTargets(
+          creep
+        )} targets`
+      );
       return false;
     }
   }
