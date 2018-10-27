@@ -29,7 +29,7 @@ class BaseCreepJob {
   protected moveCreep(creep: Creep, target: RoomPosition) {
     if (!target) return;
     let moveResult = profiler.wrap("Traveler::travelTo", () =>
-      Traveler.travelTo(creep, target, {})
+      Traveler.travelTo(creep, target, { allowHostile: true })
     );
 
     if (moveResult === ERR_NO_PATH) {

@@ -2263,7 +2263,9 @@ class BaseCreepJob {
 
   moveCreep(creep, target) {
     if (!target) return;
-    let moveResult = profiler_1.profiler.wrap("Traveler::travelTo", () => Traveler_1.Traveler.travelTo(creep, target, {}));
+    let moveResult = profiler_1.profiler.wrap("Traveler::travelTo", () => Traveler_1.Traveler.travelTo(creep, target, {
+      allowHostile: true
+    }));
 
     if (moveResult === ERR_NO_PATH) {
       this.finishJob(creep, target);
