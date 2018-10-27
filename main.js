@@ -995,7 +995,7 @@ class Efficiency {
 
   loop() {
     if (Game.cpu.bucket < 5000) return;
-    util_1.forEachRoom(room => {
+    data_1.data.rooms.get().filter(room => util_1.myRoom(room)).forEach(room => {
       const efficiency = this.roomEfficiencyProvider.of(room);
       this.report(efficiency.containerUsage.get(), "container", room);
       this.report(efficiency.carryUtilization.get(), roles_1.CreepRole.CARRY, room);
@@ -2296,13 +2296,13 @@ class CreepJob extends BaseCreepJob {
     const target = Game.getObjectById(targetId);
 
     if (!target) {
-      console.log(`Cannot find job ${this.name} target ${targetId}`);
+      // console.log(`Cannot find job ${this.name} target ${targetId}`);
       this.finishJob(creep, target);
       return;
     }
 
     if (this.jobDone(creep, target)) {
-      console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
+      // console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
       this.finishJob(creep, target);
       return;
     }
@@ -2310,7 +2310,7 @@ class CreepJob extends BaseCreepJob {
     const result = profiler_1.profiler.wrap("Creep::action::" + this.name, () => this.action(creep, target));
 
     if (result == ERR_NOT_IN_RANGE) {
-      console.log(`Target for job ${this.name} is not in range`);
+      // console.log(`Target for job ${this.name} is not in range`);
       this.moveCreep(creep, target.pos);
     } else if (result !== OK) {
       console.log(`Finishing job ${this.name} because unhandled error ${result}`);
@@ -2335,8 +2335,8 @@ class CreepJob extends BaseCreepJob {
       const target = jobs[0];
       creep.memory.job = this.name;
       creep.memory.jobTarget = target.id;
-      creep.say(this.say);
-      console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
+      creep.say(this.say); // console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
+
       data_1.data.registerCreepJob(creep);
       return true;
     } else {

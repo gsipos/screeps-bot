@@ -56,14 +56,12 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
   public execute(creep: Creep, targetId: any) {
     const target: any = Game.getObjectById(targetId);
     if (!target) {
-      console.log(`Cannot find job ${this.name} target ${targetId}`);
+      // console.log(`Cannot find job ${this.name} target ${targetId}`);
       this.finishJob(creep, target);
       return;
     }
     if (this.jobDone(creep, target)) {
-      console.log(
-        `Job ${this.name} done by ${creep.name} on ${creep.memory.job}`
-      );
+      // console.log(`Job ${this.name} done by ${creep.name} on ${creep.memory.job}`);
       this.finishJob(creep, target);
       return;
     }
@@ -71,7 +69,7 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       this.action(creep, target)
     );
     if (result == ERR_NOT_IN_RANGE) {
-      console.log(`Target for job ${this.name} is not in range`);
+      // console.log(`Target for job ${this.name} is not in range`);
       this.moveCreep(creep, target.pos);
     } else if (result !== OK) {
       console.log(
@@ -105,9 +103,7 @@ export class CreepJob extends BaseCreepJob implements ICreepJob {
       creep.memory.job = this.name;
       creep.memory.jobTarget = target.id;
       creep.say(this.say);
-      console.log(
-        `Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `
-      );
+      // console.log(`Asssign job ${this.name} to ${creep.memory.role} ${creep.name} `);
       data.registerCreepJob(creep);
       return true;
     } else {
