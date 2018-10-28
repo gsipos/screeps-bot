@@ -110,6 +110,10 @@ export class Efficiency {
     profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
   }
 
+  public of(room: Room) {
+    return this.roomEfficiencyProvider.of(room);
+  }
+
   private effTestNoop = () => 1;
 
   private report = (v: number, stat: string, room: Room) =>

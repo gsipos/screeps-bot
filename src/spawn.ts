@@ -1,78 +1,87 @@
 import { data } from "./data/data";
 import { Profile } from "./telemetry/profiler";
-import { forEachRoom, sumReducer } from "./util";
-import { needMoreCarryCreep } from "./decisions/spawn-carry-creep";
-import { needMoreHarasserCreep } from "./decisions/spawn-harasser-creep";
-import { needMoreRemoteMinerCreep } from "./decisions/spawn-remote-miner-creep";
-import { CreepRole } from "./creep/roles";
+import { forEachRoom } from "./util";
+import { needMoreCarryCreepTree } from "./decisions/spawn-carry-creep";
+import { needMoreHarasserCreepTree } from "./decisions/spawn-harasser-creep";
+import { needRemoteMinerCreep } from "./decisions/spawn-remote-miner-creep";
+import {
+  GeneralCreep,
+  MinerCreep,
+  CarryCreep,
+  HarasserCreep,
+  RemoteMiner,
+  CreepType
+} from "./creep/body/creep.body";
+import {
+  sequence,
+  condition,
+  selector,
+  action,
+  mapState
+} from "./decisions/behavior-tree/behavior-tree-builder";
+import {
+  FAILED,
+  SUCCESS
+} from "./decisions/behavior-tree/behavior-tree-status";
 
-const mapToCost = (p: string) => BODYPART_COST[p];
-
-export class CreepType {
-  public readonly cost: number;
-  constructor(public name: string, public body: string[]) {
-    this.cost = this.body.map(mapToCost).reduce(sumReducer, 0);
-  }
-}
-
-class MinerCreep extends CreepType {
-  constructor(lvl: number) {
-    const body = [];
-    for (let i = 0; i <= lvl; i++) {
-      body.push(WORK);
-    }
-    body.push(CARRY);
-    body.push(MOVE);
-    super(CreepRole.MINER, body);
-  }
-}
-
-class CarryCreep extends CreepType {
-  constructor(lvl: number) {
-    const body = [];
-    for (let i = 0; i <= lvl; i++) {
-      body.push(CARRY);
-      body.push(MOVE);
-    }
-    super(CreepRole.CARRY, body);
-  }
-}
-
-class GeneralCreep extends CreepType {
-  constructor(lvl: number) {
-    const body = [];
-    for (let i = 0; i <= lvl; i++) {
-      body.push(WORK);
-      body.push(CARRY);
-      body.push(MOVE);
-    }
-    super(CreepRole.GENERAL, body);
-  }
-}
-
-class HarasserCreep extends CreepType {
-  constructor(lvl: number) {
-    const body = [];
-    for (let i = 0; i <= lvl; i++) {
-      body.push(ATTACK, MOVE);
-    }
-    super(CreepRole.HARASSER, body);
-  }
-}
-
-class RemoteMiner extends CreepType {
-  constructor(lvl: number) {
-    const body = [];
-    for (let i = 0; i < lvl; i++) {
-      body.push(i % 2 ? CARRY : WORK, MOVE);
-      body.push(CARRY, MOVE);
-    }
-    super(CreepRole.REMOTEMINER, body);
-  }
+interface SpawnState {
+  room: Room;
+  spawns: Spawn[];
 }
 
 export class SpawnManager {
-  private generalCreepCount = 1;
+  private removeSpawnFromAvailables = action<SpawnState>(
+    "remove spawn from availables",
+    s => {
+      const [x, ...remaining] = s.spawns;
+      s.spawns = remaining;
+      return !s.spawns.length ? SUCCESS : FAILED;
+    }
+  );
+
+  private spawnTree = selector<SpawnState>("Look for spawnable creeps", [
+    condition("No idle spawn", s => s.spawns.length === 0),
+    sequence("Spawn miner", [
+      condition(
+        "less miner than source",
+        s =>
+          data.of(s.room).minerCreeps.get().length <
+          data.of(s.room).sources.get().length
+      ),
+      action("spawn miner", s =>
+        this.spawnType(s.spawns[0], this.minerCreepTypes)
+      ),
+      this.removeSpawnFromAvailables
+    ]),
+    sequence("Spawn general", [
+      condition("no general", s => data.of(s.room).generalCreeps.get().length === 0),
+      action("spawn general", s =>
+        this.spawnType(s.spawns[0], this.generalCreepTypes)
+      ),
+      this.removeSpawnFromAvailables
+    ]),
+    sequence("Spawn carry", [
+      mapState<SpawnState, Room>("", s => s.room, needMoreCarryCreepTree),
+      action("spawn carry", s =>
+        this.spawnType(s.spawns[0], this.carryCreepTypes)
+      ),
+      this.removeSpawnFromAvailables
+    ]),
+    sequence("Spawn harasser", [
+      mapState<SpawnState, Room>("", s => s.room, needMoreHarasserCreepTree),
+      action("spawn harasser", s =>
+        this.spawnType(s.spawns[0], this.harrasserCreepTypes)
+      ),
+      this.removeSpawnFromAvailables
+    ]),
+    sequence("Spawn remoteMiner", [
+      mapState<SpawnState, Room>("", s => s.room, needRemoteMinerCreep),
+      action("spawn remoteMiner", s =>
+        this.spawnType(s.spawns[0], this.remoteMinerCreepTypes)
+      ),
+      this.removeSpawnFromAvailables
+    ])
+  ]);
 
   private generalCreepTypes = [...Array(6).keys()]
     .reverse()
@@ -97,56 +106,33 @@ export class SpawnManager {
   @Profile("Spawn")
   public loop() {
     forEachRoom(room => {
-      const roomData = data.of(room);
-      const spawns = roomData.spawns.get();
-      const availableSpawns = spawns.filter(this.notSpawning);
-      if (availableSpawns.length === 0) {
-        return;
-      }
-      const spawnables: CreepType[][] = [];
-      roomData.minerCreeps.clear();
-      const spawnMiner =
-        roomData.minerCreeps.get().length < roomData.sources.get().length;
-      if (spawnMiner) {
-        console.log(
-          "Spawn: miner",
-          roomData.minerCreeps.get().length,
-          roomData.sources.get().length
-        );
-        spawnables.push(this.minerCreepTypes);
-        roomData.minerCreeps.clear();
-      }
-      if (needMoreCarryCreep.of(room).get()) {
-        spawnables.push(this.carryCreepTypes);
-        roomData.carryCreeps.clear();
-      }
-      if (roomData.generalCreeps.get().length < this.generalCreepCount) {
-        spawnables.push(this.generalCreepTypes);
-        roomData.generalCreeps.clear();
-      }
-      if (needMoreHarasserCreep.of(room).get()) {
-        spawnables.push(this.harrasserCreepTypes);
-      }
-      if (needMoreRemoteMinerCreep.of(room).get()) {
-        spawnables.push(this.remoteMinerCreepTypes);
-        needMoreRemoteMinerCreep.of(room).clear();
-      }
-      availableSpawns.forEach(spawn => {
-        const types = spawnables.shift();
-        if (types) {
-          const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
-          if (creep) {
-            const newName = spawn.createCreep(creep.body, undefined, {
-              role: creep.name,
-              home: spawn.room.name
-            });
-            console.log("Spawning new " + creep.name + " " + newName);
-            this.showSpawningLabel(spawn);
-            return;
-          }
-        }
+      const spawns = data
+        .of(room)
+        .spawns.get()
+        .filter(this.notSpawning);
+      this.spawnTree.tick({
+        room,
+        spawns
       });
     });
+  }
+
+  private spawnType(spawn: Spawn, types: CreepType[]) {
+    const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
+    if (!creep) {
+      return FAILED;
+    }
+    const newName = spawn.createCreep(creep.body, undefined, {
+      role: creep.name,
+      home: spawn.room.name
+    });
+    if (typeof newName === "string") {
+      console.log("Spawning new " + creep.name + " " + newName);
+      this.showSpawningLabel(spawn);
+      return SUCCESS;
+    } else {
+      return FAILED;
+    }
   }
 
   private showSpawningLabel(spawn: Spawn) {

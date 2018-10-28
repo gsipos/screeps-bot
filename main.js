@@ -1006,6 +1006,10 @@ class Efficiency {
     profiler_1.profiler.wrap("Efficiency::EmptyFunction", this.effTestNoop);
   }
 
+  of(room) {
+    return this.roomEfficiencyProvider.of(room);
+  }
+
   energyAvailable(room) {
     this.report(room.energyAvailable / room.energyCapacityAvailable, "energy", room);
   }
@@ -1016,7 +1020,231 @@ __decorate([profiler_1.Profile("Efficiency")], Efficiency.prototype, "loop", nul
 
 exports.Efficiency = Efficiency;
 exports.efficiency = new Efficiency();
-},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf","../data/cache/rolling-avg-computed":"QSuD","../creep/roles":"VhlO"}],"On/S":[function(require,module,exports) {
+},{"../data/data":"LiCI","./statistics":"KIzw","./profiler":"m431","../util":"BHXf","../data/cache/rolling-avg-computed":"QSuD","../creep/roles":"VhlO"}],"x/JR":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var BehaviorTreeStatus;
+
+(function (BehaviorTreeStatus) {
+  BehaviorTreeStatus["success"] = "SUCCESS";
+  BehaviorTreeStatus["running"] = "RUNNING";
+  BehaviorTreeStatus["failed"] = "FAILED";
+})(BehaviorTreeStatus = exports.BehaviorTreeStatus || (exports.BehaviorTreeStatus = {}));
+
+function treeSuccess(status) {
+  return status === exports.SUCCESS;
+}
+
+exports.treeSuccess = treeSuccess;
+exports.FAILED = BehaviorTreeStatus.failed;
+exports.SUCCESS = BehaviorTreeStatus.success;
+},{}],"MR9u":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const behavior_tree_status_1 = require("../behavior-tree-status");
+
+class ActionNode {
+  constructor(name, action) {
+    this.name = name;
+    this.action = action;
+  }
+
+  tick(state) {
+    const result = this.action(state);
+
+    if (!result) {
+      throw new Error("No return value in action node " + this.name);
+    }
+
+    return result;
+  }
+
+}
+
+exports.ActionNode = ActionNode;
+
+class InverterNode {
+  constructor(name) {
+    this.name = name;
+  }
+
+  tick(state) {
+    if (!this.child) {
+      throw new Error("No inverter child " + this.name);
+    }
+
+    const result = this.child.tick(state);
+
+    if (result === behavior_tree_status_1.BehaviorTreeStatus.failed) {
+      return behavior_tree_status_1.BehaviorTreeStatus.success;
+    } else if (result === behavior_tree_status_1.BehaviorTreeStatus.success) {
+      return behavior_tree_status_1.BehaviorTreeStatus.failed;
+    }
+
+    return result;
+  }
+
+  addChild(child) {
+    this.child = child;
+  }
+
+}
+
+exports.InverterNode = InverterNode;
+
+class SequenceNode {
+  constructor(name) {
+    this.name = name;
+    this.children = [];
+  }
+
+  tick(state) {
+    let lastStatus = behavior_tree_status_1.BehaviorTreeStatus.failed;
+    const allSucceded = this.children.every(child => {
+      lastStatus = child.tick(state);
+      return lastStatus === behavior_tree_status_1.BehaviorTreeStatus.success;
+    });
+
+    if (allSucceded) {
+      return behavior_tree_status_1.BehaviorTreeStatus.success;
+    } else {
+      return lastStatus;
+    }
+  }
+
+  addChild(child) {
+    this.children.push(child);
+  }
+
+}
+
+exports.SequenceNode = SequenceNode;
+
+class SelectorNode {
+  constructor(name) {
+    this.name = name;
+    this.children = [];
+  }
+
+  tick(state) {
+    let lastStatus = behavior_tree_status_1.FAILED;
+    const someSucceed = this.children.some(child => {
+      lastStatus = child.tick(state);
+      return lastStatus === behavior_tree_status_1.BehaviorTreeStatus.success;
+    });
+    return someSucceed ? behavior_tree_status_1.SUCCESS : behavior_tree_status_1.FAILED;
+  }
+
+  addChild(child) {
+    this.children.push(child);
+  }
+
+}
+
+exports.SelectorNode = SelectorNode;
+
+class ParalellNode {
+  constructor(name, requiredToFail = 0, requiredToSucceed = 0) {
+    this.name = name;
+    this.requiredToFail = requiredToFail;
+    this.requiredToSucceed = requiredToSucceed;
+    this.children = [];
+  }
+
+  tick(state) {
+    const statuses = this.children.map(c => c.tick(state));
+    const succeeded = statuses.filter(s => s === behavior_tree_status_1.SUCCESS).length;
+    const failed = statuses.filter(s => s === behavior_tree_status_1.FAILED).length;
+
+    if (this.requiredToSucceed > 0 && succeeded >= this.requiredToSucceed) {
+      return behavior_tree_status_1.BehaviorTreeStatus.success;
+    }
+
+    if (this.requiredToFail > 0 && failed >= this.requiredToFail) {
+      return behavior_tree_status_1.BehaviorTreeStatus.failed;
+    }
+
+    return behavior_tree_status_1.BehaviorTreeStatus.running;
+  }
+
+  addChild(child) {
+    this.children.push(child);
+  }
+
+}
+
+exports.ParalellNode = ParalellNode;
+},{"../behavior-tree-status":"x/JR"}],"wE6Y":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const behavior_tree_status_1 = require("./behavior-tree-status");
+
+const node_1 = require("./node/node");
+
+function selector(name, children) {
+  const node = new node_1.SelectorNode(name);
+  children.forEach(c => node.addChild(c));
+  return node;
+}
+
+exports.selector = selector;
+
+function inverter(name, child) {
+  const node = new node_1.InverterNode(name);
+  node.addChild(child);
+  return node;
+}
+
+exports.inverter = inverter;
+
+function sequence(name, children) {
+  const node = new node_1.SequenceNode(name);
+  children.forEach(c => node.addChild(c));
+  return node;
+}
+
+exports.sequence = sequence;
+
+function parallel(name, requiredTofail, requiredToSucceed, children) {
+  const node = new node_1.ParalellNode(name, requiredTofail, requiredToSucceed);
+  children.forEach(c => node.addChild(c));
+  return node;
+}
+
+exports.parallel = parallel;
+;
+
+function action(name, action) {
+  return new node_1.ActionNode(name, action);
+}
+
+exports.action = action;
+
+function condition(name, predicate) {
+  return new node_1.ActionNode(name, s => predicate(s) ? behavior_tree_status_1.BehaviorTreeStatus.success : behavior_tree_status_1.BehaviorTreeStatus.failed);
+}
+
+exports.condition = condition;
+
+function mapState(name, map, child) {
+  return {
+    tick: state => child.tick(map(state))
+  };
+}
+
+exports.mapState = mapState;
+},{"./behavior-tree-status":"x/JR","./node/node":"MR9u"}],"On/S":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1031,15 +1259,15 @@ const data_1 = require("../data/data");
 
 const temporal_1 = require("../data/cache/temporal");
 
-exports.needMoreCarryCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
-  const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
-  const carryCreepCount = data_1.data.of(room).carryCreeps.get().length;
-  const hardRequirements = [carryCreepCount > 1];
-  const hardLimits = [carryCreepCount < 7, telemetry.carryUtilization.average() > 0.2, telemetry.spawnEnergy.get() > 0.75];
-  const softRequirements = [telemetry.carryUtilization.average() < 0.7, telemetry.containerUsage.average() < 0.4, telemetry.containerUsage.average() < 0.9, telemetry.spawnEnergy.average() > 0.75, telemetry.towerEnergy.average() > 0.75];
-  return hardRequirements.some(util_1.fails) || hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.fails).length > 1;
-}));
-},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"jBn9":[function(require,module,exports) {
+const behavior_tree_builder_1 = require("./behavior-tree/behavior-tree-builder");
+
+const behavior_tree_status_1 = require("./behavior-tree/behavior-tree-status");
+
+const telemetry = r => efficiency_1.efficiency.of(r);
+
+exports.needMoreCarryCreepTree = behavior_tree_builder_1.selector("spawn carry", [behavior_tree_builder_1.sequence("definitely when", [behavior_tree_builder_1.condition("carries < 2", s => data_1.data.of(s).carryCreeps.get().length < 2)]), behavior_tree_builder_1.sequence("or", [behavior_tree_builder_1.sequence("when possible", [behavior_tree_builder_1.condition("less than max", r => data_1.data.of(r).carryCreeps.get().length < 7), behavior_tree_builder_1.condition("carry 20%+", r => telemetry(r).carryUtilization.average() > 0.2), behavior_tree_builder_1.condition("spawn energy 75%+", r => telemetry(r).spawnEnergy.get() > 0.75)]), behavior_tree_builder_1.parallel("and needed", 4, 2, [behavior_tree_builder_1.condition("carry 70%+", r => telemetry(r).carryUtilization.average() > 0.75), behavior_tree_builder_1.condition("containers 40%+", r => telemetry(r).containerUsage.average() > 0.4), behavior_tree_builder_1.condition("containers 90%+", r => telemetry(r).containerUsage.average() > 0.9), behavior_tree_builder_1.condition("spawn 75%-", r => telemetry(r).spawnEnergy.average() < 0.75), behavior_tree_builder_1.condition("tower 75%-", r => telemetry(r).towerEnergy.average() < 0.75)])])]);
+exports.needMoreCarryCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => behavior_tree_status_1.treeSuccess(exports.needMoreCarryCreepTree.tick(room))));
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG","./behavior-tree/behavior-tree-builder":"wE6Y","./behavior-tree/behavior-tree-status":"x/JR"}],"jBn9":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1054,13 +1282,11 @@ const data_1 = require("../data/data");
 
 const temporal_1 = require("../data/cache/temporal");
 
-exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
-  const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
-  const hardLimits = [data_1.data.harasserCreeps.get().length < 5, telemetry.spawnEnergy.get() > 0.75, telemetry.storageEnergy.get() > 0.1];
-  const softRequirements = [data_1.data.of(room).hostileCreeps.get().length > 0, telemetry.towerEnergy.average() > 0.75, telemetry.spawnEnergy.average() > 0.75];
-  return hardLimits.every(util_1.succeeds) && softRequirements.filter(util_1.succeeds).length > 1;
-}));
-},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"HdgM":[function(require,module,exports) {
+const behavior_tree_builder_1 = require("./behavior-tree/behavior-tree-builder");
+
+exports.needMoreHarasserCreepTree = behavior_tree_builder_1.sequence("Need More harasser creep", [behavior_tree_builder_1.condition("less than 5", () => data_1.data.harasserCreeps.get().length < 5), behavior_tree_builder_1.condition("spawn 75%+", r => efficiency_1.efficiency.of(r).spawnEnergy.get() > 0.75), behavior_tree_builder_1.condition("spawn 75%+", r => efficiency_1.efficiency.of(r).storageEnergy.get() > 0.1), behavior_tree_builder_1.parallel("and if", 2, 2, [behavior_tree_builder_1.condition("hostiles present", r => data_1.data.of(r).hostileCreeps.get().length > 0), behavior_tree_builder_1.condition("spawn 75%+", r => efficiency_1.efficiency.of(r).spawnEnergy.average() > 0.75), behavior_tree_builder_1.condition("towers 75%+", r => efficiency_1.efficiency.of(r).towerEnergy.average() > 0.75)])]);
+exports.needMoreHarasserCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => exports.needMoreHarasserCreepTree.tick(room)));
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG","./behavior-tree/behavior-tree-builder":"wE6Y"}],"HdgM":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1075,39 +1301,24 @@ const data_1 = require("../data/data");
 
 const temporal_1 = require("../data/cache/temporal");
 
-exports.needMoreRemoteMinerCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => {
+const behavior_tree_builder_1 = require("./behavior-tree/behavior-tree-builder");
+
+exports.needRemoteMinerCreep = behavior_tree_builder_1.condition("Need Remote Miner Creep", room => {
   const telemetry = efficiency_1.efficiency.roomEfficiencyProvider.of(room);
   const hardLimits = [telemetry.spawnEnergy.get() > 0.75, telemetry.spawnEnergy.average() > 0.75, !!room.controller && room.controller.level > 3, data_1.data.of(room).remoteMinerCreeps.get().length < 3];
   return hardLimits.every(util_1.succeeds);
-}));
-},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG"}],"5vzf":[function(require,module,exports) {
+});
+exports.needMoreRemoteMinerCreep = new util_1.RoomProvider(room => new temporal_1.Temporal(() => exports.needRemoteMinerCreep.tick(room)));
+},{"../util":"BHXf","../telemetry/efficiency":"FSRJ","../data/data":"LiCI","../data/cache/temporal":"zLvG","./behavior-tree/behavior-tree-builder":"wE6Y"}],"jrAn":[function(require,module,exports) {
 "use strict";
-
-var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
-  var c = arguments.length,
-      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
-      d;
-  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-  return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const data_1 = require("./data/data");
+const roles_1 = require("../roles");
 
-const profiler_1 = require("./telemetry/profiler");
-
-const util_1 = require("./util");
-
-const spawn_carry_creep_1 = require("./decisions/spawn-carry-creep");
-
-const spawn_harasser_creep_1 = require("./decisions/spawn-harasser-creep");
-
-const spawn_remote_miner_creep_1 = require("./decisions/spawn-remote-miner-creep");
-
-const roles_1 = require("./creep/roles");
+const util_1 = require("../../util");
 
 const mapToCost = p => BODYPART_COST[p];
 
@@ -1137,6 +1348,8 @@ class MinerCreep extends CreepType {
 
 }
 
+exports.MinerCreep = MinerCreep;
+
 class CarryCreep extends CreepType {
   constructor(lvl) {
     const body = [];
@@ -1150,6 +1363,8 @@ class CarryCreep extends CreepType {
   }
 
 }
+
+exports.CarryCreep = CarryCreep;
 
 class GeneralCreep extends CreepType {
   constructor(lvl) {
@@ -1166,6 +1381,8 @@ class GeneralCreep extends CreepType {
 
 }
 
+exports.GeneralCreep = GeneralCreep;
+
 class HarasserCreep extends CreepType {
   constructor(lvl) {
     const body = [];
@@ -1178,6 +1395,8 @@ class HarasserCreep extends CreepType {
   }
 
 }
+
+exports.HarasserCreep = HarasserCreep;
 
 class RemoteMiner extends CreepType {
   constructor(lvl) {
@@ -1193,75 +1412,86 @@ class RemoteMiner extends CreepType {
 
 }
 
+exports.RemoteMiner = RemoteMiner;
+},{"../roles":"VhlO","../../util":"BHXf"}],"5vzf":[function(require,module,exports) {
+"use strict";
+
+var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const data_1 = require("./data/data");
+
+const profiler_1 = require("./telemetry/profiler");
+
+const util_1 = require("./util");
+
+const spawn_carry_creep_1 = require("./decisions/spawn-carry-creep");
+
+const spawn_harasser_creep_1 = require("./decisions/spawn-harasser-creep");
+
+const spawn_remote_miner_creep_1 = require("./decisions/spawn-remote-miner-creep");
+
+const creep_body_1 = require("./creep/body/creep.body");
+
+const behavior_tree_builder_1 = require("./decisions/behavior-tree/behavior-tree-builder");
+
+const behavior_tree_status_1 = require("./decisions/behavior-tree/behavior-tree-status");
+
 class SpawnManager {
   constructor() {
-    this.generalCreepCount = 1;
-    this.generalCreepTypes = [...Array(6).keys()].reverse().map(lvl => new GeneralCreep(lvl));
-    this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new MinerCreep(lvl));
-    this.carryCreepTypes = [...Array(10).keys()].reverse().map(lvl => new CarryCreep(lvl));
-    this.harrasserCreepTypes = [...Array(14).keys()].reverse().map(lvl => new HarasserCreep(lvl));
-    this.remoteMinerCreepTypes = [...Array(5).keys()].reverse().map(lvl => new RemoteMiner(lvl));
+    this.removeSpawnFromAvailables = behavior_tree_builder_1.action("remove spawn from availables", s => {
+      const [x, ...remaining] = s.spawns;
+      s.spawns = remaining;
+      return !s.spawns.length ? behavior_tree_status_1.SUCCESS : behavior_tree_status_1.FAILED;
+    });
+    this.spawnTree = behavior_tree_builder_1.selector("Look for spawnable creeps", [behavior_tree_builder_1.condition("No idle spawn", s => s.spawns.length === 0), behavior_tree_builder_1.sequence("Spawn miner", [behavior_tree_builder_1.condition("less miner than source", s => data_1.data.of(s.room).minerCreeps.get().length < data_1.data.of(s.room).sources.get().length), behavior_tree_builder_1.action("spawn miner", s => this.spawnType(s.spawns[0], this.minerCreepTypes)), this.removeSpawnFromAvailables]), behavior_tree_builder_1.sequence("Spawn general", [behavior_tree_builder_1.condition("no general", s => data_1.data.of(s.room).generalCreeps.get().length === 0), behavior_tree_builder_1.action("spawn general", s => this.spawnType(s.spawns[0], this.generalCreepTypes)), this.removeSpawnFromAvailables]), behavior_tree_builder_1.sequence("Spawn carry", [behavior_tree_builder_1.mapState("", s => s.room, spawn_carry_creep_1.needMoreCarryCreepTree), behavior_tree_builder_1.action("spawn carry", s => this.spawnType(s.spawns[0], this.carryCreepTypes)), this.removeSpawnFromAvailables]), behavior_tree_builder_1.sequence("Spawn harasser", [behavior_tree_builder_1.mapState("", s => s.room, spawn_harasser_creep_1.needMoreHarasserCreepTree), behavior_tree_builder_1.action("spawn harasser", s => this.spawnType(s.spawns[0], this.harrasserCreepTypes)), this.removeSpawnFromAvailables]), behavior_tree_builder_1.sequence("Spawn remoteMiner", [behavior_tree_builder_1.mapState("", s => s.room, spawn_remote_miner_creep_1.needRemoteMinerCreep), behavior_tree_builder_1.action("spawn remoteMiner", s => this.spawnType(s.spawns[0], this.remoteMinerCreepTypes)), this.removeSpawnFromAvailables])]);
+    this.generalCreepTypes = [...Array(6).keys()].reverse().map(lvl => new creep_body_1.GeneralCreep(lvl));
+    this.minerCreepTypes = [...Array(6).keys()].reverse().map(lvl => new creep_body_1.MinerCreep(lvl));
+    this.carryCreepTypes = [...Array(10).keys()].reverse().map(lvl => new creep_body_1.CarryCreep(lvl));
+    this.harrasserCreepTypes = [...Array(14).keys()].reverse().map(lvl => new creep_body_1.HarasserCreep(lvl));
+    this.remoteMinerCreepTypes = [...Array(5).keys()].reverse().map(lvl => new creep_body_1.RemoteMiner(lvl));
 
     this.notSpawning = s => !s.spawning;
   }
 
   loop() {
     util_1.forEachRoom(room => {
-      const roomData = data_1.data.of(room);
-      const spawns = roomData.spawns.get();
-      const availableSpawns = spawns.filter(this.notSpawning);
-
-      if (availableSpawns.length === 0) {
-        return;
-      }
-
-      const spawnables = [];
-      roomData.minerCreeps.clear();
-      const spawnMiner = roomData.minerCreeps.get().length < roomData.sources.get().length;
-
-      if (spawnMiner) {
-        console.log("Spawn: miner", roomData.minerCreeps.get().length, roomData.sources.get().length);
-        spawnables.push(this.minerCreepTypes);
-        roomData.minerCreeps.clear();
-      }
-
-      if (spawn_carry_creep_1.needMoreCarryCreep.of(room).get()) {
-        spawnables.push(this.carryCreepTypes);
-        roomData.carryCreeps.clear();
-      }
-
-      if (roomData.generalCreeps.get().length < this.generalCreepCount) {
-        spawnables.push(this.generalCreepTypes);
-        roomData.generalCreeps.clear();
-      }
-
-      if (spawn_harasser_creep_1.needMoreHarasserCreep.of(room).get()) {
-        spawnables.push(this.harrasserCreepTypes);
-      }
-
-      if (spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).get()) {
-        spawnables.push(this.remoteMinerCreepTypes);
-        spawn_remote_miner_creep_1.needMoreRemoteMinerCreep.of(room).clear();
-      }
-
-      availableSpawns.forEach(spawn => {
-        const types = spawnables.shift();
-
-        if (types) {
-          const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
-
-          if (creep) {
-            const newName = spawn.createCreep(creep.body, undefined, {
-              role: creep.name,
-              home: spawn.room.name
-            });
-            console.log("Spawning new " + creep.name + " " + newName);
-            this.showSpawningLabel(spawn);
-            return;
-          }
-        }
+      const spawns = data_1.data.of(room).spawns.get().filter(this.notSpawning);
+      this.spawnTree.tick({
+        room,
+        spawns
       });
     });
+  }
+
+  spawnType(spawn, types) {
+    const creep = types.find(c => spawn.canCreateCreep(c.body) === OK);
+
+    if (!creep) {
+      return behavior_tree_status_1.FAILED;
+    }
+
+    const newName = spawn.createCreep(creep.body, undefined, {
+      role: creep.name,
+      home: spawn.room.name
+    });
+
+    if (typeof newName === "string") {
+      console.log("Spawning new " + creep.name + " " + newName);
+      this.showSpawningLabel(spawn);
+      return behavior_tree_status_1.SUCCESS;
+    } else {
+      return behavior_tree_status_1.FAILED;
+    }
   }
 
   showSpawningLabel(spawn) {
@@ -1280,7 +1510,7 @@ __decorate([profiler_1.Profile("Spawn")], SpawnManager.prototype, "loop", null);
 
 exports.SpawnManager = SpawnManager;
 exports.spawnManager = new SpawnManager();
-},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9","./decisions/spawn-remote-miner-creep":"HdgM","./creep/roles":"VhlO"}],"yJHy":[function(require,module,exports) {
+},{"./data/data":"LiCI","./telemetry/profiler":"m431","./util":"BHXf","./decisions/spawn-carry-creep":"On/S","./decisions/spawn-harasser-creep":"jBn9","./decisions/spawn-remote-miner-creep":"HdgM","./creep/body/creep.body":"jrAn","./decisions/behavior-tree/behavior-tree-builder":"wE6Y","./decisions/behavior-tree/behavior-tree-status":"x/JR"}],"yJHy":[function(require,module,exports) {
 "use strict";
 
 var __decorate = this && this.__decorate || function (decorators, target, key, desc) {
@@ -2609,7 +2839,7 @@ const util_1 = require("../util");
 
 const sumCreepEnergy = creeps => creeps.map(c => c.carry.energy || 0).reduce(util_1.sumReducer, 0);
 
-const energy = new creep_1.CreepJob('energy', '#ffaa00', 'energy', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containerOrStorage.get().filter(s => (s.store[RESOURCE_ENERGY] || 0) !== 0).filter(s => (s.store[RESOURCE_ENERGY] || 0) > c.carryCapacity), target_selection_policy_1.TargetSelectionPolicy.distance);
+const energy = new creep_1.CreepJob('energy', '#ffaa00', 'energy', (c, t) => c.withdraw(t, RESOURCE_ENERGY), (c, t) => (c.carry.energy || 0) > 0 || t.store[RESOURCE_ENERGY] === 0, c => data_1.data.of(c.room).containerOrStorage.get().filter(s => util_1.notNullOrUndefined(s.store[RESOURCE_ENERGY])).filter(s => (s.store[RESOURCE_ENERGY] || 0) !== 0).filter(s => (s.store[RESOURCE_ENERGY] || 0) > c.carryCapacity), target_selection_policy_1.TargetSelectionPolicy.distance);
 const fillSpawnOrExtension = new creep_1.CreepJob('fillSpawn', '#ffffff', 'fill:spawn', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy == 0 || t.energy == t.energyCapacity, c => data_1.data.of(c.room).extensionOrSpawns.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
 const fillTower = new creep_1.CreepJob('fillTower', '#ffffff', 'fill:tower', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => c.carry.energy === 0 || t.energy === t.energyCapacity, c => data_1.data.of(c.room).towers.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.energyCapacity - t.energy < sumCreepEnergy(ac));
 const fillCreeps = new creep_1.CreepJob('fillCreep', '#ee00aa', 'fill:creep', (c, t) => c.transfer(t, RESOURCE_ENERGY), (c, t) => !!t && (c.carry.energy === 0 || (t.carry.energy || 0) > t.carryCapacity * 0.75), c => data_1.data.of(c.room).fillableCreeps.get(), target_selection_policy_1.TargetSelectionPolicy.distance, (ac, t) => t.carryCapacity - (t.carry.energy || 0) < sumCreepEnergy(ac));
